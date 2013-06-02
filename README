@@ -6,6 +6,23 @@ QURP:
 This port is from the original source found here : https://github.com/id-Software/Quake 
 All the original lgal stuff can be found in the original readme files.
 
+
+=======================================
+Downloading
+=======================================
+1.get git
+	Sudo apt-get install git-core
+2. make a directory somewhere for qurp
+	the directory will clone with a qurp forlder at the root, so maybe be careful not to end up with 
+	something like /home/user/projects/qurp/qurp/
+3. clone qurp	
+	git clone https://github.com/welford/qurp.git
+	OR
+	git clone git://github.com/welford/qurp.git
+
+	For some reason using the 2nd option meant that i couldn't commit changed back to the respository, 
+	i'm not yet sure of the differece, but probably bext to use the first one for now
+
 =======================================
 Building
 =======================================
