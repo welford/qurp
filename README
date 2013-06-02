@@ -9,7 +9,7 @@ All the original lgal stuff can be found in the original readme files.
 =======================================
 Building
 =======================================
-	-You will to place a copy of the original games under Winquake/id1
+	-You will to place a copy of the original games files under Winquake/id1
 
 	In make.rpi chaneg the following lines to the appropriate directory:
 		MOUNT_DIR=/home/${USER}/programming/qurp/WinQuake
