@@ -17,8 +17,8 @@ endif
 
 NOARCH=noarch
 
-MOUNT_DIR=/home/${USER}/programming/quake1/WinQuake
-MASTER_DIR=/home/${USER}/programming/quake1/WinQuake
+MOUNT_DIR=$(shell pwd)
+MASTER_DIR=$(shell pwd)
 
 BUILD_DEBUG_DIR=debug$(ARCH)$(GLIBC)
 BUILD_RELEASE_DIR=release$(ARCH)$(GLIBC)
