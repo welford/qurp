@@ -257,7 +257,7 @@ void main (int argc, char **argv)
 	if (j)
 		parms.memsize = (int) (Q_atof(com_argv[j+1]) * 1024 * 1024);	
 	parms.membase = malloc (parms.memsize);
-	parms.basedir = "/home/pi/programming/quake1/WinQuake/";	
+	parms.basedir = "./";
 
 	Host_Init (&parms);
 
