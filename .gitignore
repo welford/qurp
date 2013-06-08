@@ -8,6 +8,9 @@ Winquake/debugarm/glquake
 Winquake/releasearm/glquake
 debug_gl
 release_gl
+copy_to_rpi.bat
+copy_list.txt
+exclude.txt
 
 #################
 ## Eclipse
