@@ -8,6 +8,15 @@ static const int glMajor = 3, glMinor = 2;
 #else
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
+
+#ifndef GL_RED
+#define GL_RED  GL_ALPHA
+#endif 
+
+#ifndef GL_RG
+#define GL_RG  GL_LUMINANCE_ALPHA
+#endif 
+
 #endif
 
 
