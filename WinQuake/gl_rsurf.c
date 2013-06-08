@@ -203,7 +203,6 @@ store:
 			}
 		}
 		break;
-	case GL_ALPHA:	
 	case GL_RED:	
 		bl = blocklights;
 		for (i=0 ; i<tmax ; i++, dest += stride)
@@ -1570,11 +1569,11 @@ void GL_BuildLightmaps (void)
 		lightmap_bytes = 4;
 		break;
 	case GL_RG:
-	case GL_LUMINANCE_ALPHA:
+	//case GL_LUMINANCE_ALPHA:
 		lightmap_bytes = 2;
 		break;
 	default:
-	case GL_ALPHA:	
+	//case GL_ALPHA:	
 	case GL_RED:	
 		lightmap_bytes = 1;
 		break;
