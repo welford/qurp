@@ -204,6 +204,7 @@ store:
 		}
 		break;
 	case GL_ALPHA:	
+	case GL_RED:	
 		bl = blocklights;
 		for (i=0 ; i<tmax ; i++, dest += stride)
 		{
@@ -632,7 +633,7 @@ void R_BlendLightmaps (void)
 	EnableDepth();
 	SetLightmapMode(1);
 
-	if (gl_lightmap_format == GL_ALPHA || gl_lightmap_format == GL_RGBA){
+	if (gl_lightmap_format == GL_ALPHA || gl_lightmap_format == GL_RGBA || gl_lightmap_format == GL_RED){
 		SetBlendFunc(GL_ZERO, GL_ONE_MINUS_SRC_COLOR);		
 	}
 	//else if (gl_lightmap_format == GL_INTENSITY)
@@ -704,7 +705,7 @@ void R_BlendLightmaps (void)
 
 	//glDisable (GL_BLEND);
 	DisableBlending();
-	if (gl_lightmap_format == GL_ALPHA){
+	if (gl_lightmap_format == GL_ALPHA || gl_lightmap_format == GL_RED){
 		//glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		SetBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	}
@@ -1530,6 +1531,23 @@ void GL_BuildLightmaps (void)
 		//END
 	}
 
+#ifdef _WIN32
+	gl_lightmap_format = GL_RED;
+	// default differently on the Permedia
+	if (isPermedia)
+		gl_lightmap_format = GL_RGBA;
+
+	if (COM_CheckParm ("-lm_1"))
+		gl_lightmap_format = GL_RED;
+	if (COM_CheckParm ("-lm_a"))
+		gl_lightmap_format = GL_RED;
+	if (COM_CheckParm ("-lm_i"))
+		gl_lightmap_format = GL_RED;
+	if (COM_CheckParm ("-lm_2"))
+		gl_lightmap_format = GL_RG;
+	if (COM_CheckParm ("-lm_4"))
+		gl_lightmap_format = GL_RGBA;
+#else
 	gl_lightmap_format = GL_ALPHA;
 	// default differently on the Permedia
 	if (isPermedia)
@@ -1545,17 +1563,19 @@ void GL_BuildLightmaps (void)
 		gl_lightmap_format = GL_LUMINANCE_ALPHA;
 	if (COM_CheckParm ("-lm_4"))
 		gl_lightmap_format = GL_RGBA;
-
+#endif
 	switch (gl_lightmap_format)
 	{
 	case GL_RGBA:
 		lightmap_bytes = 4;
 		break;
+	case GL_RG:
 	case GL_LUMINANCE_ALPHA:
 		lightmap_bytes = 2;
 		break;
 	default:
 	case GL_ALPHA:	
+	case GL_RED:	
 		lightmap_bytes = 1;
 		break;
 	}
@@ -1601,8 +1621,10 @@ void GL_BuildLightmaps (void)
 		//JAMES
 		GL_Bind(lightmap_textures_gl[ i ]);
 		//END		
+		
 		//glTexImage2D (GL_TEXTURE_2D, 0, texDataType[lightmap_bytes]	, BLOCK_WIDTH, BLOCK_HEIGHT, 0, gl_lightmap_format, GL_UNSIGNED_BYTE, lightmaps+i*BLOCK_WIDTH*BLOCK_HEIGHT*lightmap_bytes);
 		glTexImage2D (GL_TEXTURE_2D, 0, texDataType[lightmap_bytes]	, BLOCK_WIDTH, BLOCK_HEIGHT, 0, texDataType[lightmap_bytes], GL_UNSIGNED_BYTE, lightmaps+i*BLOCK_WIDTH*BLOCK_HEIGHT*lightmap_bytes);
+
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	}

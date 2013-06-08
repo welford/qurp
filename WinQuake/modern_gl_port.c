@@ -1,9 +1,8 @@
 #include "modern_gl_port.h"
-#ifndef USE_MAP
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
 
 #include "transforms.h"
+#include <GL/glew.h>
+#include <GL/glew.h>
 #include "glsw.h"
 #include "shader_gl.h"
 #include "vector.h"
@@ -30,14 +29,14 @@ typedef struct {
 
 //VAS_CLR
 VertexAttribute vas_clr[] = {
-	{0, COLOUR_LOCATION,	4, STREAM_FLOAT, 0, sizeof(float)*4,			   0,	1},
-	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*3, sizeof(float)*4,	0},		
+	{0, COLOUR_LOCATION,	4, STREAM_FLOAT, 0, sizeof(float)*7,			   0,	0},
+	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*7, sizeof(float)*4,	0},		
 };
 //VAS_CLR_TEX
 VertexAttribute vas_clr_tx[] = {
-	{0, COLOUR_LOCATION,	4, STREAM_FLOAT, 0, sizeof(float)*4,			   0,	1},
-	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*5, sizeof(float)*4,	0},		
-	{0, UV_LOCATION0,		2, STREAM_FLOAT, 0, sizeof(float)*5, sizeof(float)*7,	0}
+	{0, COLOUR_LOCATION,	4, STREAM_FLOAT, 0, sizeof(float)*9,			   0,	0},
+	{0, UV_LOCATION0,		2, STREAM_FLOAT, 0, sizeof(float)*9, sizeof(float)*4,	0},
+	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*9, sizeof(float)*6,	0}	
 };
 //VAS_VTX_CLR
 VertexAttribute vas_vtx_clr[] = {
@@ -47,14 +46,14 @@ VertexAttribute vas_vtx_clr[] = {
 //VAS_VTX_CLR_TEX
 VertexAttribute vas_vtx_clr_tx[] = {
 	{0, COLOUR_LOCATION,	4, STREAM_FLOAT, 0, sizeof(float)*9,			   0,	0},
-	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*9, sizeof(float)*4,	0},
-	{0, UV_LOCATION0,		2, STREAM_FLOAT, 0, sizeof(float)*9, sizeof(float)*7,	0}
+	{0, UV_LOCATION0,		2, STREAM_FLOAT, 0, sizeof(float)*9, sizeof(float)*4,	0},
+	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*9, sizeof(float)*6,	0}
 };
 //VAS_VTX_CLR8_TEX
 VertexAttribute vas_vtx_clr8_tx[] = {
 	{0, COLOUR_LOCATION,	4, STREAM_UCHAR, 1, sizeof(float)*6,			   0,	0},
-	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*6, sizeof(float)*1,	0},
-	{0, UV_LOCATION0,		2, STREAM_FLOAT, 0, sizeof(float)*6, sizeof(float)*4,	0}
+	{0, UV_LOCATION0,		2, STREAM_FLOAT, 0, sizeof(float)*6, sizeof(float)*1,	0},
+	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*6, sizeof(float)*3,	0}
 };
 
 
@@ -159,11 +158,20 @@ typedef struct _VtxData{
 	unsigned int has_texture;
 
 	float *	p_pre_gl_buffer;
-	float *	p_buffer_loc;
+	//float *	p_buffer_loc;
 }VtxData;
 
-static VtxData vtx = {	VAS_CLR,0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0};
-static VtxData vtx_fallback = {	VAS_CLR,0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0};
+static VtxData vtx = {	VAS_CLR,0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0};
+static VtxData vtx_fallback = {	VAS_CLR,0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0};
+
+typedef struct _VtxOffsets{
+	int clr;
+	int position;
+	int uv;
+	unsigned int total;
+}VtxOffsets;
+static VtxOffsets vtx_offsets = {0, 4, -1, 0};
+
 
 int inbetween_start_end				= 0;
 int transform_dirty = 0;
@@ -291,20 +299,17 @@ static void SetAttributeFormat( const VertexAttribute* pAttr, unsigned int numAt
 			BindBuffer(GL_ARRAY_BUFFER, pAttr[i].vbo);
 
 		glEnableVertexAttribArray(pAttr[i].idx);
-		glVertexAttribDivisor(pAttr[i].idx, pAttr[i].divisor);
 		
 		switch(pAttr[i].type)
 		{
 		default:
 		case STREAM_FLOAT:			
-		case STREAM_UCHAR:
-			glVertexAttribPointer(pAttr[i].idx, pAttr[i].size, enumToGLAttribType[ pAttr[i].type ], pAttr[i].normalized, pAttr[i].stride, BUFFER_OFFSET(v_offset + pAttr[i].offset));
-			break;		
+		case STREAM_UCHAR:			
 		case STREAM_CHAR:		
 		case STREAM_SHORT:
 		case STREAM_INT:
-			glVertexAttribIPointer(pAttr[i].idx, pAttr[i].size, enumToGLAttribType[ pAttr[i].type ], pAttr[i].stride, BUFFER_OFFSET(v_offset + pAttr[i].offset));
-			break;
+			glVertexAttribPointer(pAttr[i].idx, pAttr[i].size, enumToGLAttribType[ pAttr[i].type ], pAttr[i].normalized, pAttr[i].stride, BUFFER_OFFSET(v_offset + pAttr[i].offset));
+			break;		
 		}
 		if(pAttr[i].vbo != 0)
 			BindBuffer(GL_ARRAY_BUFFER, currentVBO);
@@ -313,10 +318,34 @@ static void SetAttributeFormat( const VertexAttribute* pAttr, unsigned int numAt
 }
 
 void SetVertexMode(const VertexAttributeState state){
+	int i=0;
 	if(vtx.vertex_state != state){
 		//update the state
 		SetAttributeFormat(vas[state].p_a_vtx_attr, vas[state].num_attr, 0);
 		vtx.vertex_state = state;
+
+		//- - - - - - - - - - - - - - 
+		//set the vertex offsets
+		//- - - - - - - - - - - - - - 
+		vtx.vertex_state = state;
+		vtx_offsets.clr = -1;
+		vtx_offsets.position = -1;
+		vtx_offsets.uv = -1;
+		vtx_offsets.total = 0;
+
+		for(i=0;i<vas[state].num_attr;i++){
+			if(vas[state].p_a_vtx_attr[i].idx ==COLOUR_LOCATION){
+				vtx_offsets.clr = vas[state].p_a_vtx_attr[i].offset / sizeof(float);				
+			}
+			if(vas[state].p_a_vtx_attr[i].idx ==POSITION_LOCATION){
+				vtx_offsets.position = vas[state].p_a_vtx_attr[i].offset / sizeof(float);
+
+				vtx_offsets.total = vas[state].p_a_vtx_attr[i].stride / sizeof(float);
+			}
+			if(vas[state].p_a_vtx_attr[i].idx ==UV_LOCATION0){
+				vtx_offsets.uv = vas[state].p_a_vtx_attr[i].offset / sizeof(float);
+			}
+		}
 	}
 }
 
@@ -493,9 +522,7 @@ void StartupModernGLPatch(){
 	// - - - - - - - - - - - - - - - -
 	//Allocate float data 
 	// - - - - - - - - - - - - - - - -
-	vtx.p_pre_gl_buffer = (float*)malloc(vtx.vbo_capacity);
-	//vtx.p_buffer_loc = vtx.p_pre_gl_buffer + 4;
-	vtx.p_buffer_loc = vtx.p_pre_gl_buffer;
+	vtx.p_pre_gl_buffer = (float*)malloc(vtx.vbo_capacity);	
 
 	// - - - - - - - - - - - - - - - -
 	//
@@ -503,25 +530,6 @@ void StartupModernGLPatch(){
 	InitialiseStack(transform_stack_size);
 
 	CreateDebugTextures();
-}
-
-
-static int PreAddVertexCheck(const VtxDataType type){
-	if(vtx.n_vertices == 0 && type != VTX_COLOUR && vtx.has_colour == 0){
-		//we need to add a color
-		AddVertex4D(VTX_COLOUR, 1, 1, 1, 1);
-		vtx.has_colour = 1;
-		return 1;
-	}
-	return 0;
-}
-static void PostAddVertexCheck(const VtxDataType type){
-	if(type == VTX_POSITION)
-		vtx.n_vertices++;
-	if(type == VTX_TEXTURE)
-		vtx.has_texture = 1;
-	if(type == VTX_COLOUR)
-		vtx.has_colour = 1;
 }
 
 static unsigned int num_draw_calls = 0;
@@ -655,12 +663,46 @@ void EndDrawing(){
 }
 
 
+static int PreAddVertexCheck(const VtxDataType type){
+	if(type == VTX_POSITION){
+		int n_verts = vtx.n_vertices+1;
+		//set the next color, uv etc to the default values
+		if(vtx_offsets.clr >= 0){
+			vtx.p_pre_gl_buffer[(n_verts * vtx_offsets.total) + vtx_offsets.clr + 0] = current_render_state.red;
+			vtx.p_pre_gl_buffer[(n_verts * vtx_offsets.total) + vtx_offsets.clr + 1] = current_render_state.green;
+			vtx.p_pre_gl_buffer[(n_verts * vtx_offsets.total) + vtx_offsets.clr + 2] = current_render_state.blue;
+			vtx.p_pre_gl_buffer[(n_verts * vtx_offsets.total) + vtx_offsets.clr + 3] = current_render_state.alpha;
+		}
+		//don't set the others
+		if(vtx_offsets.position >= 0){
+			//vtx.p_pre_gl_buffer[(n_verts * vtx_offsets.total) + vtx_offsets.position + 0] = 0;
+			//vtx.p_pre_gl_buffer[(n_verts * vtx_offsets.total) + vtx_offsets.position + 1] = 0;
+			//vtx.p_pre_gl_buffer[(n_verts * vtx_offsets.total) + vtx_offsets.position + 2] = 0;		
+		}
+		if(vtx_offsets.uv >= 0){
+			//vtx.p_pre_gl_buffer[(n_verts * vtx_offsets.total) + vtx_offsets.uv + 0] = 0;
+			//vtx.p_pre_gl_buffer[(n_verts * vtx_offsets.total) + vtx_offsets.uv + 1] = 0;
+		}		
+	}	
+	return vtx.n_vertices;
+}
+static void PostAddVertexCheck(const VtxDataType type){
+	if(type == VTX_POSITION){
+		vtx.n_vertices++;
+		vtx.vbo_num_floats = vtx_offsets.total * vtx.n_vertices;
+		vtx.vbo_size = vtx.vbo_num_floats * sizeof( float );
+	}
+	if(type == VTX_TEXTURE)
+		vtx.has_texture = 1;
+	if(type == VTX_COLOUR)
+		vtx.has_colour = 1;
+}
+
 //buffer overflow fix
 //render to the last safe point and then 
 //copy the new data back
 static void TransferAndDrawFromLastSafePoint(){	
-	if(vtx.n_vertices != vtx_fallback.n_vertices)
-	{
+	if(vtx.n_vertices != vtx_fallback.n_vertices){
 		VtxData tmp = vtx;
 		vtx = vtx_fallback;
 		TransferAndDraw();
@@ -672,14 +714,10 @@ static void TransferAndDrawFromLastSafePoint(){
 
 		//copy from the end of the buffer to the start
 		//there should be no worry of overlaps
-		//+4 because we want to keep the colour values 
-		//which are always stored at the start of the buffer
-		//memcpy(vtx.p_pre_gl_buffer+4, vtx_fallback.p_buffer_loc, vtx.vbo_size);
-		memcpy(vtx.p_pre_gl_buffer, vtx_fallback.p_buffer_loc, vtx.vbo_size);
-
-		//set offset pointer back to the start
-		//vtx.p_buffer_loc = vtx.p_pre_gl_buffer + 4 + (tmp.p_buffer_loc - vtx_fallback.p_buffer_loc);
-		vtx.p_buffer_loc = vtx.p_pre_gl_buffer + (tmp.p_buffer_loc - vtx_fallback.p_buffer_loc);
+		//memcpy(vtx.p_pre_gl_buffer, vtx_fallback.p_buffer_loc, vtx.vbo_size);
+		memcpy(vtx.p_pre_gl_buffer, 
+			vtx_fallback.p_pre_gl_buffer+ vtx_fallback.vbo_num_floats
+			, vtx.vbo_size);		
 	}
 	else{
 		TransferAndDraw();
@@ -687,36 +725,61 @@ static void TransferAndDrawFromLastSafePoint(){
 }
 
 void AddVertex2D(const VtxDataType type, const float x, const float y){
-	PreAddVertexCheck(type);
+	int vtx_idx = 0;//
+	vtx_idx = PreAddVertexCheck(type);
 	if(type == VTX_COLOUR)
 		return;
 
 	if(vtx.vbo_size + sizeof( float ) * 2 >= vtx.vbo_capacity){
 		TransferAndDrawFromLastSafePoint();
 	}
-
-	*vtx.p_buffer_loc++ = x;
-	*vtx.p_buffer_loc++ = y;
-	vtx.vbo_num_floats = (vtx.p_buffer_loc - vtx.p_pre_gl_buffer);
-	vtx.vbo_size = vtx.vbo_num_floats * sizeof( float );
 	
+	if(type == VTX_POSITION && vtx_offsets.position >= 0){
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.position + 0] = x;
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.position + 1] = y;
+	}
+	if(type == VTX_COLOUR && vtx_offsets.clr >= 0){
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.clr + 0] = x;
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.clr + 1] = y;
+	}
+	if(type == VTX_TEXTURE && vtx_offsets.uv >= 0){
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.uv + 0] = x;
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.uv + 1] = y;
+	}
+	//vtx.vbo_num_floats = (vtx.p_buffer_loc - vtx.p_pre_gl_buffer);
+		
 	PostAddVertexCheck(type);
 }
 
 void AddVertex3D(const VtxDataType type, const float x, const float y, const float z){
-	PreAddVertexCheck(type);
+	int vtx_idx = 0;//
+	vtx_idx = PreAddVertexCheck(type);
 	if(type == VTX_COLOUR)
 		return;
 	if(vtx.vbo_size + sizeof( float ) * 3 >= vtx.vbo_capacity){
 		TransferAndDrawFromLastSafePoint();
 	}
 
-	*vtx.p_buffer_loc++ = x;
-	*vtx.p_buffer_loc++ = y;
-	*vtx.p_buffer_loc++ = z;
-	vtx.vbo_num_floats = (vtx.p_buffer_loc - vtx.p_pre_gl_buffer);
-	vtx.vbo_size = vtx.vbo_num_floats * sizeof( float );
-	
+	//*vtx.p_buffer_loc++ = x;
+	//*vtx.p_buffer_loc++ = y;
+	//*vtx.p_buffer_loc++ = z;
+	//vtx.vbo_num_floats = (vtx.p_buffer_loc - vtx.p_pre_gl_buffer);
+	if(type == VTX_POSITION && vtx_offsets.position >= 0){
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.position + 0] = x;
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.position + 1] = y;
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.position + 2] = z;
+	}
+	if(type == VTX_COLOUR && vtx_offsets.clr >= 0){
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.clr + 0] = x;
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.clr + 1] = y;
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.clr + 2] = z;
+	}
+	if(type == VTX_TEXTURE && vtx_offsets.uv >= 0){
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.uv + 0] = x;
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.uv + 1] = y;
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.uv + 2] = z;
+	}
+
 	PostAddVertexCheck(type);
 }
 
@@ -732,64 +795,40 @@ static int IsPerVertexColour(){
 
 void AddVertex4D(const VtxDataType type, const float x, const float y, const float z, const float w){
 	unsigned int same_colour = 0;
+	int vtx_idx = 0;//
 	int per_vertex_colour = IsPerVertexColour();
-	PreAddVertexCheck(type);
+	vtx_idx = PreAddVertexCheck(type);
 
 	if(vtx.vbo_size + sizeof( float ) * 4 >= vtx.vbo_capacity){
 		TransferAndDrawFromLastSafePoint();
 	}
 
-	if(type == VTX_COLOUR && !per_vertex_colour){
-		next_render_state.red = x;
-		next_render_state.green = y;
-		next_render_state.blue = z;
-		next_render_state.alpha = w;
-		same_colour = SameColour();
+	if(type == VTX_POSITION && vtx_offsets.position >= 0){
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.position + 0] = x;
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.position + 1] = y;
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.position + 2] = z;
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.position + 3] = w;
+	}
+	if(type == VTX_COLOUR && vtx_offsets.clr >= 0){
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.clr + 0] = x;
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.clr + 1] = y;
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.clr + 2] = z;
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.clr + 3] = w;
 
-		//if the color is different from last time 
-		//and we are at a point where we can draw then draw what we have up until now
-		//vtx.p_buffer_loc - vtx.p_pre_gl_buffer <= 4 
-		if( vtx.n_vertices != 0 && !same_colour ){
-			//if we are drawing triangles and at the right point : draw them and continue as normal
-			//if we are drawing triangle_styips and at the right point : draw them and continue as normal
-			//if we are drawing points : draw them and continue as normal
-
-			if( (current_render_state.render_mode == RNDR_TRIANGLES && vtx.n_vertices%3 == 0)
-				|| ( current_render_state.render_mode == RNDR_TRIANGLE_STRIP && vtx.n_vertices >= 3)
-				|| ( current_render_state.render_mode == RNDR_TRIANGLE_FAN && vtx.n_vertices >= 3)
-				|| (current_render_state.render_mode == RNDR_POINTS)
-				)
-			{
-				TransferAndDraw();
-			}
-			else{
-				//not sure of the correct thing to do here
-				//just return fo rnow
-				return;
-			}			
-		}		
-		else if(vtx.n_vertices != 0 && same_colour){
-			return;
-		}
-		else if(vtx.n_vertices == 0 && !same_colour){
-			//update the old color, so we don't get and erroneous
-			//state change later on
-			current_render_state.red	= x;
-			current_render_state.green	= y;
-			current_render_state.blue	= z;
-			current_render_state.alpha	= w;			
-		}
+		current_render_state.red	= x;
+		current_render_state.green	= y;
+		current_render_state.blue	= z;
+		current_render_state.alpha	= w;			
+	}
+	if(type == VTX_TEXTURE && vtx_offsets.uv >= 0){
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.uv + 0] = x;
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.uv + 1] = y;
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.uv + 2] = z;
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.uv + 3] = w;
 	}
 
-	// - - - - - - - - - - - - - - - - - - - - -
-	// - - - - - - - - - - - - - - - - - - - - -
-	*vtx.p_buffer_loc++ = x;
-	*vtx.p_buffer_loc++ = y;
-	*vtx.p_buffer_loc++ = z;
-	*vtx.p_buffer_loc++ = w;
-
-	vtx.vbo_num_floats = (vtx.p_buffer_loc - vtx.p_pre_gl_buffer);
-	vtx.vbo_size = vtx.vbo_num_floats * sizeof( float );
+	//vtx.vbo_num_floats = (vtx.p_buffer_loc - vtx.p_pre_gl_buffer);
+	//vtx.vbo_size = vtx.vbo_num_floats * sizeof( float );
 
 	PostAddVertexCheck(type);
 }
@@ -801,55 +840,13 @@ void AddVertex4Db(const VtxDataType type, const unsigned char r, const unsigned 
 	  unsigned char clr[4];
 	  float f;
 	} uClr;
-
+	int vtx_idx = 0;//
 	unsigned int same_colour = 0;
 	int per_vertex_colour = IsPerVertexColour();
-	PreAddVertexCheck(type);
+	vtx_idx = PreAddVertexCheck(type);
 
 	if(vtx.vbo_size + sizeof( float ) * 4 >= vtx.vbo_capacity){
 		TransferAndDrawFromLastSafePoint();
-	}
-
-	if(type == VTX_COLOUR && !per_vertex_colour){
-		next_render_state.red = (float)r;
-		next_render_state.green = (float)g;
-		next_render_state.blue = (float)b;
-		next_render_state.alpha = (float)a;
-		same_colour = SameColour();
-
-		//if the color is different from last time 
-		//and we are at a point where we can draw then draw what we have up until now
-		//vtx.p_buffer_loc - vtx.p_pre_gl_buffer <= 4 
-		if( vtx.n_vertices != 0 && !same_colour ){
-			//if we are drawing triangles and at the right point : draw them and continue as normal
-			//if we are drawing triangle_styips and at the right point : draw them and continue as normal
-			//if we are drawing points : draw them and continue as normal
-
-			if( (current_render_state.render_mode == RNDR_TRIANGLES && vtx.n_vertices%3 == 0)
-				|| ( current_render_state.render_mode == RNDR_TRIANGLE_STRIP && vtx.n_vertices >= 3)
-				|| ( current_render_state.render_mode == RNDR_TRIANGLE_FAN && vtx.n_vertices >= 3)
-				|| (current_render_state.render_mode == RNDR_POINTS)
-				)
-			{
-				TransferAndDraw();
-			}
-			else{
-				//not sure of the correct thing to do here
-				//just return fo rnow
-				return;
-			}			
-		}		
-		else if(vtx.n_vertices != 0 && same_colour){
-			return;
-		}
-		else if(vtx.n_vertices == 0 && !same_colour){
-			//update the old color, so we don't get and erroneous
-			//state change later on
-			current_render_state.red	= (float)r;
-			current_render_state.green	= (float)g;
-			current_render_state.blue	= (float)b;
-			current_render_state.alpha	= (float)a;			
-		}
 	}
 	uClr.clr[0] = r;
 	uClr.clr[1] = g;
@@ -858,13 +855,22 @@ void AddVertex4Db(const VtxDataType type, const unsigned char r, const unsigned 
 
 	// - - - - - - - - - - - - - - - - - - - - -
 	// - - - - - - - - - - - - - - - - - - - - -
-	*vtx.p_buffer_loc++ = uClr.f;
+	if(type == VTX_POSITION && vtx_offsets.position >= 0){
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.position + 0] = uClr.f;
+	}
+	if(type == VTX_COLOUR && vtx_offsets.clr >= 0){
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.clr + 0] = uClr.f;
+	}
+	if(type == VTX_TEXTURE && vtx_offsets.uv >= 0){
+		vtx.p_pre_gl_buffer[(vtx_idx * vtx_offsets.total) + vtx_offsets.uv + 0] = uClr.f;
+	}
+	//*vtx.p_buffer_loc++ = uClr.f;
 	//*vtx.p_buffer_loc++ = y;
 	//*vtx.p_buffer_loc++ = z;
 	//*vtx.p_buffer_loc++ = w;
 
-	vtx.vbo_num_floats = (vtx.p_buffer_loc - vtx.p_pre_gl_buffer);
-	vtx.vbo_size = vtx.vbo_num_floats * sizeof( float );
+	//vtx.vbo_num_floats = (vtx.p_buffer_loc - vtx.p_pre_gl_buffer);
+	//vtx.vbo_size = vtx.vbo_num_floats * sizeof( float );
 
 	PostAddVertexCheck(type);
 }
@@ -883,7 +889,7 @@ static void SetGLRenderState(void){
 		glDisable (GL_DEPTH_TEST);
 
 	glDepthMask(current_render_state.depth_mask);
-	glDepthRange(current_render_state.depth_min, current_render_state.depth_max);
+	//glDepthRange(current_render_state.depth_min, current_render_state.depth_max);
 
 	if(current_render_state.enable_cull)
 		glEnable ( GL_CULL_FACE );
@@ -917,7 +923,7 @@ static void ResetVtxData(void){
 	vtx.n_vertices = 0;
 	vtx.has_colour = 0;
 	//vtx.p_buffer_loc = vtx.p_pre_gl_buffer+4;
-	vtx.p_buffer_loc = vtx.p_pre_gl_buffer;
+	//vtx.p_buffer_loc = vtx.p_pre_gl_buffer;
 	vtx.vbo_size = 0;
 }
 
@@ -926,9 +932,9 @@ void TransferAndDraw(void){
 	// - - - - - - - - - - - - - - - - - -
 	// check that we are in good condition to 
 	// render
-	if (vtx.p_buffer_loc - vtx.p_pre_gl_buffer <= 4 
-		|| (current_render_state.render_mode == RNDR_TRIANGLES && vtx.n_vertices%3 != 0)
-		|| vtx.n_vertices == 0 		 
+	if (//vtx.p_buffer_loc - vtx.p_pre_gl_buffer <= 4 || 
+		(current_render_state.render_mode == RNDR_TRIANGLES && vtx.n_vertices%3 != 0) || 
+		vtx.n_vertices == 0 		 
 		){
 		ResetVtxData();
 		if(HasRenderStateChanged()){
@@ -958,7 +964,9 @@ void TransferAndDraw(void){
 	BindVAO();	
 	
 	glDrawArrays(render_modes[current_render_state.render_mode], 0, vtx.n_vertices);
-	Stop();
+
+	//Stop();
+	glBufferData(GL_ARRAY_BUFFER, GRANULARITY, 0, GL_DYNAMIC_DRAW);
 	
 	// - - - - - - - - - - - - - - - - - -
 	//reset temp draw stuff
@@ -1064,7 +1072,7 @@ void ShutdownModernGLPatch(){
 		free(vtx.p_pre_gl_buffer);
 		vtx.p_pre_gl_buffer = 0;
 	}
-	vtx.p_buffer_loc = 0;
+	//vtx.p_buffer_loc = 0;
 
 	DeleteShaderProgram(&texture_shader);
 	DeleteShaderProgram(&colour_shader);
@@ -1072,5 +1080,3 @@ void ShutdownModernGLPatch(){
 	glswShutdown();
 	DestroyStack();
 }
-
-#endif

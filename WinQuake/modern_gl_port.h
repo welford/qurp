@@ -1,8 +1,15 @@
 #ifndef _MODERN_GL_PORT_H_
 #define _MODERN_GL_PORT_H_
 
+#ifdef _WIN32
+static const int glMajor = 3, glMinor = 2;
+#include <GL/glew.h>
+#include <GL/glu.h>
+#else
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
+#endif
+
 
 #define POSITION_LOCATION		0
 #define COLOUR_LOCATION			1
@@ -60,7 +67,11 @@ typedef struct _VertexAttribute
 	unsigned int	divisor; //for instancing	
 }VertexAttribute;
 
-static GLenum texDataType[5] = {GL_ALPHA, GL_ALPHA, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA};
+#ifdef _WIN32
+	static GLenum texDataType[5] = {GL_RED, GL_RED, GL_RG, GL_RGB, GL_RGBA};
+#else
+	static GLenum texDataType[5] = {GL_ALPHA, GL_ALPHA, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA};
+#endif
 
 extern void StartupModernGLPatch();
 

@@ -1,4 +1,15 @@
 #################
+## Project specific
+#################
+bin/
+tmp/
+Winquake/id1/
+Winquake/debugarm/glquake
+Winquake/releasearm/glquake
+debug_gl
+release_gl
+
+#################
 ## Eclipse
 #################
 

@@ -1266,7 +1266,6 @@ VID_GetModePtr
 */
 vmode_t *VID_GetModePtr (int modenum)
 {
-
 	if ((modenum >= 0) && (modenum < nummodes))
 		return &modelist[modenum];
 	else
