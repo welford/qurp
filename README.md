@@ -1,31 +1,28 @@
 =======================================
-QURP:
+QURP
 =======================================
-A barebones port of quake one for the Raspberry Pi
+###Quake Raspberry Pi Edition.
 
-This port is from the original source found here : https://github.com/id-Software/Quake 
-All the original lgal stuff can be found in the original readme files.
+This barebones port is from the original source found here : https://github.com/id-Software/Quake 
+All the original legal stuff can be found in the original readme files.
 
 Downloading
 ------------------------
 
-1.get git
-Sudo apt-get install git-core
-
-2. make a directory somewhere for qurp
+1. Get git ``Sudo apt-get install git-core``
+2. Make a directory somewhere for qurp
 the directory will clone with a qurp forlder at the root, so maybe be careful not to end up with something like /home/user/projects/qurp/qurp/
-
-3. clone qurp	
-git clone https://github.com/welford/qurp.git
+3. Clone qurp	
+``git clone https://github.com/welford/qurp.git``
 OR
-git clone git://github.com/welford/qurp.git
+``git clone git://github.com/welford/qurp.git``
 
-For some reason using the 2nd option meant that i couldn't commit changed back to the respository, 	i'm not yet sure of the differece, but probably bext to use the first one for now
+For some reason using the 2nd option meant that I couldn't commit changed back to the respository, 	i'm not yet sure of the differnce, but probably bext to use the first one for now
 
 Building
 ------------------------
 
-You will to place a copy of the original games files under Winquake/id1
+You will need to place a copy of the original games files under Winquake/id1. It doesn't *yet* work with the shareware version.
 
 - Be wary that linux's file system is case sensitive, if you see a PAK0.pak or PAK1.pak within the Winquake/id1 folder rename them to pak0.pak and pak1.pak respectivly 
 
@@ -48,11 +45,14 @@ run the game with the commands:
 Issues
 ------------------------
 
-- The release version crashes on starting the game from the main menu, it will run the demos though
-- no mouse support & poor keyboard support
-  might i sbe better to use SDL? can it be included as an internal library?
+- ~~The release version crashes on starting the game from the main menu, it will run the demos though~~ Fixed 
+ 
+- No mouse support & poor keyboard support
+  might it be better to use SDL? Can it be included as an internal library?
+
 - Performance Issues
   The graphics commands probably need a big overhaul, currently the wrapper created one big VBO 
   which is filled until a state change is made that would require a flush of the previously buffered commands
   It's almost definitely better to create VBOs for individual data where possible and upload the vertices only once.
+
 - Lots of others
