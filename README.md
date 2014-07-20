@@ -1,7 +1,7 @@
 =======================================
 QURP:
 =======================================
--A barebones port of quake one for the Raspberry Pi
+A barebones port of quake one for the Raspberry Pi
 
 This port is from the original source found here : https://github.com/id-Software/Quake 
 All the original lgal stuff can be found in the original readme files.
