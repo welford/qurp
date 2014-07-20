@@ -862,7 +862,9 @@ void COM_FileBase (char *in, char *out)
 	while (s != in && *s != '.')
 		s--;
 	
-	for (s2 = s ; *s2 && *s2 != '/' ; s2--)
+	//JWA
+	//added a check to make sure s2 doesn't just walk pask the beginning of in
+	for (s2 = s ; *s2 && *s2 != '/' && s2 >= in; s2--)
 	;
 	
 	if (s-s2 < 2)
@@ -1534,10 +1536,10 @@ byte    *loadbuf;
 int             loadsize;
 byte *COM_LoadFile (char *path, int usehunk)
 {
-	int             h;
-	byte    *buf;
-	char    base[32];
-	int             len;
+	int		h;
+	byte	*buf;
+	char	base[32];
+	int		len;
 
 	buf = NULL;     // quiet compiler warning
 
@@ -1697,6 +1699,7 @@ void COM_AddGameDirectory (char *dir)
 
 	strcpy (com_gamedir, dir);
 
+	
 //
 // add the directory to the search path
 //
