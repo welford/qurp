@@ -27,15 +27,23 @@ Building
 
 You will to place a copy of the original games files under Winquake/id1
 
-	Be wary that linux's file system is case sensitive, if you see a PAK0.pak or PAK1.pak within the Winquake/id1 folder rename them to pak0.pak and pak1.pak respectivly 
+- Be wary that linux's file system is case sensitive, if you see a PAK0.pak or PAK1.pak within the Winquake/id1 folder rename them to pak0.pak and pak1.pak respectivly 
 
 In my case I have qurp installed in /home/pi/programming/qurp
 
 Navigate to [installed directory]/Winquake and run either
-	./Build.sh build_debug 
-	./Build.sh build_release
-	
+```bash
+./build.sh build_debug 
+./build.sh build_release
+```
 
+Which will build the game into  [installed directory]/WinQuake/debugarm/bin or  [installed directory]/WinQuake/releasearm/bin respectively
+
+run the game with the commands:
+```bash
+./releasearm/bin/glquake
+./debugarm/bin/glquake
+```
 
 Issues
 ------------------------
