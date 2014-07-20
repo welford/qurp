@@ -11,8 +11,10 @@ Downloading
 
 1.get git
 Sudo apt-get install git-core
+
 2. make a directory somewhere for qurp
 the directory will clone with a qurp forlder at the root, so maybe be careful not to end up with something like /home/user/projects/qurp/qurp/
+
 3. clone qurp	
 git clone https://github.com/welford/qurp.git
 OR
@@ -23,7 +25,8 @@ For some reason using the 2nd option meant that i couldn't commit changed back t
 Building
 ------------------------
 
--You will to place a copy of the original games files under Winquake/id1
+You will to place a copy of the original games files under Winquake/id1
+##be wary that linux's file system is case sensitive, if you see a PAK0.pak or PAK1.pak within the Winquake/id1 folder rename them to pak0.pak and pak1.pak respectivly 
 
 In my case I have qurp installed in /home/pi/programming/qurp
 
