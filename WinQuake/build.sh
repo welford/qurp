@@ -28,7 +28,7 @@ echo "- - - - - - - - - - - - - - - "
 make -j4 -f make.rpi $1 ARCH=arm \
 	CC=""$CROSS_COMPILE"gcc" USE_SVN=0 USE_CURL=0 USE_OPENAL=0 \
 	CFLAGS="-DUSE_GLES -march=armv6 -mfpu=vfp -mfloat-abi=hard $INCLUDES" \
-	LDFLAGS="-L"$ARM_LIBS" -lvchostif -lvmcs_rpc_client -lvcfiled_check -lbcm_host -lkhrn_static -lvchiq_arm -lopenmaxil -L/opt/vc/lib/ -lEGL -lGLESv2 -lvcos -lrt"
+	LDFLAGS="-pthread -lm -L"$ARM_LIBS" -lvchostif -lvmcs_rpc_client -lvcfiled_check -lbcm_host -lkhrn_static -lvchiq_arm -lopenmaxil -L/opt/vc/lib/ -lEGL -lGLESv2 -lvcos -lrt"
 	
 # copy the required pak3 files over
 # cp "$BASEQ3_DIR"/baseq3/*.pk3 "build/release-linux-arm/baseq3/"
