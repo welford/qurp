@@ -231,7 +231,7 @@ static int HasRenderStateChanged(){
 
 	if(current_render_state.cull_mode != next_render_state.cull_mode)
 		return 1;
-
+	/*
 	if(current_render_state.red > next_render_state.red + EPSILON 
 		|| current_render_state.red < next_render_state.red - EPSILON)
 		return 1;
@@ -244,7 +244,7 @@ static int HasRenderStateChanged(){
 	if(current_render_state.alpha > next_render_state.alpha + EPSILON 
 		|| current_render_state.alpha < next_render_state.alpha - EPSILON)
 		return 1;
-
+	*/
 	if(current_render_state.lightmap_mode != next_render_state.lightmap_mode)
 		return 1;
 	return 0;
@@ -889,7 +889,7 @@ static void SetGLRenderState(void){
 		glDisable (GL_DEPTH_TEST);
 
 	glDepthMask(current_render_state.depth_mask);
-	//glDepthRange(current_render_state.depth_min, current_render_state.depth_max);
+	glDepthRange(current_render_state.depth_min, current_render_state.depth_max);
 
 	if(current_render_state.enable_cull)
 		glEnable ( GL_CULL_FACE );

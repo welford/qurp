@@ -54,11 +54,13 @@ int		gl_lightmap_format = GL_RGBA;
 int		gl_solid_format = 3;
 int		gl_alpha_format = 4;
 
+#ifdef LINEAR_TEXTURES
 int		gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
 int		gl_filter_max = GL_LINEAR;
-//int		gl_filter_min = GL_NEAREST;
-//int		gl_filter_max = GL_NEAREST;
-
+#else
+int		gl_filter_min = GL_NEAREST;
+int		gl_filter_max = GL_NEAREST;
+#endif
 
 int		texels;
 
@@ -803,8 +805,13 @@ void Draw_TransPicTranslate (int x, int y, qpic_t *pic, byte *translation)
 	glTexImage2D (GL_TEXTURE_2D, 0, texDataType[gl_alpha_format], 64, 64, 0, texDataType[gl_alpha_format], GL_UNSIGNED_BYTE, trans);
 	//END
 
+#ifdef LINEAR_TEXTURES
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+#else
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+#endif
 
 	//JAMES	
 	SetVertexMode(VAS_CLR_TEX);
@@ -1409,7 +1416,7 @@ static	unsigned	trans[640*480];		// FIXME, temporary
 }
 
 //see http://forums.inside3d.com/viewtopic.php?f=12&t=1899&view=previous
-int GL_CleanupTextures (void)
+void GL_CleanupTextures (void)
 {
 	int i = 0, j = 0;
 	if (gl_cleanup_textures.value == 0)	{		

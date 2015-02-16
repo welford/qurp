@@ -69,7 +69,7 @@ static const int TEX_TYPE_MAP = 0x01;
 
 int GL_LoadTexture (char *identifier, int width, int height, byte *data, qboolean mipmap, qboolean alpha, const int type);
 int GL_FindTexture (char *identifier);
-int GL_CleanupTextures (void);
+void GL_CleanupTextures (void);
 
 typedef struct
 {

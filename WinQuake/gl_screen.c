@@ -530,7 +530,7 @@ void SCR_SetUpToDrawConsole (void)
 	else if (key_dest == key_console)
 		scr_conlines = vid.height/2;	// half screen
 	else
-		scr_conlines = vid.height/4;	// none visible
+		scr_conlines = 0;	// none visible
 	
 	if (scr_conlines < scr_con_current)
 	{
@@ -941,8 +941,7 @@ void SCR_UpdateScreen (void)
 		SCR_DrawTurtle ();
 		SCR_DrawPause ();
 		SCR_CheckDrawCenterString ();
-		Sbar_Draw ();
-		
+		Sbar_Draw ();		
 		SCR_DrawConsole ();				
 		M_Draw ();
 	}
@@ -957,5 +956,6 @@ void SCR_UpdateScreen (void)
 	dcs += dcs1;
 
 	//Con_Printf("---number of calls : %d, size of data : %d\n", dcc1, dcs1);
+	//printf("---number of calls : %d, size of data : %d\n", dcc1, dcs1);
 	GL_EndRendering ();
 }

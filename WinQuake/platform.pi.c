@@ -6,6 +6,8 @@
 #include <bcm_host.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
 #include <assert.h>
 #include <fcntl.h>
 #include <string.h>
@@ -100,7 +102,6 @@ int Create(CPlatform* pPlatform, char* title, int glMajor, int glMinor,  int wid
 	pPlatform->m_size.x = width;
 	pPlatform->m_size.y = height;
 
-	EGLint * pegl = 0;
 	EGLint attribute_list[] =
 	{
 		EGL_RED_SIZE, 8,
@@ -128,13 +129,11 @@ int Create(CPlatform* pPlatform, char* title, int glMajor, int glMinor,  int wid
 	attribute_list[9] = depthBits;	
 	attribute_list[11] = stencilBits;	
 	
-	pegl  = attribute_list;
-
 	if (nSamples > 0 )
 	{
 		attribute_list[13] = 1;	
 		attribute_list[15] = nSamples;	
-	}	
+	}
 	
 	gles_attribute_list[1] = glMajor;
 
@@ -193,7 +192,7 @@ int Create(CPlatform* pPlatform, char* title, int glMajor, int glMinor,  int wid
 		&src_rect, DISPMANX_PROTECTION_NONE, &dispman_alpha /*alpha*/, 0/*clamp*/, 0/*transform*/);
 
 	pState->nativewindow.element = dispman_element;
-	pState->nativewindow.width = width;			//should be teh same as the src resolution before the shift
+	pState->nativewindow.width = width;			//should be the same as the src resolution before the shift
 	pState->nativewindow.height = height;		
 	vc_dispmanx_update_submit_sync( dispman_update );
 
@@ -207,7 +206,7 @@ int Create(CPlatform* pPlatform, char* title, int glMajor, int glMinor,  int wid
 
 	// initialize the EGL display connection
 	result = eglInitialize(pState->display, NULL, NULL);
-	assert(EGL_FALSE != result);	
+	assert(EGL_FALSE != result);
 
 	// get an appropriate EGL frame buffer configuration
 	//http://www.khronos.org/registry/egl/sdk/docs/man/xhtml/eglChooseConfig.html
@@ -220,6 +219,10 @@ int Create(CPlatform* pPlatform, char* title, int glMajor, int glMinor,  int wid
 
 	pState->surface = eglCreateWindowSurface( pState->display, config, &pState->nativewindow, NULL );
 	assert(pState->surface != EGL_NO_SURFACE);
+
+	// retain buffer contents 
+	result = eglSurfaceAttrib(pState->display, pState->surface, EGL_SWAP_BEHAVIOR, EGL_BUFFER_PRESERVED);
+	assert(EGL_FALSE != result);
 
 	// connect the context to the surface
 	result = eglMakeCurrent(pState->display, pState->surface, pState->surface, pState->context);
@@ -243,6 +246,9 @@ void Tick(CPlatform* pPlatform, void(*input_callback)(unsigned int code, int pre
 	int size = sizeof(struct input_event);
 	STATE* pState = (STATE*)pPlatform->m_pData;
 
+	// - - - - - - - - - - - - - - - - - - - - - - - - -
+	// Keyboard input 
+	// - - - - - - - - - - - - - - - - - - - - - - - - -
 	//quickly go through and untoggle all the old pressed
 	for(rd=0;rd<KB_MAX;rd++)
 		BUTTON_UNTOGGLE(pPlatform->m_keyboard.key[rd]);
@@ -281,6 +287,9 @@ void SwapBuffers(CPlatform* pPlatform)
 {
 	STATE* pState = (STATE*)pPlatform->m_pData;
 	eglSwapBuffers(pState->display, pState->surface);	
+
+	const GLenum discards[] = { GL_DEPTH_EXT, GL_STENCIL_EXT };
+	glDiscardFramebufferEXT(GL_FRAMEBUFFER, 2, discards);
 }
 
 void Close(CPlatform* pPlatform)

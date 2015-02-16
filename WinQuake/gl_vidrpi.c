@@ -503,8 +503,8 @@ void VID_Init(unsigned char *palette)
 	int i;
 	GLint attribs[32];
 	char	gldir[MAX_OSPATH];
-	int width = 320, height = 240;
-	//int width = 640, height = 480;
+	//int width = 320, height = 240;
+	int width = 640, height = 480;
 	//int width = 800, height = 600;
 	//int width = 1024, height = 768;
 	//int width = 1280, height = 720;
@@ -557,7 +557,7 @@ void VID_Init(unsigned char *palette)
 
 	if ((i = COM_CheckParm("-rgba32d24")) != 0)	
 		Create(&platform, "", 2, 1, width, height, 8, 8, 8, 0, 24, 0, 0);	
-	if ((i = COM_CheckParm("-rgb24d16")) != 0)	
+	else if ((i = COM_CheckParm("-rgb24d16")) != 0)	
 		Create(&platform, "", 2, 1, width, height, 8, 8, 8, 0, 16, 0, 0);	
 	else 
 		Create(&platform, "", 2, 1, width, height, 0, 0, 0, 0, 8, 0, 0);	

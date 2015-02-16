@@ -24,7 +24,6 @@ echo "- - - - - - - - - - - - - - - "
 echo "Start Make"
 echo "- - - - - - - - - - - - - - - "
 
-# sdl not disabled
 make -j4 -f make.rpi $1 ARCH=arm \
 	CC=""$CROSS_COMPILE"gcc" USE_SVN=0 USE_CURL=0 USE_OPENAL=0 \
 	CFLAGS="-DUSE_GLES -march=armv6 -mfpu=vfp -mfloat-abi=hard $INCLUDES" \

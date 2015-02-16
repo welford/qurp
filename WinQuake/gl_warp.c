@@ -468,8 +468,13 @@ void R_InitSky (texture_t *mt)
 	GL_Bind (solidskytexture );
 	//glTexImage2D (GL_TEXTURE_2D, 0, texDataType[gl_solid_format], 128, 128, 0, GL_RGBA, GL_UNSIGNED_BYTE, trans);
 	glTexImage2D (GL_TEXTURE_2D, 0, texDataType[gl_solid_format], 128, 128, 0, texDataType[gl_solid_format], GL_UNSIGNED_BYTE, trans);
+#ifdef LINEAR_TEXTURES
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+#else
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+#endif
 
 
 	for (i=0 ; i<128 ; i++)
@@ -492,7 +497,12 @@ void R_InitSky (texture_t *mt)
 	GL_Bind(alphaskytexture);
 	//glTexImage2D (GL_TEXTURE_2D, 0, texDataType[gl_alpha_format], 128, 128, 0, GL_RGBA, GL_UNSIGNED_BYTE, trans);
 	glTexImage2D (GL_TEXTURE_2D, 0, texDataType[gl_alpha_format], 128, 128, 0, texDataType[gl_alpha_format], GL_UNSIGNED_BYTE, trans);
+#ifdef LINEAR_TEXTURES
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+#else
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+#endif
 }
 
