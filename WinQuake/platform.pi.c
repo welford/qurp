@@ -16,7 +16,8 @@
 
 typedef struct
 {
-	int kb_input;
+	int kb_input0;
+	int kb_input1;		// Support keyboard on either event channel
 	int mouse_input;
 	uint32_t screen_width;
 	uint32_t screen_height;
@@ -232,9 +233,20 @@ int Create(CPlatform* pPlatform, char* title, int glMajor, int glMinor,  int wid
 
 	//setup keyboard and mouse input
 	memset(pPlatform->m_keyboard.key, 0, KB_MAX);
-	pState->kb_input = open("/dev/input/event0", O_RDONLY|O_NONBLOCK);
-	ioctl (pState->kb_input, EVIOCGNAME (sizeof (name)), name);
-	printf ("keyboard: %s\n", name);
+
+	// Keyboard and mouse can be swapped so support on either channel
+	pState->kb_input0 = open("/dev/input/event0", O_RDONLY|O_NONBLOCK);
+	if (pState->kb_input0 != -1)
+	{
+		ioctl (pState->kb_input0, EVIOCGNAME (sizeof (name)), name);
+		printf ("keyboard 0: %s\n", name);
+	}
+	pState->kb_input1 = open("/dev/input/event1", O_RDONLY|O_NONBLOCK);
+	if (pState->kb_input1 != -1)
+	{
+		ioctl (pState->kb_input1, EVIOCGNAME (sizeof (name)), name);
+		printf ("keyboard 1: %s\n", name);
+	}
 }
 
 #define MAX_INPUT_EVENTS 20
@@ -253,11 +265,26 @@ void Tick(CPlatform* pPlatform, void(*input_callback)(unsigned int code, int pre
 	for(rd=0;rd<KB_MAX;rd++)
 		BUTTON_UNTOGGLE(pPlatform->m_keyboard.key[rd]);
 
-	rd = read (pState->kb_input, ie, size * MAX_INPUT_EVENTS);
-	if( rd > 0)
+	// Keyboard and mouse can be swapped so support on either channel
+	int kb_chan;
+	for (kb_chan=0; kb_chan<2; kb_chan++)
 	{
+		idx=0;
+		if (!kb_chan)
+		{
+			if (pState->kb_input0 == -1)
+				continue;
+			rd = read (pState->kb_input0, ie, size * MAX_INPUT_EVENTS);
+		}
+		else
+		{
+			if (pState->kb_input1 == -1)
+				continue;
+			rd = read (pState->kb_input1, ie, size * MAX_INPUT_EVENTS);
+		}
 		while(rd>0)
 		{
+			// printf("Event chan=%d type=%d\n", kb_chan, ie[idx].type);
 			if(ie[idx].type == EV_KEY && ie[idx].code < LINUX_KB_MAX)
 			{
 				km_idx = linux_to_keymap[ie[idx].code]; //get the keymap index
@@ -297,7 +324,10 @@ void Close(CPlatform* pPlatform)
 	STATE* pState = (STATE*)pPlatform->m_pData;
 
 	//close input streams
-	close(pState->kb_input);
+	if (pState->kb_input0 != -1)
+		close(pState->kb_input0);
+	if (pState->kb_input1 != -1)
+		close(pState->kb_input1);
 
 	eglSwapBuffers(pState->display, pState->surface);
 	eglMakeCurrent( pState->display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT );
