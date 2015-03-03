@@ -135,6 +135,9 @@ GLQUAKE_OBJS= \
 	$(BUILDDIR)/glquake/world.o \
 	$(BUILDDIR)/glquake/cd_linux.o \
 	$(BUILDDIR)/glquake/snd_rpi.o \
+	$(BUILDDIR)/glquake/snd_dma.o \
+	$(BUILDDIR)/glquake/snd_mem.o \
+	$(BUILDDIR)/glquake/snd_mix.o \
 	$(BUILDDIR)/glquake/in_rpi.o \
 	$(BUILDDIR)/glquake/gl_vidrpi.o\
 	\
