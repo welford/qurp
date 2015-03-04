@@ -39,8 +39,11 @@ static unsigned volatile int SDL_buflen;
 
 void SDL_callback_fill_audio(void *udata, Uint8 *stream, int len)
 {
-	// TODO This runs in a separate thread, so ideally we'd mutex
-	// access to shm->buffer and SDL_bufpos, but it seems OK without
+	// This runs in a separate thread, so ideally we'd mutex
+	// access to shm->buffer and SDL_bufpos, but it seems OK without.
+	// FIXED: SDL_bufpos read is now mutexed in SNDDMA_GetDMAPos(), which
+	// is all that really matters (a little bit of sound data corruption
+	// would not be a problem, I guess).
 
 	// shm-> buffer is filled via snd_dma.c S_Update() calls S_Update_()
 	// calls snd_mix.c S_PaintChannels() then S_TransferPaintBuffer() then
@@ -193,10 +196,13 @@ int SNDDMA_GetDMAPos(void)
 
 	if (!snd_inited) return 0;
 
-	// TODO mutex locking? Probably unneccessary.
+	// Lockout the callback before getting position. Works OK without
+	// doing this (SDL_bufpos read is likely atomic), but best to be safe
 
+	SDL_LockAudio();
 	// samplepos counts mono samples (see dma_t in sound.h)
 	shm->samplepos = SDL_bufpos / (shm->samplebits / 8);
+	SDL_UnlockAudio();
 
 	return shm->samplepos;
 
