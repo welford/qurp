@@ -39,29 +39,54 @@ static unsigned volatile int SDL_buflen;
 
 void SDL_callback_fill_audio(void *udata, Uint8 *stream, int len)
 {
+	// TODO This runs in a separate thread, so ideally we'd mutex
+	// access to shm->buffer and SDL_bufpos, but it seems OK without
+
 	// shm-> buffer is filled via snd_dma.c S_Update() calls S_Update_()
 	// calls snd_mix.c S_PaintChannels() then S_TransferPaintBuffer() then
 	// S_TransferStereo16() then Snd_WriteLinearBlastStereo16() 
 
-	unsigned int i;
-
 	// DEBUG - we get called with len=4096, ie the whole buffer, so	
 	// we need to make the DMA buffer larger (use four times)
-	// Con_Printf("\nAudio callback len=%d\n",len);
+	// Con_Printf("\nAudio callback len=%d\n",len);	// DEBUG
 
-	if (!shm)
+	if (!shm)	// This would be bad
 	{
-		Con_Printf("\nAudio callback shm is NULL !!\n");
+		// Con_Printf("\nAudio callback shm is NULL !!\n"); // DEBUG
 		return;	
 	}
 
+#if 0
+	// slow version
+	unsigned int i;
 	for (i=0; i<len; i++)
 	{
-		// TODO Use memcpy (beware wrap)
 		stream[i] = shm->buffer[SDL_bufpos++];
 		if (SDL_bufpos >= SDL_buflen)
 			SDL_bufpos = 0;
 	}
+#else
+	// better version uses memcpy and updates SDL_bufpos once only
+	if (SDL_bufpos + len > SDL_buflen)
+	{
+		// This normally does not happen if shm->buffer is a
+		// multiple of the SDL audio buffer, but we should cope anyway
+		// Con_Printf("\nAudio callback buffer mis-aligned!!\n"); // DEBUG
+		unsigned int start = SDL_bufpos;
+		unsigned int count = SDL_buflen - SDL_bufpos;
+		memcpy(stream, shm->buffer+SDL_bufpos, count);
+		memcpy(stream + count, shm->buffer, len - count);
+		SDL_bufpos = len - count;
+	}
+	else
+	{
+		memcpy(stream, shm->buffer+SDL_bufpos, len);
+		if (SDL_bufpos + len == SDL_buflen)
+			SDL_bufpos = 0;
+		else
+			SDL_bufpos += len;
+	}
+#endif
 }
 
 
@@ -108,7 +133,7 @@ qboolean SNDDMA_Init(void)
 
         shm->samplebits = 16;
         // shm->speed = tryrates[1];	// FIXME ??? 22051 cf 22050 in wanted
-        shm->speed = wanted.freq;
+        shm->speed = wanted.freq;	// 22050 is fine
 	shm->channels = wanted.channels;
    
 
@@ -143,6 +168,7 @@ qboolean SNDDMA_Init(void)
 
 	// Make the DMA buffer four times the size of the SDL buffer
 
+	// samples is mono samples (see dma_t in sound.h), so times channels
 	shm->samples = 4 * wanted.samples * shm->channels;
 	SDL_buflen = shm->samples * (shm->samplebits/8);
 	shm->buffer = (unsigned char*) malloc(SDL_buflen);
@@ -169,8 +195,7 @@ int SNDDMA_GetDMAPos(void)
 
 	// TODO mutex locking? Probably unneccessary.
 
-	// FIXME Which to use?
-	// shm->samplepos = SDL_bufpos / shm->channels / (shm->samplebits / 8);
+	// samplepos counts mono samples (see dma_t in sound.h)
 	shm->samplepos = SDL_bufpos / (shm->samplebits / 8);
 
 	return shm->samplepos;
@@ -179,11 +204,19 @@ int SNDDMA_GetDMAPos(void)
 
 void SNDDMA_Shutdown(void)
 {
+	// TODO ought to set SIGINT and SIGTERM handlers in sys_rpi.c
+	// to call SNDDMA_Shutdown(), but it seems OK without it
+
+	Con_Printf("\nSNDDMA_Shutdown entered\n");	// DEBUG
 	if (snd_inited)
 	{
+		Con_Printf("SDL_CloseAudio\n");
 		SDL_CloseAudio();
+		Con_Printf("SDL_Quit\n");
+		SDL_Quit();
 		snd_inited = 0;
 	}
+	Con_Printf("SNDDMA_Shutdown complete\n");
 }
 
 /*

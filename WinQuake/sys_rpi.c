@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "errno.h"
 #include "platform.h"
 #include <sys/time.h>
+#include <signal.h>
 
 //JAMES
 //my simple video and input setup
@@ -180,6 +181,10 @@ void Sys_Printf (char *fmt, ...)
 
 void Sys_Quit (void)
 {
+	printf("\nSys_Quit\n");
+
+	// FIXME should we call Host_Shutdown() here instead?
+	S_Shutdown();		// Shutdown SDL cleanly
 	exit (0);
 }
 
@@ -231,6 +236,18 @@ void Sys_LowFPPrecision (void)
 
 extern void IN_KB_CALLBACK(unsigned int code, int press);
 
+void rpi_sighandler(int sig)
+{
+	// Only handles SIGTERM and SIGINT (ctrl-c)
+	signal(SIGINT, SIG_DFL);	// reset to default
+	signal(SIGTERM, SIG_DFL);	// reset to default
+
+	printf("\nReceived signal %d, exiting...\n", sig);
+	fflush(stdout);
+
+	Sys_Quit();
+}
+
 void main (int argc, char **argv)
 {
 	int i=0;
@@ -242,6 +259,10 @@ void main (int argc, char **argv)
 	extern int recording;
 	extern unsigned int dcc;
 	extern unsigned int dcs;
+
+	// Setup signal handlers to shutdown SDL cleanly
+	// signal(SIGINT, rpi_sighandler);	// Currently DISABLED
+	// signal(SIGTERM, rpi_sighandler);	// Currently DISABLED
 
 	COM_InitArgv (argc, argv);
 
