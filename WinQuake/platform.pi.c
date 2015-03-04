@@ -238,12 +238,22 @@ int Create(CPlatform* pPlatform, char* title, int glMajor, int glMinor,  int wid
 	pState->kb_input0 = open("/dev/input/event0", O_RDONLY|O_NONBLOCK);
 	if (pState->kb_input0 != -1)
 	{
+		// Prevent input from propagating to shell (unfortunately
+		// this breaks control-c handling)
+		// ioctl (pState->kb_input0, EVIOCGRAB, 1);     // FIXME
+		ioctl (pState->kb_input0, EVIOCGRAB, (void*)1);	// Which one ??
+
 		ioctl (pState->kb_input0, EVIOCGNAME (sizeof (name)), name);
 		printf ("keyboard 0: %s\n", name);
 	}
 	pState->kb_input1 = open("/dev/input/event1", O_RDONLY|O_NONBLOCK);
 	if (pState->kb_input1 != -1)
 	{
+		// Prevent input from propagating to shell (unfortunately
+		// this breaks control-c handling)
+		// ioctl (pState->kb_input1, EVIOCGRAB, 1);     // FIXME
+		ioctl (pState->kb_input1, EVIOCGRAB, (void*)1); // Which one ??
+
 		ioctl (pState->kb_input1, EVIOCGNAME (sizeof (name)), name);
 		printf ("keyboard 1: %s\n", name);
 	}
