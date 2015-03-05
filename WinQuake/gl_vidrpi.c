@@ -74,8 +74,6 @@ int	d_con_indirect = 0;
 int		svgalib_inited=0;
 int		UseMouse = 1;
 
-int		mouserate = 0;//MOUSE_DEFAULTSAMPLERATE;
-
 cvar_t		vid_mode = {"vid_mode","5",false};
 cvar_t		vid_redrawfull = {"vid_redrawfull","0",false};
 cvar_t		vid_waitforrefresh = {"vid_waitforrefresh","0",true};
@@ -619,14 +617,14 @@ void mousehandler(int buttonstate, int dx, int dy)
 	mx += dx;
 	my += dy;
 }
-/*
-void IN_Init(void)
+
+//	Mouse stuff doesn't really belong here, should be in_rpi.c
+//	so hack it a bit... renamed IN_Init() to IN_InitMouse and
+//	call it from in_rpi.c IN_Init()
+		
+// void IN_Init(void)
+void IN_InitMouse(void)
 {
-
-	int mtype;
-	char *mousedev;
-	int mouserate;
-
 	if (UseMouse)
 	{
 
@@ -635,51 +633,31 @@ void IN_Init(void)
 		Cvar_RegisterVariable (&mouse_button_commands[2]);
 		Cmd_AddCommand ("force_centerview", Force_CenterView_f);
 
-		mouse_buttons = 3;
-
-		mtype = vga_getmousetype();
-
-		mousedev = "/dev/mouse";
-		if (getenv("MOUSEDEV")) mousedev = getenv("MOUSEDEV");
-		if (COM_CheckParm("-mdev"))
-			mousedev = com_argv[COM_CheckParm("-mdev")+1];
-
-		mouserate = 1200;
-		if (getenv("MOUSERATE")) mouserate = atoi(getenv("MOUSERATE"));
-		if (COM_CheckParm("-mrate"))
-			mouserate = atoi(com_argv[COM_CheckParm("-mrate")+1]);
-
-		if (mouse_init(mousedev, mtype, mouserate))
-		{
-			Con_Printf("No mouse found\n");
-			UseMouse = 0;
-		}
-		else
-			mouse_seteventhandler(mousehandler);
-
+		mouse_buttons = 3;	// Not used I think
 	}	
 }
 
-
 void IN_Shutdown(void)
 {
-	//if (UseMouse)
-	//	mouse_close();
 }
 
 
-===========
-IN_Commands
-===========
+// ===========
+// IN_Commands
+// ===========
+
+// Called from _Host_Frame() in host.c
 
 void IN_Commands (void)
 {
 
+	/* Not needed since handled in Tick() ...
+
 	if (UseMouse && cls.state != ca_dedicated)
 	{
 		// poll mouse values
-		while (mouse_update())
-			;
+		// while (mouse_update())
+		//	;
 
 		// perform button actions
 		if ((mouse_buttonstate & MOUSE_LEFTBUTTON) &&
@@ -705,13 +683,14 @@ void IN_Commands (void)
 
 		mouse_oldbuttonstate = mouse_buttonstate;
 	}
-	
+
+	*/
 }
 
 
-===========
-IN_Move
-===========
+// ===========
+// IN_Move
+// ===========
 
 void IN_MouseMove (usercmd_t *cmd)
 {
@@ -719,8 +698,12 @@ void IN_MouseMove (usercmd_t *cmd)
 		return;
 
 	// poll mouse values
-	while (mouse_update())
-		;
+
+	mx = platform.m_mouse.dx;
+	my = platform.m_mouse.dy;
+
+	platform.m_mouse.dx = 0;	// FIXME this is clunky
+	platform.m_mouse.dy = 0;
 
 	if (m_filter.value)
 	{
@@ -767,8 +750,5 @@ void IN_MouseMove (usercmd_t *cmd)
 
 void IN_Move (usercmd_t *cmd)
 {
-	//IN_MouseMove(cmd);
+	IN_MouseMove(cmd);
 }
-*/
-
-

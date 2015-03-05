@@ -14,6 +14,8 @@
 #include <linux/input.h>
 //#include "keymap.h"
 
+#include "quakedef.h"	// Needed for K_MOUSE1 etc (can't just include keys.h)
+
 typedef struct
 {
 	int kb_input0;
@@ -234,6 +236,9 @@ int Create(CPlatform* pPlatform, char* title, int glMajor, int glMinor,  int wid
 	//setup keyboard and mouse input
 	memset(pPlatform->m_keyboard.key, 0, KB_MAX);
 
+	// FIXME do we need to initialize pPlatform->m_mouse? It's global
+	// so should be preinitialized to zero already.
+
 	// Keyboard and mouse can be swapped so support on either channel
 	pState->kb_input0 = open("/dev/input/event0", O_RDONLY|O_NONBLOCK);
 	if (pState->kb_input0 != -1)
@@ -259,7 +264,13 @@ int Create(CPlatform* pPlatform, char* title, int glMajor, int glMinor,  int wid
 	}
 }
 
+// Put these here for now
+#define MOUSE_LB_KEYCODE 272
+#define MOUSE_RB_KEYCODE 273
+#define MOUSE_MB_KEYCODE 274
+
 #define MAX_INPUT_EVENTS 20
+
 void Tick(CPlatform* pPlatform, void(*input_callback)(unsigned int code, int pressed))
 {
 	char tmp = 0;
@@ -294,7 +305,8 @@ void Tick(CPlatform* pPlatform, void(*input_callback)(unsigned int code, int pre
 		}
 		while(rd>0)
 		{
-			// printf("Event chan=%d type=%d\n", kb_chan, ie[idx].type);
+			// printf("Event chan=%d type=%d code=%d value=%d\n", kb_chan, ie[idx].type, ie[idx].code, ie[idx].value);
+
 			if(ie[idx].type == EV_KEY && ie[idx].code < LINUX_KB_MAX)
 			{
 				km_idx = linux_to_keymap[ie[idx].code]; //get the keymap index
@@ -314,6 +326,85 @@ void Tick(CPlatform* pPlatform, void(*input_callback)(unsigned int code, int pre
 						BUTTON_TOGGLE(pPlatform->m_keyboard.key[km_idx]);
 				}				
 			}
+			else if (ie[idx].type == EV_KEY && (
+					ie[idx].code == MOUSE_LB_KEYCODE ||
+					ie[idx].code == MOUSE_RB_KEYCODE ||
+					ie[idx].code == MOUSE_MB_KEYCODE ) )
+			{
+				// Clunky, an array of buttons would be better
+				if (ie[idx].code == MOUSE_LB_KEYCODE)
+				{
+					tmp = pPlatform->m_mouse.lmb;
+					BUTTON_RESET(pPlatform->m_mouse.lmb);
+					if(ie[idx].value)
+					{
+						// FIXME perhaps modify input_callback to handle this
+						Key_Event(K_MOUSE1, 1);
+						BUTTON_PRESS(pPlatform->m_mouse.lmb);
+						if(!IS_BUTTON_PRESSED(tmp))
+							BUTTON_TOGGLE(pPlatform->m_mouse.lmb);
+					}
+					else
+					{
+						Key_Event(K_MOUSE1, 0);
+						if(IS_BUTTON_PRESSED(tmp))
+							BUTTON_TOGGLE(pPlatform->m_mouse.lmb);
+					}				
+				}
+				else if (ie[idx].code == MOUSE_RB_KEYCODE)
+				{
+					tmp = pPlatform->m_mouse.rmb;
+					BUTTON_RESET(pPlatform->m_mouse.rmb);
+					if(ie[idx].value)
+					{
+						Key_Event(K_MOUSE2, 1);
+						BUTTON_PRESS(pPlatform->m_mouse.rmb);
+						if(!IS_BUTTON_PRESSED(tmp))
+							BUTTON_TOGGLE(pPlatform->m_mouse.rmb);
+					}
+					else
+					{
+						Key_Event(K_MOUSE2, 0);
+						if(IS_BUTTON_PRESSED(tmp))
+							BUTTON_TOGGLE(pPlatform->m_mouse.rmb);
+					}
+				}
+				else if (ie[idx].code == MOUSE_MB_KEYCODE)
+				{
+					tmp = pPlatform->m_mouse.mmb;
+					BUTTON_RESET(pPlatform->m_mouse.mmb);
+					if(ie[idx].value)
+					{
+						Key_Event(K_MOUSE3, 1);
+						BUTTON_PRESS(pPlatform->m_mouse.mmb);
+						if(!IS_BUTTON_PRESSED(tmp))
+							BUTTON_TOGGLE(pPlatform->m_mouse.mmb);
+					}
+					else
+					{
+						Key_Event(K_MOUSE3, 0);
+						if(IS_BUTTON_PRESSED(tmp))
+							BUTTON_TOGGLE(pPlatform->m_mouse.mmb);
+					}				
+				}
+			}
+			else if(ie[idx].type == EV_REL)
+			{
+				if (ie[idx].code == 0)
+				{
+					pPlatform->m_mouse.dx = ie[idx].value;
+					// pPlatform->m_mouse.px += pPlatform->m_mouse.dx;
+				}
+				else if (ie[idx].code == 1)
+				{
+					pPlatform->m_mouse.dy = ie[idx].value;
+					// pPlatform->m_mouse.py += pPlatform->m_mouse.dy;
+				}
+				// Values are processed and cleared (FIXME?)
+				// by IN_MouseMove() called from IN_Move called
+				// from CL_SendCmd() in cl_main.c
+			}
+
 			rd -= size;
 			idx++;
 		}

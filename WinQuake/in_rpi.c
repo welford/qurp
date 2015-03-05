@@ -140,7 +140,10 @@ void IN_KB_CALLBACK(unsigned int code, int press){
 void IN_Init (void)
 {
 	Init_KBD();
+	IN_InitMouse();	// see gl_vidrpi.c
 }
+
+/* These are in gl_vidrpi.c
 
 void IN_Shutdown (void)
 {
@@ -153,4 +156,5 @@ void IN_Commands (void)
 void IN_Move (usercmd_t *cmd)
 {
 }
+*/
 
