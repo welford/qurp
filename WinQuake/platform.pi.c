@@ -16,10 +16,10 @@
 
 #include "quakedef.h"	// Needed for K_MOUSE1 etc (can't just include keys.h)
 
+#define MAXEVHANDLES 8	// Arbitary
 typedef struct
 {
-	int kb_input0;
-	int kb_input1;		// Support keyboard on either event channel
+	int dev_event[MAXEVHANDLES];
 	int mouse_input;
 	uint32_t screen_width;
 	uint32_t screen_height;
@@ -239,28 +239,25 @@ int Create(CPlatform* pPlatform, char* title, int glMajor, int glMinor,  int wid
 	// FIXME do we need to initialize pPlatform->m_mouse? It's global
 	// so should be preinitialized to zero already.
 
-	// Keyboard and mouse can be swapped so support on either channel
-	pState->kb_input0 = open("/dev/input/event0", O_RDONLY|O_NONBLOCK);
-	if (pState->kb_input0 != -1)
+	// Keyboard and mouse can appear on any event channel
+	// FIXME Do we also need to check /dev/input/mouse0 etc?
+	// FIXME What about multiple interfaces for the same device?
+	int ev_chan;
+	for (ev_chan=0; ev_chan<MAXEVHANDLES; ev_chan++)
 	{
-		// Prevent input from propagating to shell (unfortunately
-		// this breaks control-c handling)
-		// ioctl (pState->kb_input0, EVIOCGRAB, 1);     // FIXME
-		ioctl (pState->kb_input0, EVIOCGRAB, (void*)1);	// Which one ??
+		char ev_path[100];	// FIXME array bounds
+		sprintf(ev_path,"/dev/input/event%d", ev_chan);
+		pState->dev_event[ev_chan] = open(ev_path, O_RDONLY|O_NONBLOCK);
+		if (pState->dev_event[ev_chan] != -1)
+		{
+			// Prevent input from propagating to shell (unfortunately
+			// this breaks control-c handling)
+			ioctl (pState->dev_event[ev_chan], EVIOCGRAB, (void*)1);
 
-		ioctl (pState->kb_input0, EVIOCGNAME (sizeof (name)), name);
-		printf ("keyboard 0: %s\n", name);
-	}
-	pState->kb_input1 = open("/dev/input/event1", O_RDONLY|O_NONBLOCK);
-	if (pState->kb_input1 != -1)
-	{
-		// Prevent input from propagating to shell (unfortunately
-		// this breaks control-c handling)
-		// ioctl (pState->kb_input1, EVIOCGRAB, 1);     // FIXME
-		ioctl (pState->kb_input1, EVIOCGRAB, (void*)1); // Which one ??
-
-		ioctl (pState->kb_input1, EVIOCGNAME (sizeof (name)), name);
-		printf ("keyboard 1: %s\n", name);
+			ioctl (pState->dev_event[ev_chan], EVIOCGNAME (sizeof (name)), name);
+			printf ("keyboard/mouse %d: %s\n", ev_chan, name);
+		}
+		else printf("Failed to open %s\n", ev_path);
 	}
 }
 
@@ -286,26 +283,16 @@ void Tick(CPlatform* pPlatform, void(*input_callback)(unsigned int code, int pre
 	for(rd=0;rd<KB_MAX;rd++)
 		BUTTON_UNTOGGLE(pPlatform->m_keyboard.key[rd]);
 
-	// Keyboard and mouse can be swapped so support on either channel
-	int kb_chan;
-	for (kb_chan=0; kb_chan<2; kb_chan++)
+	int ev_chan;
+	for (ev_chan=0; ev_chan<MAXEVHANDLES; ev_chan++)
 	{
 		idx=0;
-		if (!kb_chan)
-		{
-			if (pState->kb_input0 == -1)
-				continue;
-			rd = read (pState->kb_input0, ie, size * MAX_INPUT_EVENTS);
-		}
-		else
-		{
-			if (pState->kb_input1 == -1)
-				continue;
-			rd = read (pState->kb_input1, ie, size * MAX_INPUT_EVENTS);
-		}
+		if (pState->dev_event[ev_chan] == -1)
+			continue;
+		rd = read (pState->dev_event[ev_chan], ie, size * MAX_INPUT_EVENTS);
 		while(rd>0)
 		{
-			// printf("Event chan=%d type=%d code=%d value=%d\n", kb_chan, ie[idx].type, ie[idx].code, ie[idx].value);
+			// printf("Event chan=%d type=%d code=%d value=%d\n", ev_chan, ie[idx].type, ie[idx].code, ie[idx].value);
 
 			if(ie[idx].type == EV_KEY && ie[idx].code < LINUX_KB_MAX)
 			{
@@ -425,10 +412,10 @@ void Close(CPlatform* pPlatform)
 	STATE* pState = (STATE*)pPlatform->m_pData;
 
 	//close input streams
-	if (pState->kb_input0 != -1)
-		close(pState->kb_input0);
-	if (pState->kb_input1 != -1)
-		close(pState->kb_input1);
+	int ev_chan;
+	for (ev_chan=0; ev_chan<MAXEVHANDLES; ev_chan++)
+		if (pState->dev_event[ev_chan] != -1)
+			close(pState->dev_event[ev_chan]);
 
 	eglSwapBuffers(pState->display, pState->surface);
 	eglMakeCurrent( pState->display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT );
