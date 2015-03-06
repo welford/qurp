@@ -15,14 +15,18 @@ typedef struct
 
 //Basic input states that we can expect from most 
 //application instances
+
+#define NUMMOUSEBUTTONS 3
+
 typedef struct
 {
 	int px,py;
 	int dx,dy;
 	int wheelRot;
-	int lmb;
-	int mmb;
-	int rmb;
+	// int lmb;
+	// int mmb;
+	// int rmb;
+	int button[NUMMOUSEBUTTONS];	// ordered left, right, middle
 }SMouse;
 
 #define BUTTON_PRESSED			0x1

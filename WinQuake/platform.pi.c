@@ -261,10 +261,9 @@ int Create(CPlatform* pPlatform, char* title, int glMajor, int glMinor,  int wid
 	}
 }
 
-// Put these here for now
-#define MOUSE_LB_KEYCODE 272
-#define MOUSE_RB_KEYCODE 273
-#define MOUSE_MB_KEYCODE 274
+// Keycode translation (BTN_LEFT etc defined in linux/input.h)
+int mouse_button_keycodes[] = { BTN_LEFT, BTN_RIGHT, BTN_MIDDLE };
+int mouse_button_qkeys[] = { K_MOUSE1, K_MOUSE2, K_MOUSE3 };
 
 #define MAX_INPUT_EVENTS 20
 
@@ -314,82 +313,46 @@ void Tick(CPlatform* pPlatform, void(*input_callback)(unsigned int code, int pre
 				}				
 			}
 			else if (ie[idx].type == EV_KEY && (
-					ie[idx].code == MOUSE_LB_KEYCODE ||
-					ie[idx].code == MOUSE_RB_KEYCODE ||
-					ie[idx].code == MOUSE_MB_KEYCODE ) )
+				ie[idx].code == mouse_button_keycodes[0] ||
+				ie[idx].code == mouse_button_keycodes[1] ||
+				ie[idx].code == mouse_button_keycodes[2] ) )
 			{
-				// Clunky, an array of buttons would be better
-				if (ie[idx].code == MOUSE_LB_KEYCODE)
+				int mb;
+				for (mb=0; mb<NUMMOUSEBUTTONS; mb++)
 				{
-					tmp = pPlatform->m_mouse.lmb;
-					BUTTON_RESET(pPlatform->m_mouse.lmb);
-					if(ie[idx].value)
+					if (ie[idx].code == mouse_button_keycodes[mb])
 					{
-						// FIXME perhaps modify input_callback to handle this
-						Key_Event(K_MOUSE1, 1);
-						BUTTON_PRESS(pPlatform->m_mouse.lmb);
-						if(!IS_BUTTON_PRESSED(tmp))
-							BUTTON_TOGGLE(pPlatform->m_mouse.lmb);
+						tmp = pPlatform->m_mouse.button[mb];
+						BUTTON_RESET(pPlatform->m_mouse.button[mb]);
+						if(ie[idx].value)
+						{
+							// FIXME perhaps modify input_callback to handle this
+							Key_Event(mouse_button_qkeys[mb], 1);
+							BUTTON_PRESS(pPlatform->m_mouse.button[mb]);
+							if(!IS_BUTTON_PRESSED(tmp))
+								BUTTON_TOGGLE(pPlatform->m_mouse.button[mb]);
+						}
+						else
+						{
+							Key_Event(mouse_button_qkeys[mb], 0);
+							if(IS_BUTTON_PRESSED(tmp))
+								BUTTON_TOGGLE(pPlatform->m_mouse.button[mb]);
+						}				
 					}
-					else
-					{
-						Key_Event(K_MOUSE1, 0);
-						if(IS_BUTTON_PRESSED(tmp))
-							BUTTON_TOGGLE(pPlatform->m_mouse.lmb);
-					}				
-				}
-				else if (ie[idx].code == MOUSE_RB_KEYCODE)
-				{
-					tmp = pPlatform->m_mouse.rmb;
-					BUTTON_RESET(pPlatform->m_mouse.rmb);
-					if(ie[idx].value)
-					{
-						Key_Event(K_MOUSE2, 1);
-						BUTTON_PRESS(pPlatform->m_mouse.rmb);
-						if(!IS_BUTTON_PRESSED(tmp))
-							BUTTON_TOGGLE(pPlatform->m_mouse.rmb);
-					}
-					else
-					{
-						Key_Event(K_MOUSE2, 0);
-						if(IS_BUTTON_PRESSED(tmp))
-							BUTTON_TOGGLE(pPlatform->m_mouse.rmb);
-					}
-				}
-				else if (ie[idx].code == MOUSE_MB_KEYCODE)
-				{
-					tmp = pPlatform->m_mouse.mmb;
-					BUTTON_RESET(pPlatform->m_mouse.mmb);
-					if(ie[idx].value)
-					{
-						Key_Event(K_MOUSE3, 1);
-						BUTTON_PRESS(pPlatform->m_mouse.mmb);
-						if(!IS_BUTTON_PRESSED(tmp))
-							BUTTON_TOGGLE(pPlatform->m_mouse.mmb);
-					}
-					else
-					{
-						Key_Event(K_MOUSE3, 0);
-						if(IS_BUTTON_PRESSED(tmp))
-							BUTTON_TOGGLE(pPlatform->m_mouse.mmb);
-					}				
 				}
 			}
 			else if(ie[idx].type == EV_REL)
 			{
+				// Accumulate delta until processed and cleared by IN_MouseMove()
+				// called from IN_Move() called from CL_SendCmd() in cl_main.c
 				if (ie[idx].code == 0)
 				{
-					pPlatform->m_mouse.dx = ie[idx].value;
-					// pPlatform->m_mouse.px += pPlatform->m_mouse.dx;
+					pPlatform->m_mouse.dx += ie[idx].value;
 				}
 				else if (ie[idx].code == 1)
 				{
-					pPlatform->m_mouse.dy = ie[idx].value;
-					// pPlatform->m_mouse.py += pPlatform->m_mouse.dy;
+					pPlatform->m_mouse.dy += ie[idx].value;
 				}
-				// Values are processed and cleared (FIXME?)
-				// by IN_MouseMove() called from IN_Move called
-				// from CL_SendCmd() in cl_main.c
 			}
 
 			rd -= size;

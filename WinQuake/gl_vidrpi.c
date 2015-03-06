@@ -29,10 +29,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //#include <asm/io.h>
 #include <dlfcn.h>
 
-/*#include "vga.h" */
-//#include "vgakeyboard.h"
-//#include "vgamouse.h"
-
 #include "quakedef.h"
 //#include "GL/fxmesa.h"
 #include "modern_gl_port.h"
@@ -41,7 +37,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define WARP_HEIGHT             200
 
 //static fxMesaContext fc = NULL;
-#define stringify(m) { #m, m }
 
 unsigned short	d_8to16table[256];
 unsigned	d_8to24table[256];
@@ -50,51 +45,13 @@ int num_shades=32;
 
 extern CPlatform platform;
 
-#define DUMMY_MOUSE "DUMMY_MOUSE"
-
-struct
-{
-	char *name;
-	int num;
-} mice[] =
-{
-	//stringify(MOUSE_MICROSOFT),
-	//stringify(MOUSE_MOUSESYSTEMS),
-	//stringify(MOUSE_MMSERIES),
-	//stringify(MOUSE_LOGITECH),
-	//stringify(MOUSE_BUSMOUSE),
-	//stringify(MOUSE_PS2),
-	stringify(DUMMY_MOUSE),
-};
-
-int num_mice = sizeof (mice) / sizeof(mice[0]);
-
 int	d_con_indirect = 0;
-
-int		svgalib_inited=0;
-int		UseMouse = 1;
 
 cvar_t		vid_mode = {"vid_mode","5",false};
 cvar_t		vid_redrawfull = {"vid_redrawfull","0",false};
 cvar_t		vid_waitforrefresh = {"vid_waitforrefresh","0",true};
  
 char	*framebuffer_ptr;
-
-cvar_t  mouse_button_commands[3] =
-{
-    {"mouse1","+attack"},
-    {"mouse2","+strafe"},
-    {"mouse3","+forward"},
-};
-
-int     mouse_buttons;
-int     mouse_buttonstate;
-int     mouse_oldbuttonstate;
-float   mouse_x, mouse_y;
-float	old_mouse_x, old_mouse_y;
-int		mx, my;
-
-cvar_t	m_filter = {"m_filter","1"};
 
 int scr_width, scr_height;
 
@@ -134,27 +91,6 @@ void D_BeginDirectRect (int x, int y, byte *pbitmap, int width, int height)
 
 void D_EndDirectRect (int x, int y, int width, int height)
 {
-}
-
-int matchmouse(int mouse, char *name)
-{
-	int i;
-	for (i=0 ; i<num_mice ; i++)
-		if (!strcmp(mice[i].name, name))
-			return i;
-	return mouse;
-}
-
-void keyhandler(int scancode, int state)
-{
-	/*p
-	int sc;
-
-	sc = scancode & 0x7f;
-
-	Key_Event(scantokey[sc], state == KEY_EVENTPRESS);
-	*/
-
 }
 
 void VID_Shutdown(void)
@@ -597,158 +533,4 @@ void VID_Init(unsigned char *palette)
 	Con_SafePrintf ("Video mode %dx%d initialized.\n", width, height);
 
 	vid.recalc_refdef = 1;				// force a surface cache flush
-}
-/*
-void Sys_SendKeyEvents(void)
-{
-	//if (UseKeyboard)
-//		while (keyboard_update());
-}*/
-
-void Force_CenterView_f (void)
-{
-	cl.viewangles[PITCH] = 0;
-}
-
-
-void mousehandler(int buttonstate, int dx, int dy)
-{
-	mouse_buttonstate = buttonstate;
-	mx += dx;
-	my += dy;
-}
-
-//	Mouse stuff doesn't really belong here, should be in_rpi.c
-//	so hack it a bit... renamed IN_Init() to IN_InitMouse and
-//	call it from in_rpi.c IN_Init()
-		
-// void IN_Init(void)
-void IN_InitMouse(void)
-{
-	if (UseMouse)
-	{
-
-		Cvar_RegisterVariable (&mouse_button_commands[0]);
-		Cvar_RegisterVariable (&mouse_button_commands[1]);
-		Cvar_RegisterVariable (&mouse_button_commands[2]);
-		Cmd_AddCommand ("force_centerview", Force_CenterView_f);
-
-		mouse_buttons = 3;	// Not used I think
-	}	
-}
-
-void IN_Shutdown(void)
-{
-}
-
-
-// ===========
-// IN_Commands
-// ===========
-
-// Called from _Host_Frame() in host.c
-
-void IN_Commands (void)
-{
-
-	/* Not needed since handled in Tick() ...
-
-	if (UseMouse && cls.state != ca_dedicated)
-	{
-		// poll mouse values
-		// while (mouse_update())
-		//	;
-
-		// perform button actions
-		if ((mouse_buttonstate & MOUSE_LEFTBUTTON) &&
-			!(mouse_oldbuttonstate & MOUSE_LEFTBUTTON))
-			Key_Event (K_MOUSE1, true);
-		else if (!(mouse_buttonstate & MOUSE_LEFTBUTTON) &&
-			(mouse_oldbuttonstate & MOUSE_LEFTBUTTON))
-			Key_Event (K_MOUSE1, false);
-
-		if ((mouse_buttonstate & MOUSE_RIGHTBUTTON) &&
-			!(mouse_oldbuttonstate & MOUSE_RIGHTBUTTON))
-			Key_Event (K_MOUSE2, true);
-		else if (!(mouse_buttonstate & MOUSE_RIGHTBUTTON) &&
-			(mouse_oldbuttonstate & MOUSE_RIGHTBUTTON))
-			Key_Event (K_MOUSE2, false);
-
-		if ((mouse_buttonstate & MOUSE_MIDDLEBUTTON) &&
-			!(mouse_oldbuttonstate & MOUSE_MIDDLEBUTTON))
-			Key_Event (K_MOUSE3, true);
-		else if (!(mouse_buttonstate & MOUSE_MIDDLEBUTTON) &&
-			(mouse_oldbuttonstate & MOUSE_MIDDLEBUTTON))
-			Key_Event (K_MOUSE3, false);
-
-		mouse_oldbuttonstate = mouse_buttonstate;
-	}
-
-	*/
-}
-
-
-// ===========
-// IN_Move
-// ===========
-
-void IN_MouseMove (usercmd_t *cmd)
-{
-	if (!UseMouse)
-		return;
-
-	// poll mouse values
-
-	mx = platform.m_mouse.dx;
-	my = platform.m_mouse.dy;
-
-	platform.m_mouse.dx = 0;	// FIXME this is clunky
-	platform.m_mouse.dy = 0;
-
-	if (m_filter.value)
-	{
-		mouse_x = (mx + old_mouse_x) * 0.5;
-		mouse_y = (my + old_mouse_y) * 0.5;
-	}
-	else
-	{
-		mouse_x = mx;
-		mouse_y = my;
-	}
-	old_mouse_x = mx;
-	old_mouse_y = my;
-	mx = my = 0; // clear for next update
-
-	mouse_x *= sensitivity.value;
-	mouse_y *= sensitivity.value;
-
-// add mouse X/Y movement to cmd
-	if ( (in_strafe.state & 1) || (lookstrafe.value && (in_mlook.state & 1) ))
-		cmd->sidemove += m_side.value * mouse_x;
-	else
-		cl.viewangles[YAW] -= m_yaw.value * mouse_x;
-	
-	if (in_mlook.state & 1)
-		V_StopPitchDrift ();
-		
-	if ( (in_mlook.state & 1) && !(in_strafe.state & 1))
-	{
-		cl.viewangles[PITCH] += m_pitch.value * mouse_y;
-		if (cl.viewangles[PITCH] > 80)
-			cl.viewangles[PITCH] = 80;
-		if (cl.viewangles[PITCH] < -70)
-			cl.viewangles[PITCH] = -70;
-	}
-	else
-	{
-		if ((in_strafe.state & 1) && noclip_anglehack)
-			cmd->upmove -= m_forward.value * mouse_y;
-		else
-			cmd->forwardmove -= m_forward.value * mouse_y;
-	}
-}
-
-void IN_Move (usercmd_t *cmd)
-{
-	IN_MouseMove(cmd);
 }

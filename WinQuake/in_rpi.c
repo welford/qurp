@@ -20,9 +20,29 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // in_rpi.c 
 
 #include "quakedef.h"
-//#include "vgakeyboard.h"
+#include "platform.h"
+
+extern CPlatform platform;
 
 static unsigned char scantokey[128];
+
+int UseMouse = 1;
+
+// NB These are overriden by config.cfg
+cvar_t  mouse_button_commands[3] =
+{
+    {"mouse1","+attack"},
+    {"mouse2","+strafe"},
+    {"mouse3","+forward"},
+};
+
+float   mouse_x, mouse_y;
+float   old_mouse_x, old_mouse_y;
+int     mx, my;
+
+cvar_t  m_filter = {"m_filter","1"};
+
+void IN_InitMouse(void);
 
 void Init_KBD(void)
 {
@@ -140,10 +160,24 @@ void IN_KB_CALLBACK(unsigned int code, int press){
 void IN_Init (void)
 {
 	Init_KBD();
-	IN_InitMouse();	// see gl_vidrpi.c
+	IN_InitMouse();
 }
 
-/* These are in gl_vidrpi.c
+void Force_CenterView_f (void)
+{
+        cl.viewangles[PITCH] = 0;
+}
+
+void IN_InitMouse(void)
+{
+        if (UseMouse)
+        {
+                Cvar_RegisterVariable (&mouse_button_commands[0]);
+                Cvar_RegisterVariable (&mouse_button_commands[1]);
+                Cvar_RegisterVariable (&mouse_button_commands[2]);
+                Cmd_AddCommand ("force_centerview", Force_CenterView_f);
+        }
+}
 
 void IN_Shutdown (void)
 {
@@ -153,8 +187,63 @@ void IN_Commands (void)
 {
 }
 
+void IN_MouseMove (usercmd_t *cmd)
+{
+        if (!UseMouse)
+                return;
+
+        // poll mouse values - these are set by Tick() in platform.pi.c
+        mx = platform.m_mouse.dx;
+        my = platform.m_mouse.dy;
+
+        // Clear inputs now that we have processed them
+        platform.m_mouse.dx = 0;
+        platform.m_mouse.dy = 0;
+
+        if (m_filter.value)
+        {
+                mouse_x = (mx + old_mouse_x) * 0.5;
+                mouse_y = (my + old_mouse_y) * 0.5;
+        }
+        else
+       {
+                mouse_x = mx;
+                mouse_y = my;
+        }
+        old_mouse_x = mx;
+        old_mouse_y = my;
+        mx = my = 0; // clear for next update
+
+        mouse_x *= sensitivity.value;
+        mouse_y *= sensitivity.value;
+
+// add mouse X/Y movement to cmd
+        if ( (in_strafe.state & 1) || (lookstrafe.value && (in_mlook.state & 1) ))
+                cmd->sidemove += m_side.value * mouse_x;
+        else
+                cl.viewangles[YAW] -= m_yaw.value * mouse_x;
+
+        if (in_mlook.state & 1)
+                V_StopPitchDrift ();
+
+        if ( (in_mlook.state & 1) && !(in_strafe.state & 1))
+        {
+                cl.viewangles[PITCH] += m_pitch.value * mouse_y;
+                if (cl.viewangles[PITCH] > 80)
+                        cl.viewangles[PITCH] = 80;
+                if (cl.viewangles[PITCH] < -70)
+                        cl.viewangles[PITCH] = -70;
+        }
+        else
+        {
+                if ((in_strafe.state & 1) && noclip_anglehack)
+                        cmd->upmove -= m_forward.value * mouse_y;
+                else
+                        cmd->forwardmove -= m_forward.value * mouse_y;
+        }
+}
+
 void IN_Move (usercmd_t *cmd)
 {
+        IN_MouseMove(cmd);
 }
-*/
-
