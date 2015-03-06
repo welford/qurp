@@ -30,6 +30,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 CPlatform		platform;
 qboolean		isDedicated;
 
+extern void IN_KB_CALLBACK(unsigned int code, int press);
+
 /*
 ===============================================================================
 
@@ -222,6 +224,11 @@ void Sys_Sleep (void)
 
 void Sys_SendKeyEvents (void)
 {
+	// Called from SCR_ModalMessage in gl_screen.c (called from menu.c)
+	// also Con_NotifyBox in console.c (called from cd_audio.c)
+
+	// Added to fix hang when prompted to start new game (menu.c)
+	Tick(&platform, IN_KB_CALLBACK);
 }
 
 void Sys_HighFPPrecision (void)
@@ -233,8 +240,6 @@ void Sys_LowFPPrecision (void)
 }
 
 //=============================================================================
-
-extern void IN_KB_CALLBACK(unsigned int code, int press);
 
 void rpi_sighandler(int sig)
 {
