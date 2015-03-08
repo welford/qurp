@@ -31,6 +31,7 @@ CPlatform		platform;
 qboolean		isDedicated;
 
 extern void IN_KB_CALLBACK(unsigned int code, int press);
+extern void IN_MOUSE_CALLBACK(unsigned int code, int press);
 
 /*
 ===============================================================================
@@ -224,11 +225,14 @@ void Sys_Sleep (void)
 
 void Sys_SendKeyEvents (void)
 {
+	// Called from _HostFrame() in host.c (main input)
 	// Called from SCR_ModalMessage in gl_screen.c (called from menu.c)
 	// also Con_NotifyBox in console.c (called from cd_audio.c)
 
-	// Added to fix hang when prompted to start new game (menu.c)
-	Tick(&platform, IN_KB_CALLBACK);
+	// Added to fix hang when prompted to start new game (menu.c), moved
+	// from original location in main()
+
+	Tick(&platform, IN_KB_CALLBACK, IN_MOUSE_CALLBACK);
 }
 
 void Sys_HighFPPrecision (void)
@@ -313,7 +317,8 @@ void main (int argc, char **argv)
 		}
 
 
-		Tick(&platform, IN_KB_CALLBACK);
+		// Moved to Sys_SendKeyEvents() called by Host_Frame() below
+		// Tick(&platform, IN_KB_CALLBACK, IN_MOUSE_CALLBACK);
 		
 		if (cls.state == ca_dedicated)
         {   // play vcrfiles at max speed

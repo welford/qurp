@@ -157,6 +157,13 @@ void IN_KB_CALLBACK(unsigned int code, int press){
 	Key_Event(scantokey[code], press);
 }
 
+static const int mouse_button_keys[NUMMOUSEBUTTONS] =
+		{ K_MOUSE1, K_MOUSE2, K_MOUSE3 };
+
+void IN_MOUSE_CALLBACK(unsigned int code, int press){
+	Key_Event(mouse_button_keys[code],press);
+}
+
 void IN_Init (void)
 {
 	Init_KBD();

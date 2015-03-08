@@ -12,11 +12,9 @@
 #include <fcntl.h>
 #include <string.h>
 #include <linux/input.h>
-//#include "keymap.h"
 
-#include "quakedef.h"	// Needed for K_MOUSE1 etc (can't just include keys.h)
+#define MAXEVHANDLES 8	// Arbitary (number of /dev/input/event* to try)
 
-#define MAXEVHANDLES 8	// Arbitary
 typedef struct
 {
 	int dev_event[MAXEVHANDLES];
@@ -187,7 +185,7 @@ int Create(CPlatform* pPlatform, char* title, int glMajor, int glMinor,  int wid
 
 	dispman_alpha.flags = DISPMANX_FLAGS_ALPHA_FIXED_ALL_PIXELS; 
 	dispman_alpha.opacity = 0xFF; 
-	dispman_alpha.mask = NULL; 
+	dispman_alpha.mask = 0; // NULL
 
 	dispman_element = vc_dispmanx_element_add ( dispman_update, dispman_display,
 		0/*layer*/, &dst_rect, 0/*src*/,
@@ -261,13 +259,14 @@ int Create(CPlatform* pPlatform, char* title, int glMajor, int glMinor,  int wid
 	}
 }
 
-// Keycode translation (BTN_LEFT etc defined in linux/input.h)
-int mouse_button_keycodes[] = { BTN_LEFT, BTN_RIGHT, BTN_MIDDLE };
-int mouse_button_qkeys[] = { K_MOUSE1, K_MOUSE2, K_MOUSE3 };
+// Mouse keycodes (BTN_LEFT etc defined in linux/input.h)
+static const int mouse_button_keycodes[] = { BTN_LEFT, BTN_RIGHT, BTN_MIDDLE };
 
 #define MAX_INPUT_EVENTS 20
 
-void Tick(CPlatform* pPlatform, void(*input_callback)(unsigned int code, int pressed))
+void Tick(CPlatform* pPlatform,
+		void(*input_callback)(unsigned int code, int pressed),
+		void(*mouse_callback)(unsigned int code, int pressed))
 {
 	char tmp = 0;
 	int rd = 0, idx = 0, km_idx;
@@ -312,10 +311,7 @@ void Tick(CPlatform* pPlatform, void(*input_callback)(unsigned int code, int pre
 						BUTTON_TOGGLE(pPlatform->m_keyboard.key[km_idx]);
 				}				
 			}
-			else if (ie[idx].type == EV_KEY && (
-				ie[idx].code == mouse_button_keycodes[0] ||
-				ie[idx].code == mouse_button_keycodes[1] ||
-				ie[idx].code == mouse_button_keycodes[2] ) )
+			else if (ie[idx].type == EV_KEY)
 			{
 				int mb;
 				for (mb=0; mb<NUMMOUSEBUTTONS; mb++)
@@ -327,14 +323,14 @@ void Tick(CPlatform* pPlatform, void(*input_callback)(unsigned int code, int pre
 						if(ie[idx].value)
 						{
 							// FIXME perhaps modify input_callback to handle this
-							Key_Event(mouse_button_qkeys[mb], 1);
+							mouse_callback(mb, 1);
 							BUTTON_PRESS(pPlatform->m_mouse.button[mb]);
 							if(!IS_BUTTON_PRESSED(tmp))
 								BUTTON_TOGGLE(pPlatform->m_mouse.button[mb]);
 						}
 						else
 						{
-							Key_Event(mouse_button_qkeys[mb], 0);
+							mouse_callback(mb, 0);
 							if(IS_BUTTON_PRESSED(tmp))
 								BUTTON_TOGGLE(pPlatform->m_mouse.button[mb]);
 						}				
