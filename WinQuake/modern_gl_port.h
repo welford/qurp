@@ -73,6 +73,7 @@ typedef struct _VertexAttribute
 	unsigned int	normalized; //0 false, 1 true //could be a char?
 	unsigned int	stride;		
 	unsigned int	offset;
+	unsigned int	array_offset;
 	unsigned int	divisor; //for instancing	
 }VertexAttribute;
 

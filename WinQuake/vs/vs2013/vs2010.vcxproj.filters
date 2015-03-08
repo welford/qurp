@@ -546,6 +546,12 @@
     <ClCompile Include="..\..\bstrlib.c">
       <Filter>port</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\modern_gles_port.c">
+      <Filter>port</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\modern_gles_port_map.c">
+      <Filter>port</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\..\math.s">

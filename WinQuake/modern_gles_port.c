@@ -35,33 +35,42 @@ typedef struct {
 	VertexAttribute* p_a_vtx_attr;
 }_VAS;
 
+
+#if USE_HALF_FLOATS
+#define float_type __fp16
+#define float_size 2
+#else
+#define float_type float
+#define float_size sizeof(float)
+#endif
+
 //VAS_CLR
 VertexAttribute vas_clr[] = {
-	{0, COLOUR_LOCATION,	4, STREAM_FLOAT, 0, sizeof(float)*7,			   0,	0},
-	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*7, sizeof(float)*4,	0},		
+	{0, COLOUR_LOCATION,	4, STREAM_FLOAT, 0, float_size*7,			 0,	 0,	0},
+	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, float_size*7, float_size*4,  4,	0},		
 };
 //VAS_CLR_TEX
 VertexAttribute vas_clr_tx[] = {
-	{0, COLOUR_LOCATION,	4, STREAM_FLOAT, 0, sizeof(float)*9,			   0,	0},
-	{0, UV_LOCATION0,		2, STREAM_FLOAT, 0, sizeof(float)*9, sizeof(float)*4,	0},
-	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*9, sizeof(float)*6,	0}	
+	{0, COLOUR_LOCATION,	4, STREAM_FLOAT, 0, float_size*9,			 0,	0, 0},
+	{0, UV_LOCATION0,		2, STREAM_FLOAT, 0, float_size*9, float_size*4,	4, 0},
+	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, float_size*9, float_size*6,	6, 0}	
 };
 //VAS_VTX_CLR
 VertexAttribute vas_vtx_clr[] = {
-	{0, COLOUR_LOCATION,	4, STREAM_FLOAT, 0, sizeof(float)*7,			   0,	0},
-	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*7, sizeof(float)*4,	0}
+	{0, COLOUR_LOCATION,	4, STREAM_FLOAT, 0, float_size*7,			 0,	0, 0},
+	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, float_size*7, float_size*4,	4, 0}
 };
 //VAS_VTX_CLR_TEX
 VertexAttribute vas_vtx_clr_tx[] = {
-	{0, COLOUR_LOCATION,	4, STREAM_FLOAT, 0, sizeof(float)*9,			   0,	0},
-	{0, UV_LOCATION0,		2, STREAM_FLOAT, 0, sizeof(float)*9, sizeof(float)*4,	0},
-	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*9, sizeof(float)*6,	0}
+	{0, COLOUR_LOCATION,	4, STREAM_FLOAT, 0, float_size*9,			 0,	0, 0},
+	{0, UV_LOCATION0,		2, STREAM_FLOAT, 0, float_size*9, float_size*4,	4, 0},
+	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, float_size*9, float_size*6,	6, 0}
 };
 //VAS_VTX_CLR8_TEX
 VertexAttribute vas_vtx_clr8_tx[] = {
-	{0, COLOUR_LOCATION,	4, STREAM_UCHAR, 1, sizeof(float)*6,			   0,	0},
-	{0, UV_LOCATION0,		2, STREAM_FLOAT, 0, sizeof(float)*6, sizeof(float)*1,	0},
-	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*6, sizeof(float)*3,	0}
+	{0, COLOUR_LOCATION,	4, STREAM_UCHAR, 1, float_size*6,			 0,	0, 0},
+	{0, UV_LOCATION0,		2, STREAM_FLOAT, 0, float_size*6, float_size*1,	1, 0},
+	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, float_size*6, float_size*3,	3, 0}
 };
 
 
@@ -121,7 +130,11 @@ typedef struct {
 	SpotLight		spot_light[MAX_SPOT_LIGHTS];
 }UBOLights;
 
-static const GLenum enumToGLAttribType[] = {GL_BYTE, GL_UNSIGNED_BYTE, GL_SHORT,GL_INT,GL_FLOAT};
+#if USE_HALF_FLOATS
+static const GLenum enumToGLAttribType[] = {GL_BYTE, GL_UNSIGNED_BYTE, GL_SHORT,GL_INT,GL_HALF_FLOAT_OES};
+#else
+static const GLenum enumToGLAttribType[] = { GL_BYTE, GL_UNSIGNED_BYTE, GL_SHORT, GL_INT, GL_FLOAT };
+#endif
 
 typedef enum{
 	FRONT=0,
@@ -166,7 +179,11 @@ typedef struct _VtxData{
 	unsigned int has_colour;
 	unsigned int has_texture;
 
-	float *	p_pre_gl_buffer;
+#if USE_HALF_FLOATS
+	__fp16 *	p_pre_gl_buffer;
+#else
+	float *		p_pre_gl_buffer;
+#endif
 	//float *	p_buffer_loc;
 }VtxData;
 
@@ -201,7 +218,12 @@ RenderState next_render_state = {
 	0};
 static UBOTransforms transforms;
 static UBOLights lights;
-static const int GRANULARITY	 = 16384*4*4; //probably too smalll
+
+#if USE_HALF_FLOATS
+static const int GRANULARITY = 16384*4*float_size; //probably too small (half floats)
+#else
+static const int GRANULARITY = 16384*4*float_size; //probably too small
+#endif
 static const int transform_stack_size = 10;
 
 SShaderProgram texture_shader;
@@ -293,14 +315,13 @@ void UnbindVAO(void){	/*glBindVertexArray( 0 );*/ }
 #define BUFFER_OFFSET(i) ((char *)0 + (i))
 static void SetAttributeFormat( const VertexAttribute* pAttr, unsigned int numAttr, unsigned int v_offset)
 {
-	GLenum type = GL_FLOAT;		
 	//unsigned int currentVBO = GetCurrentBuffer(GL_ARRAY_BUFFER_BINDING);
 	unsigned int i;
 
 	TransferAndDraw();
 
 	if(vtx.n_vertices != 0){
-		printf("ermergerd");
+		//printf("ermergerd");
 	}
 
 	BindVAO();
@@ -353,15 +374,15 @@ void SetVertexMode(const VertexAttributeState state){
 
 		for(i=0;i<vas[state].num_attr;i++){
 			if(vas[state].p_a_vtx_attr[i].idx ==COLOUR_LOCATION){
-				vtx_offsets.clr = vas[state].p_a_vtx_attr[i].offset / sizeof(float);				
+				vtx_offsets.clr = vas[state].p_a_vtx_attr[i].array_offset;				
 			}
 			if(vas[state].p_a_vtx_attr[i].idx ==POSITION_LOCATION){
-				vtx_offsets.position = vas[state].p_a_vtx_attr[i].offset / sizeof(float);
-
-				vtx_offsets.total = vas[state].p_a_vtx_attr[i].stride / sizeof(float);
+				vtx_offsets.position = vas[state].p_a_vtx_attr[i].array_offset;
+				//position is always last so it sets the total offset
+				vtx_offsets.total = vas[state].p_a_vtx_attr[i].stride / float_size;
 			}
 			if(vas[state].p_a_vtx_attr[i].idx ==UV_LOCATION0){
-				vtx_offsets.uv = vas[state].p_a_vtx_attr[i].offset / sizeof(float);
+				vtx_offsets.uv = vas[state].p_a_vtx_attr[i].array_offset;
 			}
 		}
 	}
@@ -534,9 +555,9 @@ void StartupModernGLPatch(){
 		glBindBuffer(GL_ARRAY_BUFFER, vtx.vbo_handle);
 		glBufferData(GL_ARRAY_BUFFER, GRANULARITY, 0, GL_DYNAMIC_DRAW);
 
-		printf("buffer location : %p \n", tmp);
+		//printf("buffer location : %p \n", tmp);
 		tmp = (float*)glMapBufferOES(GL_ARRAY_BUFFER, GL_WRITE_ONLY_OES);
-		printf("buffer location : %p \n", tmp);
+		//printf("buffer location : %p \n", tmp);
 		glUnmapBufferOES(GL_ARRAY_BUFFER);
 
 		vtx.vbo_capacity = GRANULARITY + 4;
@@ -558,7 +579,7 @@ void StartupModernGLPatch(){
 	// - - - - - - - - - - - - - - - -
 	//Allocate float data 
 	// - - - - - - - - - - - - - - - -
-	vtx.p_pre_gl_buffer = (float*)malloc(vtx.vbo_capacity);
+	vtx.p_pre_gl_buffer = (float_type*)malloc(vtx.vbo_capacity);
 	//vtx.p_buffer_loc = vtx.p_pre_gl_buffer;
 
 	// - - - - - - - - - - - - - - - -
@@ -726,7 +747,7 @@ static void PostAddVertexCheck(const VtxDataType type){
 	if(type == VTX_POSITION){
 		vtx.n_vertices++;
 		vtx.vbo_num_floats = vtx_offsets.total * vtx.n_vertices;
-		vtx.vbo_size = vtx.vbo_num_floats * sizeof( float );
+		vtx.vbo_size = vtx.vbo_num_floats * float_size;
 	}
 	if(type == VTX_TEXTURE){
 		vtx.has_texture = 1;
@@ -741,7 +762,7 @@ static void PostAddVertexCheck(const VtxDataType type){
 //copy the new data back
 static void TransferAndDrawFromLastSafePoint(){	
 	if(vtx.n_vertices != vtx_fallback.n_vertices){	
-		printf("drawing from last safe point\n");
+		//printf("drawing from last safe point\n");
 		VtxData tmp = vtx;
 		vtx = vtx_fallback;
 		TransferAndDraw();
@@ -759,7 +780,7 @@ static void TransferAndDrawFromLastSafePoint(){
 			, vtx.vbo_size);		
 	}
 	else{
-		printf("drawing from last safe point\n");
+		//printf("drawing from last safe point\n");
 		TransferAndDraw();
 	}
 }
@@ -769,7 +790,7 @@ void AddVertex2D(const VtxDataType type, const float x, const float y){
 	if(type == VTX_COLOUR)
 		return;
 
-	if(vtx.vbo_size + sizeof( float ) * 2 >= vtx.vbo_capacity){
+	if(vtx.vbo_size + float_size * 2 >= vtx.vbo_capacity){
 		TransferAndDrawFromLastSafePoint();
 	}
 	
@@ -795,7 +816,7 @@ void AddVertex3D(const VtxDataType type, const float x, const float y, const flo
 	vtx_idx = PreAddVertexCheck(type);
 	if(type == VTX_COLOUR)
 		return;
-	if(vtx.vbo_size + sizeof( float ) * 3 >= vtx.vbo_capacity){
+	if(vtx.vbo_size + float_size * 3 >= vtx.vbo_capacity){
 		TransferAndDrawFromLastSafePoint();
 	}
 
@@ -838,7 +859,7 @@ void AddVertex4D(const VtxDataType type, const float x, const float y, const flo
 	int per_vertex_colour = IsPerVertexColour();
 	vtx_idx = PreAddVertexCheck(type);
 
-	if(vtx.vbo_size + sizeof( float ) * 4 >= vtx.vbo_capacity){
+	if(vtx.vbo_size + float_size * 4 >= vtx.vbo_capacity){
 		TransferAndDrawFromLastSafePoint();
 	}
 
@@ -891,7 +912,7 @@ void AddVertex4Db(const VtxDataType type, const unsigned char r, const unsigned 
 	int per_vertex_colour = IsPerVertexColour();
 	vtx_idx = PreAddVertexCheck(type);
 
-	if(vtx.vbo_size + sizeof( float ) * 4 >= vtx.vbo_capacity){
+	if(vtx.vbo_size + float_size * 4 >= vtx.vbo_capacity){
 		TransferAndDrawFromLastSafePoint();
 	}
 

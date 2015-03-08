@@ -28,11 +28,9 @@ BUILD_RELEASE_DIR=release$(ARCH)$(GLIBC)
 
 BASE_CFLAGS=-Dstricmp=strcasecmp $(CFLAGS)
 
-#RELEASE_CFLAGS=$(BASE_CFLAGS) -O3 -ffast-math -funroll-loops \
-#	-fomit-frame-pointer -fexpensive-optimizations
+RELEASE_CFLAGS=$(BASE_CFLAGS) -O3 -ffast-math -funroll-loops -fomit-frame-pointer -fexpensive-optimizations -mfp16-format=alternative -DUSE_HALF_FLOATS=0 -DRELEASE_BUILD=1
 
-RELEASE_CFLAGS=$(BASE_CFLAGS) -O3
-DEBUG_CFLAGS=$(BASE_CFLAGS) -g 
+DEBUG_CFLAGS=$(BASE_CFLAGS) -g  -DRELEASE_BUILD=0
 
 LDFLAGS+=-lm
 
@@ -65,9 +63,9 @@ build_release:
 		$(BUILD_RELEASE_DIR)/bin \
 		$(BUILD_RELEASE_DIR)/glquake
 	@echo "- - - - - - - - - - - - - - - - - - "
-	@echo "Debug Build : "
+	@echo "Release Build : "
 	@echo "	targets : $(TARGETS)"
-	@echo "	build dir : $(BUILD_DEBUG_DIR)"
+	@echo "	build dir : $(BUILD_RELEASE_DIR)"
 	@echo "	mount dir : $(MOUNT_DIR)"
 	@echo "- - - - - - - - - - - - - - - - - - "
 	$(MAKE) -f make.rpi targets BUILDDIR=$(BUILD_RELEASE_DIR) CFLAGS="$(RELEASE_CFLAGS)"

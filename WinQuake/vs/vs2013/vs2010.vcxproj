@@ -363,6 +363,8 @@ del $(OutDir)%(Filename).spp
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\..\modern_gles_port.c" />
+    <ClCompile Include="..\..\modern_gles_port_map.c" />
     <ClCompile Include="..\..\modern_gl_port.c" />
     <ClCompile Include="..\..\modern_gl_port_map.c" />
     <ClCompile Include="..\..\net_dgrm.c" />

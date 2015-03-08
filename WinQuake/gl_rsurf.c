@@ -1624,8 +1624,13 @@ void GL_BuildLightmaps (void)
 		//glTexImage2D (GL_TEXTURE_2D, 0, texDataType[lightmap_bytes]	, BLOCK_WIDTH, BLOCK_HEIGHT, 0, gl_lightmap_format, GL_UNSIGNED_BYTE, lightmaps+i*BLOCK_WIDTH*BLOCK_HEIGHT*lightmap_bytes);
 		glTexImage2D (GL_TEXTURE_2D, 0, texDataType[lightmap_bytes]	, BLOCK_WIDTH, BLOCK_HEIGHT, 0, texDataType[lightmap_bytes], GL_UNSIGNED_BYTE, lightmaps+i*BLOCK_WIDTH*BLOCK_HEIGHT*lightmap_bytes);
 
+#ifdef LINEAR_TEXTURES
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+#else
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+#endif
 	}
 
  	if (!gl_texsort.value)
