@@ -17,7 +17,9 @@ the directory will clone with a qurp forlder at the root, so maybe be careful no
 OR
 ``git clone git://github.com/welford/qurp.git``
 
-For some reason using the 2nd option meant that I couldn't commit changed back to the respository, 	i'm not yet sure of the differnce, but probably bext to use the first one for now
+4. @Kramble added audio support via SDL, you'll need to use  ``Sudo apt-get install libsdl1.2-dev``
+
+For some reason using the 2nd option meant that I couldn't commit changed back to the respository, 	i'm not yet sure of the difference, but probably bext to use the first one for now
 
 Building
 ------------------------
@@ -45,14 +47,7 @@ run the game with the commands:
 Issues
 ------------------------
 
-- ~~The release version crashes on starting the game from the main menu, it will run the demos though~~ Fixed 
- 
-- No mouse support & poor keyboard support
-  might it be better to use SDL? Can it be included as an internal library?
-
 - Performance Issues
   The graphics commands probably need a big overhaul, currently the wrapper created one big VBO 
   which is filled until a state change is made that would require a flush of the previously buffered commands
   It's almost definitely better to create VBOs for individual data where possible and upload the vertices only once.
-
-- Lots of others
