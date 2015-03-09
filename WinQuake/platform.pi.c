@@ -248,9 +248,11 @@ int Create(CPlatform* pPlatform, char* title, int glMajor, int glMinor,  int wid
 		pState->dev_event[ev_chan] = open(ev_path, O_RDONLY|O_NONBLOCK);
 		if (pState->dev_event[ev_chan] != -1)
 		{
+#if RELEASE_BUILD
 			// Prevent input from propagating to shell (unfortunately
 			// this breaks control-c handling)
 			ioctl (pState->dev_event[ev_chan], EVIOCGRAB, (void*)1);
+#endif
 
 			ioctl (pState->dev_event[ev_chan], EVIOCGNAME (sizeof (name)), name);
 			printf ("keyboard/mouse %d: %s\n", ev_chan, name);

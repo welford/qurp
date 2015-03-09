@@ -31,8 +31,8 @@ BASE_CFLAGS=-Dstricmp=strcasecmp $(CFLAGS)
 #RELEASE_CFLAGS=$(BASE_CFLAGS) -O3 -ffast-math -funroll-loops \
 #	-fomit-frame-pointer -fexpensive-optimizations
 
-RELEASE_CFLAGS=$(BASE_CFLAGS) -O3
-DEBUG_CFLAGS=$(BASE_CFLAGS) -g 
+RELEASE_CFLAGS=$(BASE_CFLAGS) -O3 -DRELEASE_BUILD=1
+DEBUG_CFLAGS=$(BASE_CFLAGS) -g -DRELEASE_BUILD=0
 
 LDFLAGS+=-lm
 
