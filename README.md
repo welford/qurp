@@ -17,7 +17,7 @@ the directory will clone with a qurp forlder at the root, so maybe be careful no
 OR
 ``git clone git://github.com/welford/qurp.git``
 
-4. @Kramble added audio support via SDL, you'll need to use  ``Sudo apt-get install libsdl1.2-dev``
+4. kramble added audio support via SDL, you'll need to use  ``Sudo apt-get install libsdl1.2-dev``
 
 For some reason using the 2nd option meant that I couldn't commit changed back to the respository, 	i'm not yet sure of the difference, but probably bext to use the first one for now
 
