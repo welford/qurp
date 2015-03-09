@@ -174,4 +174,4 @@ extern void matScale44to33(Matrix44 * matO,float n,Matrix33 * matC);
 }
 #endif
 
-#endif _VECTOR_H_
+#endif //_VECTOR_H_

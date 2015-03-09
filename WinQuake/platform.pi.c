@@ -12,11 +12,12 @@
 #include <fcntl.h>
 #include <string.h>
 #include <linux/input.h>
-//#include "keymap.h"
+
+#define MAXEVHANDLES 8	// Arbitary (number of /dev/input/event* to try)
 
 typedef struct
 {
-	int kb_input;
+	int dev_event[MAXEVHANDLES];
 	int mouse_input;
 	uint32_t screen_width;
 	uint32_t screen_height;
@@ -184,7 +185,7 @@ int Create(CPlatform* pPlatform, char* title, int glMajor, int glMinor,  int wid
 
 	dispman_alpha.flags = DISPMANX_FLAGS_ALPHA_FIXED_ALL_PIXELS; 
 	dispman_alpha.opacity = 0xFF; 
-	dispman_alpha.mask = NULL; 
+	dispman_alpha.mask = 0; // NULL
 
 	dispman_element = vc_dispmanx_element_add ( dispman_update, dispman_display,
 		0/*layer*/, &dst_rect, 0/*src*/,
@@ -232,13 +233,42 @@ int Create(CPlatform* pPlatform, char* title, int glMajor, int glMinor,  int wid
 
 	//setup keyboard and mouse input
 	memset(pPlatform->m_keyboard.key, 0, KB_MAX);
-	pState->kb_input = open("/dev/input/event0", O_RDONLY|O_NONBLOCK);
-	ioctl (pState->kb_input, EVIOCGNAME (sizeof (name)), name);
-	printf ("keyboard: %s\n", name);
+
+	// FIXME do we need to initialize pPlatform->m_mouse? It's global
+	// so should be preinitialized to zero already.
+
+	// Keyboard and mouse can appear on any event channel
+	// FIXME Do we also need to check /dev/input/mouse0 etc?
+	// FIXME What about multiple interfaces for the same device?
+	int ev_chan;
+	for (ev_chan=0; ev_chan<MAXEVHANDLES; ev_chan++)
+	{
+		char ev_path[100];	// FIXME array bounds
+		sprintf(ev_path,"/dev/input/event%d", ev_chan);
+		pState->dev_event[ev_chan] = open(ev_path, O_RDONLY|O_NONBLOCK);
+		if (pState->dev_event[ev_chan] != -1)
+		{
+#if RELEASE_BUILD
+			// Prevent input from propagating to shell (unfortunately
+			// this breaks control-c handling)
+			ioctl (pState->dev_event[ev_chan], EVIOCGRAB, (void*)1);
+#endif
+
+			ioctl (pState->dev_event[ev_chan], EVIOCGNAME (sizeof (name)), name);
+			printf ("keyboard/mouse %d: %s\n", ev_chan, name);
+		}
+		else printf("Failed to open %s\n", ev_path);
+	}
 }
 
+// Mouse keycodes (BTN_LEFT etc defined in linux/input.h)
+static const int mouse_button_keycodes[] = { BTN_LEFT, BTN_RIGHT, BTN_MIDDLE };
+
 #define MAX_INPUT_EVENTS 20
-void Tick(CPlatform* pPlatform, void(*input_callback)(unsigned int code, int pressed))
+
+void Tick(CPlatform* pPlatform,
+		void(*input_callback)(unsigned int code, int pressed),
+		void(*mouse_callback)(unsigned int code, int pressed))
 {
 	char tmp = 0;
 	int rd = 0, idx = 0, km_idx;
@@ -253,11 +283,17 @@ void Tick(CPlatform* pPlatform, void(*input_callback)(unsigned int code, int pre
 	for(rd=0;rd<KB_MAX;rd++)
 		BUTTON_UNTOGGLE(pPlatform->m_keyboard.key[rd]);
 
-	rd = read (pState->kb_input, ie, size * MAX_INPUT_EVENTS);
-	if( rd > 0)
+	int ev_chan;
+	for (ev_chan=0; ev_chan<MAXEVHANDLES; ev_chan++)
 	{
+		idx=0;
+		if (pState->dev_event[ev_chan] == -1)
+			continue;
+		rd = read (pState->dev_event[ev_chan], ie, size * MAX_INPUT_EVENTS);
 		while(rd>0)
 		{
+			// printf("Event chan=%d type=%d code=%d value=%d\n", ev_chan, ie[idx].type, ie[idx].code, ie[idx].value);
+
 			if(ie[idx].type == EV_KEY && ie[idx].code < LINUX_KB_MAX)
 			{
 				km_idx = linux_to_keymap[ie[idx].code]; //get the keymap index
@@ -277,6 +313,46 @@ void Tick(CPlatform* pPlatform, void(*input_callback)(unsigned int code, int pre
 						BUTTON_TOGGLE(pPlatform->m_keyboard.key[km_idx]);
 				}				
 			}
+			else if (ie[idx].type == EV_KEY)
+			{
+				int mb;
+				for (mb=0; mb<NUMMOUSEBUTTONS; mb++)
+				{
+					if (ie[idx].code == mouse_button_keycodes[mb])
+					{
+						tmp = pPlatform->m_mouse.button[mb];
+						BUTTON_RESET(pPlatform->m_mouse.button[mb]);
+						if(ie[idx].value)
+						{
+							// FIXME perhaps modify input_callback to handle this
+							mouse_callback(mb, 1);
+							BUTTON_PRESS(pPlatform->m_mouse.button[mb]);
+							if(!IS_BUTTON_PRESSED(tmp))
+								BUTTON_TOGGLE(pPlatform->m_mouse.button[mb]);
+						}
+						else
+						{
+							mouse_callback(mb, 0);
+							if(IS_BUTTON_PRESSED(tmp))
+								BUTTON_TOGGLE(pPlatform->m_mouse.button[mb]);
+						}				
+					}
+				}
+			}
+			else if(ie[idx].type == EV_REL)
+			{
+				// Accumulate delta until processed and cleared by IN_MouseMove()
+				// called from IN_Move() called from CL_SendCmd() in cl_main.c
+				if (ie[idx].code == 0)
+				{
+					pPlatform->m_mouse.dx += ie[idx].value;
+				}
+				else if (ie[idx].code == 1)
+				{
+					pPlatform->m_mouse.dy += ie[idx].value;
+				}
+			}
+
 			rd -= size;
 			idx++;
 		}
@@ -297,7 +373,10 @@ void Close(CPlatform* pPlatform)
 	STATE* pState = (STATE*)pPlatform->m_pData;
 
 	//close input streams
-	close(pState->kb_input);
+	int ev_chan;
+	for (ev_chan=0; ev_chan<MAXEVHANDLES; ev_chan++)
+		if (pState->dev_event[ev_chan] != -1)
+			close(pState->dev_event[ev_chan]);
 
 	eglSwapBuffers(pState->display, pState->surface);
 	eglMakeCurrent( pState->display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT );

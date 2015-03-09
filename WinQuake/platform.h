@@ -15,14 +15,15 @@ typedef struct
 
 //Basic input states that we can expect from most 
 //application instances
+
+#define NUMMOUSEBUTTONS 3
+
 typedef struct
 {
-	int px,py;
+	int px,py;	// Not used
 	int dx,dy;
-	int wheelRot;
-	int lmb;
-	int mmb;
-	int rmb;
+	int wheelRot;	// Not used
+	int button[NUMMOUSEBUTTONS];	// ordered left, right, middle
 }SMouse;
 
 #define BUTTON_PRESSED			0x1
@@ -97,7 +98,9 @@ typedef struct
 
 //allocate memory ebfore this
 extern int Create(CPlatform* pPlatform, char* title, int glMajor, int glMinor, int width, int height, int redBits, int greeenBits, int blueBits, int alphaBits,int depthBits, int stencilBits, int nSamples);
-extern void Tick(CPlatform* pPlatform, void(*input_callback)(unsigned int code, int pressed) );
+extern void Tick(CPlatform* pPlatform,
+	void(*input_callback)(unsigned int code, int pressed),
+	void(*mouse_callback)(unsigned int code, int pressed) );
 extern void SwapBuffers(CPlatform* pPlatform);
 extern void Close(CPlatform* pPlatform);
 
