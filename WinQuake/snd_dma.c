@@ -143,6 +143,7 @@ void S_Startup (void)
 
 	if (!fakedma)
 	{
+		Con_Printf("S_Startup: Calling SNDDMA_Init\n");
 		rc = SNDDMA_Init();
 
 		if (!rc)
@@ -154,6 +155,8 @@ void S_Startup (void)
 			return;
 		}
 	}
+	else
+		Con_Printf("S_Startup: fakedma\n");
 
 	sound_started = 1;
 }
@@ -254,7 +257,9 @@ void S_Shutdown(void)
 	if (shm)
 		shm->gamealive = 0;
 
-	shm = 0;
+	// shm = 0;		// SDL callback is still active so we must
+				// not null the pointer until SDL is shutdown
+
 	sound_started = 0;
 
 	if (!fakedma)

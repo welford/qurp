@@ -23,11 +23,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "errno.h"
 #include "platform.h"
 #include <sys/time.h>
+#include <signal.h>
 
 //JAMES
 //my simple video and input setup
 CPlatform		platform;
 qboolean		isDedicated;
+
+extern void IN_KB_CALLBACK(unsigned int code, int press);
+extern void IN_MOUSE_CALLBACK(unsigned int code, int press);
 
 /*
 ===============================================================================
@@ -180,6 +184,10 @@ void Sys_Printf (char *fmt, ...)
 
 void Sys_Quit (void)
 {
+	printf("\nSys_Quit\n");
+
+	// FIXME should we call Host_Shutdown() here instead?
+	S_Shutdown();		// Shutdown SDL cleanly
 	exit (0);
 }
 
@@ -217,6 +225,14 @@ void Sys_Sleep (void)
 
 void Sys_SendKeyEvents (void)
 {
+	// Called from _HostFrame() in host.c (main input)
+	// Called from SCR_ModalMessage in gl_screen.c (called from menu.c)
+	// also Con_NotifyBox in console.c (called from cd_audio.c)
+
+	// Added to fix hang when prompted to start new game (menu.c), moved
+	// from original location in main()
+
+	Tick(&platform, IN_KB_CALLBACK, IN_MOUSE_CALLBACK);
 }
 
 void Sys_HighFPPrecision (void)
@@ -229,7 +245,17 @@ void Sys_LowFPPrecision (void)
 
 //=============================================================================
 
-extern void IN_KB_CALLBACK(unsigned int code, int press);
+void rpi_sighandler(int sig)
+{
+	// Only handles SIGTERM and SIGINT (ctrl-c)
+	signal(SIGINT, SIG_DFL);	// reset to default
+	signal(SIGTERM, SIG_DFL);	// reset to default
+
+	printf("\nReceived signal %d, exiting...\n", sig);
+	fflush(stdout);
+
+	Sys_Quit();
+}
 
 void main (int argc, char **argv)
 {
@@ -242,6 +268,10 @@ void main (int argc, char **argv)
 	extern int recording;
 	extern unsigned int dcc;
 	extern unsigned int dcs;
+
+	// Setup signal handlers to shutdown SDL cleanly
+	// signal(SIGINT, rpi_sighandler);	// Currently DISABLED
+	// signal(SIGTERM, rpi_sighandler);	// Currently DISABLED
 
 	COM_InitArgv (argc, argv);
 
@@ -287,7 +317,8 @@ void main (int argc, char **argv)
 		}
 
 
-		Tick(&platform, IN_KB_CALLBACK);
+		// Moved to Sys_SendKeyEvents() called by Host_Frame() below
+		// Tick(&platform, IN_KB_CALLBACK, IN_MOUSE_CALLBACK);
 		
 		if (cls.state == ca_dedicated)
         {   // play vcrfiles at max speed
