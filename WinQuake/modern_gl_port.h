@@ -2,7 +2,7 @@
 #define _MODERN_GL_PORT_H_
 
 #ifdef _WIN32
-static const int glMajor = 3, glMinor = 2;
+static const int glMajor = 4, glMinor = 2;
 #include <GL/glew.h>
 #include <GL/glu.h>
 #else
@@ -28,6 +28,8 @@ static const int glMajor = 3, glMinor = 2;
 #define TEXT_LOCATION			0
 //#define JOINT_WEIGHT_LOCATION	3
 //#define JOINT_INDEX_LOCATION	4
+
+#define LINEAR_TEXTURES 0
 
 
 typedef enum {
@@ -83,12 +85,13 @@ typedef struct _VertexAttribute
 	static GLenum texDataType[5] = {GL_ALPHA, GL_ALPHA, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA};
 #endif
 
-extern void StartupModernGLPatch();
+extern void StartupModernGLPatch(const int width, const int height);
 
 extern void ResetDrawCallCounter();
 extern unsigned int GetDrawCallCounter();
 extern unsigned int GetDrawCallSize();
 
+extern void SetRenderSize(const unsigned int w, const unsigned int h);
 extern void SetViewport(const unsigned int x, const unsigned int y, const unsigned int w, const unsigned int h);
 extern void SetOrthoMatrix(const float l,const float r,const float b,const float t,const float n,const float f);
 extern void SetProjectionMatrix(const float l,const float r,const float b,const float t,const float n,const float f);
@@ -102,12 +105,13 @@ extern void EnableBlending();
 extern void DisableBlending();
 extern void EnableDepth();
 extern void DisableDepth();
+
 extern void EnableTexture();
 extern void DisableTexture();
 extern void EnableCulling();
 extern void DisableCulling();
-//extern void EnableAlpha();
-//extern void DisableAlpha();
+extern void EnableAlphaTest();
+extern void DisableAlphaTest();
 
 extern void CullFront(void);
 extern void CullBack(void);
@@ -131,6 +135,8 @@ extern void SetMatrix(const float mtx[16]);
 extern void TransformMatrix(const float mtx[16]);
 
 extern void FlushDraw(void);
+
+extern void BlitFBO(const int windowWidth, const int windowHeight);
 
 extern void ShutdownModernGLPatch();
 

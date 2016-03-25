@@ -54,7 +54,8 @@ int		gl_lightmap_format = GL_RGBA;
 int		gl_solid_format = 3;
 int		gl_alpha_format = 4;
 
-#ifdef LINEAR_TEXTURES
+
+#if LINEAR_TEXTURES
 int		gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
 int		gl_filter_max = GL_LINEAR;
 #else
@@ -805,7 +806,7 @@ void Draw_TransPicTranslate (int x, int y, qpic_t *pic, byte *translation)
 	glTexImage2D (GL_TEXTURE_2D, 0, texDataType[gl_alpha_format], 64, 64, 0, texDataType[gl_alpha_format], GL_UNSIGNED_BYTE, trans);
 	//END
 
-#ifdef LINEAR_TEXTURES
+#if LINEAR_TEXTURES
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 #else

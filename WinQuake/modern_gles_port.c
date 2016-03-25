@@ -159,6 +159,8 @@ typedef struct _RenderState{
 	float red, green, blue, alpha;
 
 	int lightmap_mode;
+
+	int enable_alpha_test;
 	
 }RenderState;
 
@@ -208,6 +210,7 @@ RenderState current_render_state = {
 	1, 0.0f, 1.0f, 
 	BACK, 
 	0,0,0,0, 
+	0,
 	0};
 RenderState next_render_state = {
 	RNDR_TRIANGLES, 
@@ -216,6 +219,7 @@ RenderState next_render_state = {
 	1, 0.0f, 1.0f, 
 	BACK, 
 	0,0,0,0, 
+	0,
 	0};
 static UBOTransforms transforms;
 static UBOLights lights;
@@ -282,6 +286,9 @@ static int HasRenderStateChanged(){
 	printf("%d\n",i++);
 	*/
 	if(current_render_state.lightmap_mode != next_render_state.lightmap_mode)
+		return 1;
+
+	if(current_render_state.enable_alpha_test != next_render_state.enable_alpha_test)
 		return 1;
 	
 	return 0;
@@ -543,7 +550,8 @@ static void UpdateTransformUBOs(){
 	transform_dirty = 0;
 }
 
-void StartupModernGLPatch(){
+//w and h are not used int he RPI version, we render to fullscreen only
+void StartupModernGLPatch(int w, int h){
 	float * tmp;
 	glActiveTexture(GL_TEXTURE0);
 
@@ -681,12 +689,16 @@ void SetLightmapMode(const int active){
 
 }
 
-void EnableAlpha(){
-
+void EnableAlphaTest(){
+	if(inbetween_start_end)
+		return;
+	next_render_state.enable_alpha_test = 1;
 }
 
-void DisableAlpha(){
-
+void DisableAlphaTest(){
+	if(inbetween_start_end)
+		return;
+	next_render_state.enable_alpha_test = 0;
 }
 
 void CullFront(void){
@@ -952,6 +964,11 @@ static void SetGLRenderState(void){
 	else
 		glDisable(GL_BLEND);
 
+	//if(current_render_state.enable_alpha_test)
+	//	glEnable (GL_ALPHA_TEST);
+	//else
+	//	glDisable (GL_ALPHA_TEST);
+
 	if(current_render_state.enable_depth)
 		glEnable (GL_DEPTH_TEST);
 	else
@@ -1143,6 +1160,12 @@ void TransformMatrix(const float mtx[16]){
 	TransferAndDraw();
 	transform_dirty = 1;
 	StackTransformMatrix(mtx);
+}
+
+void BlitFBO(const int w, const inth )
+{
+	//stub
+	//does nothing RPI just renders fullscreen
 }
 
 void ShutdownModernGLPatch(){

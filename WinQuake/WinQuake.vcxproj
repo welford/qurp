@@ -25,18 +25,22 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='GL Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
+    <PlatformToolset>v120_xp</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
+    <PlatformToolset>v120_xp</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='GL Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
+    <PlatformToolset>v120_xp</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
+    <PlatformToolset>v120_xp</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -44,22 +48,22 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='GL Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
-    <Import Project="..\..\..\common_directories.props" />
+    <Import Project="..\..\..\pc\common_directories.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
-    <Import Project="..\..\..\common_directories.props" />
+    <Import Project="..\..\..\pc\common_directories.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='GL Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
-    <Import Project="..\..\..\common_directories.props" />
+    <Import Project="..\..\..\pc\common_directories.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
-    <Import Project="..\..\..\common_directories.props" />
+    <Import Project="..\..\..\pc\common_directories.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
@@ -115,6 +119,7 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <TargetMachine>MachineX86</TargetMachine>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -134,7 +139,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>.\dxsdk\sdk\inc;$(LIB_PATH)\glew-1.9.0\include;$(LIB_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\dxsdk\sdk\inc;$(LIB_PATH)\glew-1.10.0\include;$(LIB_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>GLEW_STATIC;WIN32;NDEBUG;_WINDOWS;GLQUAKE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeaderOutputFile>.\release_gl/WinQuake.pch</PrecompiledHeaderOutputFile>
@@ -149,14 +154,15 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>.\dxsdk\sdk\lib\dxguid.lib;comctl32.lib;winmm.lib;wsock32.lib;opengl32.lib;glu32.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>.\dxsdk\sdk\lib\dxguid.lib;comctl32.lib;winmm.lib;wsock32.lib;opengl32.lib;glu32.lib;odbc32.lib;odbccp32.lib;Imm32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>.\release_gl/WinQuake.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <TargetMachine>MachineX86</TargetMachine>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -202,6 +208,7 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <TargetMachine>MachineX86</TargetMachine>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -220,9 +227,9 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.\dxsdk\sdk\inc;$(LIB_PATH)\glew-1.9.0\include;$(LIB_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\dxsdk\sdk\inc;$(LIB_PATH)\glew-1.10.0\include;$(LIB_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>GLEW_STATIC;WIN32;_DEBUG;_WINDOWS;GLQUAKE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeaderOutputFile>.\debug_gl/WinQuake.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>.\debug_gl/</AssemblerListingLocation>
       <ObjectFileName>.\debug_gl/</ObjectFileName>
@@ -236,16 +243,17 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>.\dxsdk\sdk\lib\dxguid.lib;comctl32.lib;winmm.lib;wsock32.lib;opengl32.lib;glu32.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>.\dxsdk\sdk\lib\dxguid.lib;comctl32.lib;winmm.lib;wsock32.lib;opengl32.lib;glu32.lib;odbc32.lib;odbccp32.lib;Imm32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>.\debug_gl\WinQuake.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>.\debug_gl/glquake.pdb</ProgramDatabaseFile>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <TargetMachine>MachineX86</TargetMachine>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -253,12 +261,12 @@
     </Bscmake>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\libraries\bstrlib.c" />
-    <ClCompile Include="..\..\..\libraries\glsw.c" />
-    <ClCompile Include="..\..\..\libraries\shader_gl.c" />
-    <ClCompile Include="..\..\..\libraries\vector++\vector\matrix.c" />
-    <ClCompile Include="..\..\..\libraries\vector++\vector\quaterion.c" />
-    <ClCompile Include="..\..\..\libraries\vector++\vector\vector.c" />
+    <ClCompile Include="..\..\..\pc\utils\bstrlib.c" />
+    <ClCompile Include="..\..\..\pc\utils\glsw.c" />
+    <ClCompile Include="..\..\..\pc\utils\shader_gl.c" />
+    <ClCompile Include="..\..\..\pc\utils\vector++\vector\matrix.c" />
+    <ClCompile Include="..\..\..\pc\utils\vector++\vector\quaterion.c" />
+    <ClCompile Include="..\..\..\pc\utils\vector++\vector\vector.c" />
     <ClCompile Include="cd_win.c">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -1670,11 +1678,11 @@ del $(OutDir)%(Filename).spp
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\libraries\bstrlib.h" />
-    <ClInclude Include="..\..\..\libraries\debug_print.h" />
-    <ClInclude Include="..\..\..\libraries\glsw.h" />
-    <ClInclude Include="..\..\..\libraries\shader_gl.h" />
-    <ClInclude Include="..\..\..\libraries\vector++\vector\vector.h" />
+    <ClInclude Include="..\..\..\pc\utils\bstrlib.h" />
+    <ClInclude Include="..\..\..\pc\utils\debug_print.h" />
+    <ClInclude Include="..\..\..\pc\utils\glsw.h" />
+    <ClInclude Include="..\..\..\pc\utils\shader_gl.h" />
+    <ClInclude Include="..\..\..\pc\utils\vector++\vector\vector.h" />
     <ClInclude Include="anorm_dots.h" />
     <ClInclude Include="anorms.h" />
     <ClInclude Include="bspfile.h" />
@@ -1729,8 +1737,13 @@ del $(OutDir)%(Filename).spp
     <ClInclude Include="zone.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\libraries\glew-1.9.0\build\vc10\glew_static.vcxproj">
-      <Project>{c7bde69d-4b8f-7732-a21b-055a5e3f00d9}</Project>
+    <ProjectReference Include="..\..\..\pc\external\lib\glew-1.10.0\build\vc10\glew_static.vcxproj">
+      <Project>{664e6f0d-6784-4760-9565-d54f8eb1edf4}</Project>
+      <Private>true</Private>
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+      <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
     </ProjectReference>
     <ProjectReference Include="gas2masm\gas2masm.vcxproj">
       <Project>{7371459e-66de-4c91-8329-07d4431ac179}</Project>

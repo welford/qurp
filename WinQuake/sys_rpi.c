@@ -294,7 +294,6 @@ void main (int argc, char **argv)
 	glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
 	glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
-	
 	//not needed seems to do nothing
 	//Sys_Init();
 
@@ -305,15 +304,16 @@ void main (int argc, char **argv)
         time = newtime - oldtime;
 
 		sec_counter += time;
-		frame_counter++;
+		//frame_counter++;
 		if(sec_counter > 1.0f){
-			sec_counter -= 1.0f;
-			//printf("fps : %d\n", frame_counter);			
+			printf("fps time: %f\n", sec_counter);
+			sec_counter = 0.0f;
+			printf("fps : %d\n", host_framecount - frame_counter);
 			//Con_Printf("total calls : %d, data : %dkb\n", dcc, dcs/1024);
 			//Con_Printf("fps : %d\n", frame_counter);
 			dcc = 0;
 			dcs = 0;
-			frame_counter = 0;
+			frame_counter = host_framecount;
 		}
 
 

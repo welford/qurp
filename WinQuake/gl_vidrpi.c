@@ -36,6 +36,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define WARP_WIDTH              320
 #define WARP_HEIGHT             200
 
+int default_width = 320, default_height = 240;
+//int default_width = 640, default_height = 320;
+
 //static fxMesaContext fc = NULL;
 
 unsigned short	d_8to16table[256];
@@ -57,10 +60,10 @@ int scr_width, scr_height;
 
 /*-----------------------------------------------------------------------*/
 
-//int		texture_mode = GL_NEAREST;
+int		texture_mode = GL_NEAREST;
 //int		texture_mode = GL_NEAREST_MIPMAP_NEAREST;
 //int		texture_mode = GL_NEAREST_MIPMAP_LINEAR;
-int		texture_mode = GL_LINEAR;
+//int		texture_mode = GL_LINEAR;
 //int		texture_mode = GL_LINEAR_MIPMAP_NEAREST;
 //int		texture_mode = GL_LINEAR_MIPMAP_LINEAR;
 
@@ -68,7 +71,7 @@ int		texture_extension_number = 1;
 
 float		gldepthmin, gldepthmax;
 
-cvar_t	gl_ztrick = {"gl_ztrick","0"};
+cvar_t	gl_ztrick = {"gl_ztrick","1"};
 
 const char *gl_vendor;
 const char *gl_renderer;
@@ -239,7 +242,7 @@ void GL_Init (void)
 
 	CheckMultiTextureExtensions ();
 	*/
-	StartupModernGLPatch();
+	StartupModernGLPatch(0,0);
 
 	glClearColor (1,0,0,1);
 	glCullFace(GL_FRONT);
@@ -297,6 +300,10 @@ void GL_EndRendering (void)
 	*/
 }
 
+void GL_BlitFBO()
+{
+
+}
 
 
 #define NUM_RESOLUTIONS 16
@@ -333,8 +340,8 @@ int findres(int *width, int *height)
 			return resolutions[i][2];
 		}
         
-	*width = 640;
-	*height = 480;
+	*width = default_width;
+	*height = default_height;
 	return 0;//GR_RESOLUTION_640x480;
 }
 
@@ -437,13 +444,7 @@ void VID_Init(unsigned char *palette)
 	int i;
 	GLint attribs[32];
 	char	gldir[MAX_OSPATH];
-	//int width = 320, height = 240;
-	int width = 640, height = 480;
-	//int width = 800, height = 600;
-	//int width = 1024, height = 768;
-	//int width = 1280, height = 720;
-	//int width = 1920, height = 1080;	
-
+	int width = default_width, height = default_height;
 	Cvar_RegisterVariable (&vid_mode);
 	Cvar_RegisterVariable (&vid_redrawfull);
 	Cvar_RegisterVariable (&vid_waitforrefresh);
@@ -478,8 +479,8 @@ void VID_Init(unsigned char *palette)
 
 	vid.conwidth &= 0xfff8; // make it a multiple of eight
 
-	if (vid.conwidth < 320)
-		vid.conwidth = 320;
+	if (vid.conwidth < default_width)
+		vid.conwidth = default_width;
 
 	// pick a conheight that matches with correct aspect
 	vid.conheight = vid.conwidth*3 / 4;

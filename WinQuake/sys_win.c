@@ -340,6 +340,8 @@ void Sys_Init (void)
 		WinNT = true;
 	else
 		WinNT = false;
+
+	ImmDisableIME(-1);   // It makes IME disabled
 }
 
 
@@ -896,3 +898,13 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
     return TRUE;
 }
 
+int main() {
+	//FILE* debugStream;
+	////see : http://comsci.liu.edu/~murali/win32gui/Win32Apps.htm
+	//freopen_s(&debugStream,"CONOUT$", "wt", stdout);
+	//SetConsoleTitleW(L"Debug Console\n");
+	//SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED);
+	//printf("Test Print\n");
+    return WinMain(GetModuleHandle(NULL), NULL, GetCommandLine(), SW_SHOW);
+	//fclose(debugStream);
+}

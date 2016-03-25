@@ -276,25 +276,7 @@
     <ClCompile Include="zone.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\libraries\bstrlib.c">
-      <Filter>port</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\libraries\glsw.c">
-      <Filter>port</Filter>
-    </ClCompile>
     <ClCompile Include="modern_gl_port.c">
-      <Filter>port</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\libraries\shader_gl.c">
-      <Filter>port</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\libraries\vector++\vector\matrix.c">
-      <Filter>port</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\libraries\vector++\vector\quaterion.c">
-      <Filter>port</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\libraries\vector++\vector\vector.c">
       <Filter>port</Filter>
     </ClCompile>
     <ClCompile Include="transforms.c">
@@ -302,6 +284,24 @@
     </ClCompile>
     <ClCompile Include="modern_gl_port_map.c">
       <Filter>port</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\pc\utils\vector++\vector\vector.c">
+      <Filter>port</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\pc\utils\shader_gl.c">
+      <Filter>port</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\pc\utils\vector++\vector\matrix.c">
+      <Filter>port</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\pc\utils\glsw.c">
+      <Filter>port</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\pc\utils\bstrlib.c">
+      <Filter>port</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\pc\utils\vector++\vector\quaterion.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -476,25 +476,25 @@
     <ClInclude Include="zone.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\libraries\bstrlib.h">
-      <Filter>port</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\libraries\glsw.h">
-      <Filter>port</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\libraries\debug_print.h">
-      <Filter>port</Filter>
-    </ClInclude>
     <ClInclude Include="modern_gl_port.h">
       <Filter>port</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\libraries\shader_gl.h">
-      <Filter>port</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\libraries\vector++\vector\vector.h">
-      <Filter>port</Filter>
-    </ClInclude>
     <ClInclude Include="transforms.h">
+      <Filter>port</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\pc\utils\vector++\vector\vector.h">
+      <Filter>port</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\pc\utils\shader_gl.h">
+      <Filter>port</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\pc\utils\glsw.h">
+      <Filter>port</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\pc\utils\debug_print.h">
+      <Filter>port</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\pc\utils\bstrlib.h">
       <Filter>port</Filter>
     </ClInclude>
   </ItemGroup>

@@ -99,7 +99,7 @@ void R_InitParticleTexture (void)
 
 	//glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
-#ifdef LINEAR_TEXTURES
+#if LINEAR_TEXTURES
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 #else
@@ -384,7 +384,7 @@ void R_TranslatePlayerSkin (int playernum)
 	glTexImage2D (GL_TEXTURE_2D, 0, texDataType[gl_solid_format], scaled_width, scaled_height, 0, texDataType[gl_solid_format], GL_UNSIGNED_BYTE, pixels);
 
 	//glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-#ifdef LINEAR_TEXTURES
+#if LINEAR_TEXTURES
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 #else

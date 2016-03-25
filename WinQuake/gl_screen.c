@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 
+
 /*
 
 background clear
@@ -955,6 +956,7 @@ void SCR_UpdateScreen (void)
 	dcc += dcc1;
 	dcs += dcs1;
 
+	GL_BlitFBO();
 	//Con_Printf("---number of calls : %d, size of data : %d\n", dcc1, dcs1);
 	//printf("---number of calls : %d, size of data : %d\n", dcc1, dcs1);
 	GL_EndRendering ();

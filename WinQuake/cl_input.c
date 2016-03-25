@@ -280,6 +280,9 @@ CL_BaseMove
 Send the intended movement message to the server
 ================
 */
+#ifdef SUPERMOD
+int player_moved = 0;
+#endif
 void CL_BaseMove (usercmd_t *cmd)
 {	
 	if (cls.signon != SIGNONS)
@@ -316,6 +319,17 @@ void CL_BaseMove (usercmd_t *cmd)
 		cmd->sidemove *= cl_movespeedkey.value;
 		cmd->upmove *= cl_movespeedkey.value;
 	}
+
+#ifdef SUPERMOD
+	if(
+		cmd->forwardmove > 0.01f || cmd->forwardmove < -0.01f ||
+		cmd->sidemove  > 0.01f || cmd->sidemove < -0.01f ||
+		cmd->upmove > 0.01f || cmd->upmove< -0.01f
+	)
+	{
+		player_moved = 1;
+	}
+#endif
 
 #ifdef QUAKE2
 	cmd->lightlevel = cl.light_level;

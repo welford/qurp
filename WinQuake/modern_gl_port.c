@@ -137,6 +137,8 @@ typedef struct _RenderState{
 	float red, green, blue, alpha;
 
 	int lightmap_mode;
+
+	int enable_alpha_test;
 	
 }RenderState;
 
@@ -182,7 +184,8 @@ RenderState current_render_state = {
 	1, 0.0f, 1.0f, 
 	BACK, 
 	0,0,0,0, 
-	0};
+	0,
+	1};
 RenderState next_render_state = {
 	RNDR_TRIANGLES, 
 	0,0,0,0, 
@@ -190,15 +193,25 @@ RenderState next_render_state = {
 	1, 0.0f, 1.0f, 
 	BACK, 
 	0,0,0,0, 
-	0};
+	0,
+	1};
+
 static UBOTransforms transforms;
 static UBOLights lights;
 static const int GRANULARITY	 = 16384*4*4; //probably too smalll
 static const int transform_stack_size = 10;
 
-SShaderProgram texture_shader;
-SShaderProgram colour_shader;
-SShaderProgram light_map_shader;
+static SShaderProgram texture_shader;
+static SShaderProgram colour_shader;
+static SShaderProgram light_map_shader;
+
+//we render to an internal buffer, then blit it to screen
+#define USE_FBO 1
+static unsigned int fbo_handle;
+static unsigned int fbo_colour_texture;
+static unsigned int fbo_depth_texture;
+
+static unsigned int renderWidth = 0; renderHeight = 0;
 
 void TransferAndDraw(void);
 
@@ -231,6 +244,9 @@ static int HasRenderStateChanged(){
 
 	if(current_render_state.cull_mode != next_render_state.cull_mode)
 		return 1;
+
+	if(current_render_state.cull_mode != next_render_state.cull_mode)
+		return 1;
 	/*
 	if(current_render_state.red > next_render_state.red + EPSILON 
 		|| current_render_state.red < next_render_state.red - EPSILON)
@@ -246,6 +262,9 @@ static int HasRenderStateChanged(){
 		return 1;
 	*/
 	if(current_render_state.lightmap_mode != next_render_state.lightmap_mode)
+		return 1;
+
+	if(current_render_state.enable_alpha_test != next_render_state.enable_alpha_test)
 		return 1;
 	return 0;
 }
@@ -391,15 +410,84 @@ static void CreateDebugTextures(){
 }
 
 
+static void checkfbo(void)
+{
+	switch(glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER)) 
+	{
+		case GL_FRAMEBUFFER_COMPLETE: 
+			printf("GL_FRAMEBUFFER_COMPLETE\n");
+			return;
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+			printf("GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT\n");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+			printf("GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT\n");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+			printf("GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER\n");
+			break;
+		case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+			printf("GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER\n");
+			break;
+		case GL_FRAMEBUFFER_UNSUPPORTED:
+			printf("GL_FRAMEBUFFER_UNSUPPORTED\n");
+			break;
+		default:
+			printf("FBO Status Error!\n");
+			break;
+	}
+}
+
+static void SetupFBO(const int width, const int height){
+#if USE_FBO
+
+	glGenTextures(1, &fbo_colour_texture);	
+	glBindTexture(GL_TEXTURE_2D, fbo_colour_texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glGenTextures(1, &fbo_depth_texture);	
+	glBindTexture(GL_TEXTURE_2D, fbo_depth_texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, width, height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, 0);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glGenFramebuffers(1, &fbo_handle);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo_handle);
+	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_colour_texture, 0);
+	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, fbo_depth_texture, 0);
+
+	checkfbo();	
+
+	GLenum fba[1] = {GL_COLOR_ATTACHMENT0};
+	glDrawBuffers(1, fba);
+#endif
+}
+
+
 static void SetupShaders(void){
 	int got = 0;
 	SShader vtxTxShdr, frgTxShdr;
 	SShader vtxClrShdr, frgClrShdr;
 	SShader vtxLightShdr, frgLightShdr;
-	const char *pDVertStr[3] = {0,0,0}, *pDFragStr[3] = {0,0,0};
+	const char *pDVertStr[4] = {0, 0,0,0}, *pDFragStr[4] = {0,0,0,0};
 
 	glswInit();
 	glswSetPath("./id1/shaders/", ".glsl");
+
+	glswAddDirectiveToken("Version", "#version 420 core");
 
 	glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(TRANSFORM_UBO_BINDING));
 	glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(LIGHT_UBO_BINDING));
@@ -411,7 +499,7 @@ static void SetupShaders(void){
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(POSITION_LOCATION));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(COLOUR_LOCATION));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(NORMAL_LOCATION));	
-	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(JOINT_WEIGHT_LOCATION));		
+	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(JOINT_WEIGHT_LOCATION));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(JOINT_INDEX_LOCATION));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(UV_LOCATION0));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(UV_LOCATION1));
@@ -423,9 +511,9 @@ static void SetupShaders(void){
 	//glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(RESERVED_JOINTS));
 
 	//shader (TEXTURED)
-	got = glswGetShadersAlt("shaders.Header.Vertex+shaders.Shared+shaders.SimpleVertexTextured", pDVertStr, 3);	
+	got = glswGetShadersAlt("shaders.Version+shaders.Header.Vertex+shaders.Shared+shaders.SimpleVertexTextured", pDVertStr, sizeof(pDVertStr)/sizeof(pDVertStr[0]));	
 	CreateShader(&vtxTxShdr, VERT, pDVertStr, got);
-	got = glswGetShadersAlt("shaders.Header.Fragment+shaders.Shared+shaders.SimpleFragmentTextured", pDFragStr, 3);
+	got = glswGetShadersAlt("shaders.Version+shaders.Header.Fragment+shaders.Shared+shaders.SimpleFragmentTextured", pDFragStr, sizeof(pDFragStr)/sizeof(pDFragStr[0]));
 	CreateShader(&frgTxShdr, FRAG, pDFragStr, got);
 	CreateShaderProgram(&texture_shader);
 	AddShaderToProgram(&texture_shader,&vtxTxShdr);
@@ -433,9 +521,9 @@ static void SetupShaders(void){
 	LinkShaderProgram(&texture_shader);	
 
 	//shader (COLOUR)
-	got = glswGetShadersAlt("shaders.Header.Vertex+shaders.Shared+shaders.SimpleVertexColoured", pDVertStr, 3);	
+	got = glswGetShadersAlt("shaders.Version+shaders.Header.Vertex+shaders.Shared+shaders.SimpleVertexColoured", pDVertStr, sizeof(pDVertStr)/sizeof(pDVertStr[0]));	
 	CreateShader(&vtxClrShdr, VERT, pDVertStr, got);
-	got = glswGetShadersAlt("shaders.Header.Fragment+shaders.Shared+shaders.SimpleFragmentColoured", pDFragStr, 3);
+	got = glswGetShadersAlt("shaders.Version+shaders.Header.Fragment+shaders.Shared+shaders.SimpleFragmentColoured", pDFragStr, sizeof(pDFragStr)/sizeof(pDFragStr[0]));
 	CreateShader(&frgClrShdr, FRAG, pDFragStr, got);
 	CreateShaderProgram(&colour_shader);
 	AddShaderToProgram(&colour_shader,&vtxClrShdr);
@@ -443,9 +531,9 @@ static void SetupShaders(void){
 	LinkShaderProgram(&colour_shader);	
 
 	//shader (LIGHTMAP)
-	got = glswGetShadersAlt("shaders.Header.Vertex+shaders.Shared+shaders.SimpleVertexLightmap", pDVertStr, 3);	
+	got = glswGetShadersAlt("shaders.Version+shaders.Header.Vertex+shaders.Shared+shaders.SimpleVertexLightmap", pDVertStr, sizeof(pDVertStr)/sizeof(pDVertStr[0]));	
 	CreateShader(&vtxLightShdr, VERT, pDVertStr, got);
-	got = glswGetShadersAlt("shaders.Header.Fragment+shaders.Shared+shaders.SimpleFragmentLightmap", pDFragStr, 3);
+	got = glswGetShadersAlt("shaders.Version+shaders.Header.Fragment+shaders.Shared+shaders.SimpleFragmentLightmap", pDFragStr, sizeof(pDFragStr)/sizeof(pDFragStr[0]));
 	CreateShader(&frgLightShdr, FRAG, pDFragStr, got);
 	CreateShaderProgram(&light_map_shader);
 	AddShaderToProgram(&light_map_shader, &vtxLightShdr);
@@ -495,7 +583,7 @@ static void UpdateLightUBOs(){
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
-void StartupModernGLPatch(){
+void StartupModernGLPatch(const int width, const int height){
 	//setup a global VAO/VBO for rendering everything
 	//hopefully this will be good enough
 	if(vtx.vao_handle == 0){
@@ -528,6 +616,8 @@ void StartupModernGLPatch(){
 	//
 	// - - - - - - - - - - - - - - - -
 	InitialiseStack(transform_stack_size);
+
+	SetRenderSize(width,height);
 
 	CreateDebugTextures();
 }
@@ -622,12 +712,16 @@ void SetLightmapMode(const int active){
 
 }
 
-void EnableAlpha(){
-
+void EnableAlphaTest(){
+	if(inbetween_start_end)
+		return;
+	next_render_state.enable_alpha_test = 1;
 }
 
-void DisableAlpha(){
-
+void DisableAlphaTest(){
+	if(inbetween_start_end)
+		return;
+	next_render_state.enable_alpha_test = 0;
 }
 
 void CullFront(void){
@@ -888,6 +982,11 @@ static void SetGLRenderState(void){
 	else
 		glDisable (GL_DEPTH_TEST);
 
+	if(current_render_state.enable_alpha_test)
+		glEnable (GL_ALPHA_TEST);
+	else
+		glDisable (GL_ALPHA_TEST);
+
 	glDepthMask(current_render_state.depth_mask);
 	glDepthRange(current_render_state.depth_min, current_render_state.depth_max);
 
@@ -985,6 +1084,13 @@ void FlushDraw(void){
 	TransferAndDraw();
 }
 
+void SetRenderSize(const unsigned int w, const unsigned int h)
+{
+	renderWidth = w;
+	renderHeight = h;
+	//update FBO!
+	SetupFBO(renderWidth, renderHeight);
+}
 
 void SetViewport(const unsigned int x, const unsigned int y, const unsigned int w, const unsigned int h){
 	TransferAndDraw();
@@ -1059,6 +1165,27 @@ void TransformMatrix(const float mtx[16]){
 	TransferAndDraw();
 	transform_dirty = 1;
 	StackTransformMatrix(mtx);
+}
+
+void BlitFBO(const int windowWidth, const int windowHeight)
+{
+
+#if USE_FBO
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo_handle);
+	glDrawBuffer(GL_BACK);
+	glReadBuffer(GL_COLOR_ATTACHMENT0);
+
+	glBlitFramebuffer(0,0,renderWidth,renderHeight, 0,0,windowWidth,windowHeight,GL_COLOR_BUFFER_BIT, GL_NEAREST);
+	//glBlitFramebuffer(0,0,renderWidth,renderHeight, 0,0,640,480,GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+	glReadBuffer(GL_FRONT);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo_handle);
+	GLenum fba[1] = {GL_COLOR_ATTACHMENT0};
+	glDrawBuffers(1, fba);
+#endif
+
 }
 
 void ShutdownModernGLPatch(){

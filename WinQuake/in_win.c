@@ -452,7 +452,7 @@ void IN_StartupMouse (void)
 			if ( COM_CheckParm ("-noforcemspd") ) 
 				newmouseparms[2] = originalmouseparms[2];
 
-			if ( COM_CheckParm ("-noforcemaccel") ) 
+			//if ( COM_CheckParm ("-noforcemaccel") ) 
 			{
 				newmouseparms[0] = originalmouseparms[0];
 				newmouseparms[1] = originalmouseparms[1];
@@ -690,7 +690,13 @@ void IN_MouseMove (usercmd_t *cmd)
 		mouse_x = mx;
 		mouse_y = my;
 	}
-
+#ifdef SUPERMOD
+	extern int player_moved;
+	if(mx != 0 || 	my != 0)
+	{
+		player_moved = 1;
+	}
+#endif
 	old_mouse_x = mx;
 	old_mouse_y = my;
 
@@ -877,6 +883,7 @@ PDWORD RawValuePointer (int axis)
 		return &ji.dwRpos;
 	case JOY_AXIS_U:
 		return &ji.dwUpos;
+	default:
 	case JOY_AXIS_V:
 		return &ji.dwVpos;
 	}

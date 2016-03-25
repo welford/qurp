@@ -101,6 +101,7 @@ cvar_t	gl_reporttjunctions = {"gl_reporttjunctions","0"};
 cvar_t	gl_doubleeyes = {"gl_doubleeys", "1"};
 
 extern	cvar_t	gl_ztrick;
+static int trickframe = 0;
 
 /*
 =================
@@ -876,31 +877,35 @@ void R_PolyBlend (void)
 	if (!v_blend[3])
 		return;
 
+	FlushDraw();
 	GL_DisableMultitexture();
 
+	DisableAlphaTest();
 	EnableBlending();
-	DisableDepth();
+	//DisableDepth();
 	DisableTexture();
-	Identity();
 
+	Identity();
 	matRotateX44(DEG_TO_RAD(-90), &mtxX);
 	matRotateZ44(DEG_TO_RAD(90), &mtxZ);
-
 	TransformMatrix(mtxX.a);
 	TransformMatrix(mtxZ.a);	
 
 	SetVertexMode(VAS_CLR);
+
 	BeginDrawing(RNDR_TRIANGLE_STRIP);
 	AddVertex4D (VTX_COLOUR, v_blend[0], v_blend[1], v_blend[2], v_blend[3]);	 
-
 	AddVertex3D (VTX_POSITION, 10, 100, 100);
 	AddVertex3D (VTX_POSITION, 10, -100, 100);	
 	AddVertex3D (VTX_POSITION, 10, 100, -100);
 	AddVertex3D (VTX_POSITION, 10, -100, -100);
 	EndDrawing();
+	FlushDraw();
 
-	EnableBlending();
-	EnableTexture();	
+	EnableAlphaTest();
+	DisableBlending();
+	EnableTexture();
+	//EnableDepth();
 }
 
 
@@ -1120,9 +1125,7 @@ void R_SetupGL (void)
 	else
 		DisableCulling( );
 
-	//glDisable(GL_BLEND);
-	//glDisable(GL_ALPHA_TEST);
-	//glEnable(GL_DEPTH_TEST);	
+	DisableAlphaTest();
 	DisableBlending();
 	EnableDepth();
 }
@@ -1141,19 +1144,19 @@ void R_RenderScene (void)
 	R_SetFrustum ();
 	
 	R_SetupGL ();
-	
+	//
 	R_MarkLeaves ();	// done here so we know if we're in water
-	
+	//
 	R_DrawWorld ();		// adds static entities to the list
-	
+	//
 	S_ExtraUpdate ();	// don't let sound get messed up if going slow
-	
+	//
 	R_DrawEntitiesOnList ();
-	
-	//GL_DisableMultitexture();
-
+	//
+	////GL_DisableMultitexture();
+	//
 	R_RenderDlights ();
-
+	//
 	R_DrawParticles ();	
 	
 #ifdef GLTEST
@@ -1170,6 +1173,11 @@ R_Clear
 */
 void R_Clear (void)
 {
+	/*
+	Here we just flush amy remaining draw called and set the depthfunctions instantly
+	-JWA
+	*/
+	FlushDraw();
 	if (r_mirroralpha.value != 1.0)
 	{
 		if (gl_clear.value)
@@ -1182,12 +1190,9 @@ void R_Clear (void)
 	}
 	else if (gl_ztrick.value)
 	{
-		static int trickframe;
-
 		if (gl_clear.value){
 			glClear (GL_COLOR_BUFFER_BIT);
 		}
-
 		trickframe++;
 		if (trickframe & 1)
 		{
@@ -1204,6 +1209,7 @@ void R_Clear (void)
 	}
 	else
 	{
+		glDepthMask(1); 
 		if (gl_clear.value)
 			glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		else
@@ -1224,7 +1230,7 @@ R_Mirror
 */
 void R_Mirror (void)
 {
-	/*
+
 	float		d;
 	msurface_t	*s;
 	entity_t	*ent;
@@ -1255,21 +1261,24 @@ void R_Mirror (void)
 
 	gldepthmin = 0.5;
 	gldepthmax = 1;
-	//glDepthRange (gldepthmin, gldepthmax);
+
 	SetDepthRange (gldepthmin, gldepthmax);
 	glDepthFunc (GL_LEQUAL);
 
 	R_RenderScene ();
 	R_DrawWaterSurfaces ();
+	
+	FlushDraw();
 
+	/*
 	gldepthmin = 0;
 	gldepthmax = 0.5;
 	//glDepthRange (gldepthmin, gldepthmax);
 	SetDepthRange ( gldepthmin, gldepthmax );
 	glDepthFunc (GL_LEQUAL);
-
+	
 	// blend on top
-	glEnable (GL_BLEND);
+	EnableBlending();
 	glMatrixMode(GL_PROJECTION);
 	if (mirror_plane->normal[2])
 		glScalef (1,-1,1);
@@ -1291,18 +1300,14 @@ void R_Mirror (void)
 	*/
 }
 
-/*
-================
+/*================
 R_RenderView
 
 r_refdef must be set before the first call
-================
-*/
+================*/
 void R_RenderView (void)
 {
 	double	time1, time2;
-	//GLfloat colors[4] = {(GLfloat) 0.0, (GLfloat) 0.0, (GLfloat) 1, (GLfloat) 0.20};
-
 	
 	if (r_norefresh.value)
 		return;
@@ -1323,29 +1328,14 @@ void R_RenderView (void)
 	if (gl_finish.value)
 	{
 		FlushDraw();
-		//glFinish ();
 	}
 	
 	R_Clear ();
 	
 	// render normal view
-
-/***** Experimental silly looking fog ******
-****** Use r_fullbright if you enable ******
-	glFogi(GL_FOG_MODE, GL_LINEAR);
-	glFogfv(GL_FOG_COLOR, colors);
-	glFogf(GL_FOG_END, 512.0);
-	glEnable(GL_FOG);
-********************************************/
-	
-	R_RenderScene ();
-	R_DrawViewModel ();	
-	
+	R_RenderScene();
+	R_DrawViewModel();	
 	R_DrawWaterSurfaces ();	
-	
-//  More fog right here :)
-//	glDisable(GL_FOG);
-//  End of all fog code...
 
 	// render mirror view
 	//R_Mirror ();
@@ -1354,7 +1344,6 @@ void R_RenderView (void)
 
 	if (r_speeds.value)
 	{
-//		glFinish ();
 		time2 = Sys_FloatTime ();
 		Con_Printf ("%3i ms  %4i wpoly %4i epoly\n", (int)((time2-time1)*1000), c_brush_polys, c_alias_polys); 
 	}

@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <commctrl.h>
 #include <GL/glew.h>
 #include <GL/wglew.h>
+#include <windows.h>
 #include "modern_gl_port.h"
 
 #define MAX_MODE_LIST	30
@@ -121,9 +122,6 @@ float		gldepthmin, gldepthmax;
 modestate_t	modestate = MS_UNINIT;
 
 
-unsigned int gWindowWidth, gWindowHeight, gWindowLeft, gWindowTop;
-
-
 void VID_MenuDraw (void);
 void VID_MenuKey (int key);
 
@@ -160,8 +158,8 @@ cvar_t		_vid_default_mode_win = {"_vid_default_mode_win","3", true};
 cvar_t		vid_wait = {"vid_wait","0"};
 cvar_t		vid_nopageflip = {"vid_nopageflip","0", true};
 cvar_t		_vid_wait_override = {"_vid_wait_override", "0", true};
-cvar_t		vid_config_x = {"vid_config_x","800", true};
-cvar_t		vid_config_y = {"vid_config_y","600", true};
+cvar_t		vid_config_x = {"vid_config_x","640", true};
+cvar_t		vid_config_y = {"vid_config_y","320", true};
 cvar_t		vid_stretch_by_2 = {"vid_stretch_by_2","1", true};
 cvar_t		_windowed_mouse = {"_windowed_mouse","1", true};
 
@@ -169,9 +167,10 @@ cvar_t		_windowed_mouse = {"_windowed_mouse","1", true};
 int			window_center_x, window_center_y, window_x, window_y, window_width, window_height;
 RECT		window_rect;
 
-static const unsigned int multisamples = 16;
-static const unsigned int clr_bits = 24, alpha_bits = 8, depth_bits = 24, stencil_bits = 8;
-static const unsigned int default_width = 1280, default_height = 720;
+//static const unsigned int multisamples = 16;
+static const unsigned int multisamples = 0; //if we are going down the blitting/FBO route we need to make sure multisamples match between , FBO and backbuffer
+static const unsigned int clr_bits = 24, alpha_bits = 8, depth_bits = 16, stencil_bits = 8;
+static const unsigned int default_width = 320, default_height = 240;
 static const unsigned int minimum_width = 320, minimum_height = 240;
 
 // direct draw software compatability stuff
@@ -224,48 +223,80 @@ void CenterWindow(HWND hWndCenter, int width, int height, BOOL lefttopjustify)
 qboolean VID_SetWindowedMode (int modenum)
 {
 	HDC				hdc;
-	int				lastmodestate, width, height;
+	int				lastmodestate;
 	RECT			rect;
+	//used to try and get the render context that we want
+	PIXELFORMATDESCRIPTOR pfd;
+	HGLRC	tempRC;
+	int pixel_format= 0;	
 
 	lastmodestate = modestate;
 
 	WindowRect.top = WindowRect.left = 0;
 
-	WindowRect.right = modelist[modenum].width;
-	WindowRect.bottom = modelist[modenum].height;
+	int window_width = 0;
+	int window_height = 0;
+	int custom_dim = 0;
+	if(COM_CheckParm("-windowwidth") && COM_CheckParm("-windowheight"))
+	{
+		window_width = Q_atoi(com_argv[COM_CheckParm("-windowwidth")+1]);
+		window_height = Q_atoi(com_argv[COM_CheckParm("-windowheight")+1]);
 
-	DIBWidth = modelist[modenum].width;
-	DIBHeight = modelist[modenum].height;
+		WindowRect.right = window_width;
+		WindowRect.bottom = window_height;
 
-	WindowStyle = WS_OVERLAPPED | WS_BORDER | WS_CAPTION | WS_SYSMENU |
-				  WS_MINIMIZEBOX;
+		DIBWidth = window_width;
+		DIBHeight = window_height;
+		custom_dim = 1;
+	}
+	else
+	{
+		WindowRect.right = modelist[modenum].width;
+		WindowRect.bottom = modelist[modenum].height;
+
+		DIBWidth = modelist[modenum].width;
+		DIBHeight = modelist[modenum].height;
+	}
+
+	WindowStyle = WS_OVERLAPPED | WS_BORDER | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
 	ExWindowStyle = 0;
 
 	rect = WindowRect;
 	AdjustWindowRectEx(&rect, WindowStyle, FALSE, 0);
 
-	gWindowWidth = rect.right - rect.left;
-    gWindowHeight = rect.bottom - rect.top;
-    gWindowLeft = GetSystemMetrics(SM_CXSCREEN) / 2 -gWindowWidth / 2;
-    gWindowTop = GetSystemMetrics(SM_CYSCREEN) / 2 - gWindowHeight / 2;
+	window_width = rect.right - rect.left;
+    window_height = rect.bottom - rect.top;
+    window_x = GetSystemMetrics(SM_CXSCREEN) / 2 -window_width / 2;
+    window_y = GetSystemMetrics(SM_CYSCREEN) / 2 - window_height / 2;
 
-
-	width = rect.right - rect.left;
-	height = rect.bottom - rect.top;
-
-	// Create the DIB window
-	dibwindow = CreateWindowEx (
-		 ExWindowStyle,
-		 "WinQuake",
-		 "GLQuake",
-		 WindowStyle,
-		 rect.left, rect.top,
-		 width,
-		 height,
-		 NULL,
-		 NULL,
-		 global_hInstance,
-		 NULL);
+	//use the dialogue window to get a gl render context
+	maindc = GetDC(hwnd_dialog);
+	DefineAndSetPixelFormat(&pfd, maindc, clr_bits, alpha_bits, depth_bits, stencil_bits);
+	tempRC = wglCreateContext( maindc );
+	
+	if (!tempRC)
+		Sys_Error ("Could not initialize GL (wglCreateContext failed).\n\nMake sure you in are 65535 color mode, and try running -window.");
+    if (!wglMakeCurrent( maindc, tempRC ))
+		Sys_Error ("wglMakeCurrent failed");
+	
+	pixel_format = GetBetterFormat(maindc, multisamples, clr_bits, alpha_bits, depth_bits, stencil_bits);
+	if(pixel_format >= 0)
+	{
+		//DWORD dwStyle = WS_SYSMENU | WS_POPUP | WS_CAPTION;
+		DWORD dwStyle = WS_OVERLAPPED | WS_BORDER | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
+		// Win32 allows the pixel format to be set only once per app, so destroy and re-create the app:
+		wglDeleteContext( tempRC ); //might be redundant and the window is destroyed below?
+		dibwindow = CreateWindowEx(ExWindowStyle, "WinQuake", "GLQuake", WindowStyle, window_x, window_y, window_width, window_height, 0, 0, 0, 0);
+		maindc = GetDC(dibwindow);
+		SetPixelFormat(maindc, pixel_format, &pfd);
+		baseRC = wglCreateContext(maindc);
+		wglMakeCurrent(maindc, baseRC);
+	}
+	else
+	{
+		Sys_Error ("VID_SetWindowedMode failed to find suitable pixel format");
+	}
+	maindc = GetDC(dibwindow); //update the main dc to the newly created window
 
 	if (!dibwindow)
 		Sys_Error ("Couldn't create DIB window");
@@ -291,6 +322,7 @@ qboolean VID_SetWindowedMode (int modenum)
 		vid.conheight = modelist[modenum].height;
 	if (vid.conwidth > modelist[modenum].width)
 		vid.conwidth = modelist[modenum].width;
+
 	vid.width = vid.conwidth;
 	vid.height = vid.conheight;
 
@@ -308,16 +340,27 @@ qboolean VID_SetWindowedMode (int modenum)
 qboolean VID_SetFullDIBMode (int modenum)
 {
 	HDC				hdc;
-	int				lastmodestate, width, height;
+	int				lastmodestate;
 	RECT			rect;
+	//used to try and get the render context that we want
+	PIXELFORMATDESCRIPTOR pfd;
+	HGLRC	tempRC;
+	int pixel_format= 0;	
+	//we set a fuill windowed mode to being the 
+	//monitor resolution, and the renddered resolution
+	//will control the size of a render buffer
+
+
+	SetProcessDPIAware();
+	int monitorWidth = GetSystemMetrics(SM_CXSCREEN);
+	int monitorHeight = GetSystemMetrics(SM_CYSCREEN);
 
 	if (!leavecurrentmode)
 	{
 		gdevmode.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
-		gdevmode.dmBitsPerPel = modelist[modenum].bpp;
-		gdevmode.dmPelsWidth = modelist[modenum].width <<
-							   modelist[modenum].halfscreen;
-		gdevmode.dmPelsHeight = modelist[modenum].height;
+		gdevmode.dmBitsPerPel = 32;
+		gdevmode.dmPelsWidth = monitorWidth;
+		gdevmode.dmPelsHeight = monitorHeight;
 		gdevmode.dmSize = sizeof (gdevmode);
 
 		if (ChangeDisplaySettings (&gdevmode, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
@@ -329,11 +372,10 @@ qboolean VID_SetFullDIBMode (int modenum)
 
 	WindowRect.top = WindowRect.left = 0;
 
-	WindowRect.right = modelist[modenum].width;
-	WindowRect.bottom = modelist[modenum].height;
-
-	DIBWidth = modelist[modenum].width;
-	DIBHeight = modelist[modenum].height;
+	WindowRect.right = monitorWidth;
+	WindowRect.bottom = monitorHeight;
+	DIBWidth = monitorWidth;
+	DIBHeight = monitorHeight;
 
 	WindowStyle = WS_POPUP;
 	ExWindowStyle = 0;
@@ -341,34 +383,43 @@ qboolean VID_SetFullDIBMode (int modenum)
 	rect = WindowRect;
 	AdjustWindowRectEx(&rect, WindowStyle, FALSE, 0);
 
-	gWindowWidth = rect.right - rect.left;
-    gWindowHeight = rect.bottom - rect.top;
-    gWindowLeft = GetSystemMetrics(SM_CXSCREEN) / 2 -gWindowWidth / 2;
-    gWindowTop = GetSystemMetrics(SM_CYSCREEN) / 2 - gWindowHeight / 2;
+	window_width = rect.right - rect.left;
+    window_height = rect.bottom - rect.top;
+    window_x = GetSystemMetrics(SM_CXSCREEN) / 2 -window_width / 2;
+    window_y = GetSystemMetrics(SM_CYSCREEN) / 2 - window_height / 2;
 
-
-	width = rect.right - rect.left;
-	height = rect.bottom - rect.top;
-
-	// Create the DIB window
-	dibwindow = CreateWindowEx (
-		 ExWindowStyle,
-		 "WinQuake",
-		 "GLQuake",
-		 WindowStyle,
-		 rect.left, rect.top,
-		 width,
-		 height,
-		 NULL,
-		 NULL,
-		 global_hInstance,
-		 NULL);
+	//use the dialogue window to get a gl render context
+	maindc = GetDC(hwnd_dialog);
+	DefineAndSetPixelFormat(&pfd, maindc, clr_bits, alpha_bits, depth_bits, stencil_bits);
+	tempRC = wglCreateContext( maindc );
+	
+	if (!tempRC)
+		Sys_Error ("Could not initialize GL (wglCreateContext failed).\n\nMake sure you in are 65535 color mode, and try running -window.");
+    if (!wglMakeCurrent( maindc, tempRC ))
+		Sys_Error ("wglMakeCurrent failed");
+	
+	pixel_format = GetBetterFormat(maindc, multisamples, clr_bits, alpha_bits, depth_bits, stencil_bits);
+	if(pixel_format >= 0)
+	{
+		// Win32 allows the pixel format to be set only once per app, so destroy and re-create the app:
+		wglDeleteContext( tempRC ); //might be redundant and the window is destroyed below?
+		dibwindow = CreateWindowEx(ExWindowStyle, "WinQuake", "GLQuake", WindowStyle, window_x, window_y, window_width, window_height, 0, 0, 0, 0);
+		maindc = GetDC(dibwindow);
+		SetPixelFormat(maindc, pixel_format, &pfd);
+		baseRC = wglCreateContext(maindc);
+		wglMakeCurrent(maindc, baseRC);
+	}
+	else
+	{
+		Sys_Error ("VID_SetFullDIBMode failed to find suitable pixel format");
+	}
+	maindc = GetDC(dibwindow); //update the main dc to the newly created window
 
 	if (!dibwindow)
 		Sys_Error ("Couldn't create DIB window");
 
-	//ShowWindow (dibwindow, SW_SHOWDEFAULT);
-	//UpdateWindow (dibwindow);
+	ShowWindow (dibwindow, SW_SHOWDEFAULT);
+	UpdateWindow (dibwindow);
 
 	// Because we have set the background brush for the window to NULL
 	// (to avoid flickering when re-sizing the window on the desktop), we
@@ -407,9 +458,7 @@ int VID_SetMode (int modenum, unsigned char *palette)
     MSG				msg;
 	HDC				hdc;
 
-	if ((windowed && (modenum != 0)) ||
-		(!windowed && (modenum < 1)) ||
-		(!windowed && (modenum >= nummodes)))
+	if ((!windowed && (modenum >= nummodes)))
 	{
 		Sys_Error ("Bad video mode\n");
 	}
@@ -689,7 +738,7 @@ void GL_Init (HGLRC* rc)
 	}
 	
 	//JAMES EDIT
-	newRC = CreateOpenGLContext(maindc, glMajor, glMinor);		
+	newRC = CreateOpenGLContext(maindc, glMajor, glMinor);
 	//update the HGLRC
 	wglMakeCurrent(0, 0);    
 	wglMakeCurrent(maindc, newRC);
@@ -711,7 +760,7 @@ void GL_Init (HGLRC* rc)
 	gl_extensions = glGetString (GL_EXTENSIONS);
 	Con_Printf ("GL_EXTENSIONS: %s\n", gl_extensions);
 
-	StartupModernGLPatch();
+	StartupModernGLPatch(vid.width, vid.height);
 	//END
 	//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -729,7 +778,7 @@ void GL_Init (HGLRC* rc)
 	CullFront();
 	glEnable(GL_TEXTURE_2D);
 
-	glEnable(GL_ALPHA_TEST);
+	EnableAlphaTest();
 	glAlphaFunc(GL_GREATER, 0.666);
 
 	glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
@@ -767,13 +816,17 @@ void GL_BeginRendering (int *x, int *y, int *width, int *height)
 	extern cvar_t gl_clear;
 
 	*x = *y = 0;
-	*width = WindowRect.right - WindowRect.left;
-	*height = WindowRect.bottom - WindowRect.top;
 
-//    if (!wglMakeCurrent( maindc, baseRC ))
-//		Sys_Error ("wglMakeCurrent failed");
+	//*width = WindowRect.right - WindowRect.left;
+	//*height = WindowRect.bottom - WindowRect.top;
+	//our render target size and window size may not be the same anymore
+	*width = vid.width;
+	*height = vid.height;
+}
 
-//	glViewport (*x, *y, *width, *height);
+void GL_BlitFBO()
+{
+	BlitFBO((WindowRect.right -  WindowRect.left), (WindowRect.bottom - WindowRect.top));
 }
 
 
@@ -906,8 +959,9 @@ void	VID_Shutdown (void)
 		if (hDC && dibwindow)
 			ReleaseDC(dibwindow, hDC);
 
-		if (modestate == MS_FULLDIB)
+		if (modestate == MS_FULLDIB){
 			ChangeDisplaySettings (NULL, 0);
+		}
 
 		if (maindc && dibwindow)
 			ReleaseDC (dibwindow, maindc);
@@ -1137,9 +1191,13 @@ LONG WINAPI MainWndProc (
 
     switch (uMsg)
     {
+		case WM_SETFOCUS:
+			IN_ActivateMouse();
+			break;
 		case WM_KILLFOCUS:
-			if (modestate == MS_FULLDIB)
-				ShowWindow(mainwindow, SW_SHOWMINNOACTIVE);
+			IN_DeactivateMouse();
+			//if (modestate == MS_FULLDIB)
+			//	ShowWindow(mainwindow, SW_SHOWMINNOACTIVE);
 			break;
 
 		case WM_CREATE:
@@ -1412,7 +1470,9 @@ void VID_DescribeModes_f (void)
 	leavecurrentmode = t;
 }
 
-
+/*
+creates a 
+*/
 void VID_InitDIB (HINSTANCE hInstance)
 {
 	//WNDCLASS		wc;
@@ -1452,23 +1512,23 @@ void VID_InitDIB (HINSTANCE hInstance)
 		Sys_Error ("Couldn't register window class");
 
 	modelist[0].type = MS_WINDOWED;
-
+	
 	if (COM_CheckParm("-width"))
 		modelist[0].width = Q_atoi(com_argv[COM_CheckParm("-width")+1]);
 	else
 		modelist[0].width = default_width;
-
+	
 	if (modelist[0].width < minimum_width)
 		modelist[0].width = minimum_width;
-
+	
 	if (COM_CheckParm("-height"))
 		modelist[0].height= Q_atoi(com_argv[COM_CheckParm("-height")+1]);
 	else
 		modelist[0].height = default_height;
-
+	
 	if (modelist[0].height < minimum_height)
 		modelist[0].height = minimum_height	;
-
+	
 	sprintf (modelist[0].modedesc, "%dx%d",
 			 modelist[0].width, modelist[0].height);
 
@@ -1693,7 +1753,7 @@ static void Check_Gamma (unsigned char *pal)
 
 /*
 ===================
-GetBetterFormat
+DefineAndSetPixelFormat
 ===================
 */
 int DefineAndSetPixelFormat(PIXELFORMATDESCRIPTOR* pfd, HDC hdc, int clrBits, int alphaBits, int dphBits, int stnBits)
@@ -1723,6 +1783,7 @@ int GetBetterFormat(HDC hdc, unsigned int ms, int clrBits, int alphaBits, int dp
 	/*
 	whould probably check that ms is a valid Multisanmple number
 	*/
+	static const int SAMPLE_BUFFER_VALUE_IDX = 3;
 	int pixelAttribs[] =
     {
         WGL_SAMPLES_ARB, ms, 
@@ -1743,8 +1804,12 @@ int GetBetterFormat(HDC hdc, unsigned int ms, int clrBits, int alphaBits, int dp
     int pixelFormat = -1;
 	unsigned int numFormats;		
 
+	//this is a bad bit of code....
 	if(ms == 0)
-		pixelAttribs[3] = GL_FALSE;
+		pixelAttribs[SAMPLE_BUFFER_VALUE_IDX] = GL_FALSE;
+	else
+		pixelAttribs[SAMPLE_BUFFER_VALUE_IDX] = GL_TRUE;
+
 
 	if(!wglChoosePixelFormatARB)
 		wglChoosePixelFormatARB = (PFNWGLCHOOSEPIXELFORMATARBPROC) wglGetProcAddress("wglChoosePixelFormatARB");
@@ -1795,12 +1860,6 @@ void	VID_Init (unsigned char *palette)
 	char	gldir[MAX_OSPATH];
 	HDC		hdc;
 	DEVMODE	devmode;
-	//added by james
-	PIXELFORMATDESCRIPTOR pfd;
-	HGLRC	tempRC;
-	RECT rect;    	
-	
-	int pixel_format= 0;	
 
 	memset(&devmode, 0, sizeof(devmode));
 
@@ -1875,7 +1934,7 @@ void	VID_Init (unsigned char *palette)
 				}
 				else
 				{
-					width = 640;
+					width = default_width;
 				}
 
 				if (COM_CheckParm("-bpp"))
@@ -1986,7 +2045,14 @@ void	VID_Init (unsigned char *palette)
 
 				if (!vid_default)
 				{
-					Sys_Error ("Specified video mode not available");
+					//Sys_Error ("Specified video mode not available");
+					//this should not matter anymore in a fill windowed context as we are rendering to a texture,
+					//use the default size
+					vid_default = 0;
+					modelist[0].width = default_width;
+					modelist[0].height = default_height;
+					//modelist[0].type = MS_FULLDIB;
+					modelist[0].type = MS_WINDOWED;
 				}
 			}
 		}
@@ -2019,51 +2085,17 @@ void	VID_Init (unsigned char *palette)
 
 	Check_Gamma(palette);
 	VID_SetPalette (palette);
-
 	//JAMES
 	//change stuff here
 	VID_SetMode (vid_default, palette);
-
     maindc = GetDC(mainwindow);
-	DefineAndSetPixelFormat(&pfd, maindc, clr_bits, alpha_bits, depth_bits, stencil_bits);
-	//bSetupPixelFormat(maindc);
-	tempRC = wglCreateContext( maindc );
-
-	if (!tempRC)
-		Sys_Error ("Could not initialize GL (wglCreateContext failed).\n\nMake sure you in are 65535 color mode, and try running -window.");
-    if (!wglMakeCurrent( maindc, tempRC ))
-		Sys_Error ("wglMakeCurrent failed");
-
-	pixel_format = GetBetterFormat(maindc, multisamples, clr_bits, alpha_bits, depth_bits, stencil_bits);
-	if(pixel_format >= 0)
-	{
-		
-		DWORD dwStyle = WS_SYSMENU | WS_POPUP | WS_CAPTION;
-
-		// Win32 allows the pixel format to be set only once per app, so destroy and re-create the app:
-		wglDeleteContext( tempRC ); //might be redundant and the window is destroyed below?
-		DestroyWindow( mainwindow );
-
-		mainwindow = CreateWindowEx(0, "WinQuake", "GLQuake", dwStyle, gWindowLeft, gWindowTop, gWindowWidth, gWindowHeight, 0, 0, 0, 0);
-		//SetWindowPos(mainwindow, HWND_TOP, gWindowLeft, gWindowTop, gWindowWidth, gWindowHeight, 0);
-		maindc = GetDC(mainwindow);
-		SetPixelFormat(maindc, pixel_format, &pfd);
-		tempRC = wglCreateContext(maindc);
-		wglMakeCurrent(maindc, tempRC);
-		dibwindow = mainwindow;
-		
-		//
-		ShowWindow (mainwindow, SW_SHOWDEFAULT);
-		UpdateWindow(mainwindow);
-	}
 	DestroyWindow (hwnd_dialog);
 	SetWindowPos (mainwindow, HWND_TOP, 0, 0, 0, 0,
 				  SWP_DRAWFRAME | SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW |
 				  SWP_NOCOPYBITS);
 	SetForegroundWindow(mainwindow);
 
-	GL_Init( &tempRC );	
-	baseRC = tempRC;
+	GL_Init( &baseRC );	
 
 	sprintf (gldir, "%s/glquake", com_gamedir);
 	Sys_mkdir (gldir);

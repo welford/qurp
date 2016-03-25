@@ -2391,8 +2391,8 @@ void	VID_Update (vrect_t *rects)
 		{
 			if (_windowed_mouse.value)
 			{
-				IN_ActivateMouse ();
-				IN_HideMouse ();
+				//IN_ActivateMouse ();
+				//IN_HideMouse ();
 			}
 			else
 			{
