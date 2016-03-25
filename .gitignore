@@ -24,7 +24,10 @@ exclude.txt
 .metadata
 bin/
 tmp/
-Winquake/id1/
+Winquake/id1/glquake/
+Winquake/id1/pak0.pak
+Winquake/id1/pak1.pak
+Winquake/id1/glquake
 Winquake/debugarm/glquake
 Winquake/releasearm/glquake
 *.tmp
