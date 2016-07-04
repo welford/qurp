@@ -32,8 +32,7 @@ int		lightmap_bytes;		// 1, 2, or 4
 
 #define	MAX_LIGHTMAPS	64
 
-int		lightmap_textures;
-int		lightmap_textures_gl[MAX_LIGHTMAPS];
+int		lightmap_textures_gl[MAX_LIGHTMAPS] = {0};
 
 unsigned		blocklights[18*18];
 
@@ -1521,14 +1520,11 @@ void GL_BuildLightmaps (void)
 
 	r_framecount = 1;		// no dlightcache
 
-	if (!lightmap_textures)
+	static int lightmap_init = false;
+	if (!lightmap_init)
 	{
-
-		lightmap_textures = texture_extension_number;
-		texture_extension_number += MAX_LIGHTMAPS;
-		//JAMES
 		glGenTextures(MAX_LIGHTMAPS, lightmap_textures_gl);
-		//END
+		lightmap_init = true;
 	}
 
 #ifdef _WIN32

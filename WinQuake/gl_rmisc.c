@@ -75,7 +75,6 @@ void R_InitParticleTexture (void)
 	//
 	// particle texture
 	//
-	//particletexture = texture_extension_number++;
 	//JAMES
 	glGenTextures(1,&particletexture);
 	//END
@@ -230,10 +229,7 @@ void R_Init (void)
 	Test_Init ();
 #endif
 
-	//playertextures = texture_extension_number;
 	glGenTextures(16, playertextures_gl);
-	texture_extension_number += 16;
-	
 }
 
 /*

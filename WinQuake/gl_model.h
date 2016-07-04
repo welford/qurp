@@ -305,6 +305,8 @@ typedef struct {
 	int			flags;
 	float		size;
 
+	int			vao,vbo;	//store all frames in one big VBO :)
+
 	int					numposes;
 	int					poseverts;
 	int					posedata;	// numposes*poseverts trivert_t

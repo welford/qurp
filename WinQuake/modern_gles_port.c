@@ -1,6 +1,7 @@
 #include "modern_gl_port.h"
 #ifdef USE_GLES
 #include "transforms.h"
+#include <signal.h>
 
 #ifdef _WIN32
 #include <GL/glew.h>
@@ -118,7 +119,10 @@ typedef struct {
 	Matrix44 mvp;
 	Matrix44 proj; 
 	Matrix44 mv;
-	float nrm[12];//3x3 matrix is stored as 3 column vectors of length 4, so 3,7 and  11 are unused padding
+	float normalMin;
+	float normalRange;
+	float shadeIndex;
+	float shadeLight;
 }UBOTransforms;
 
 typedef struct {
@@ -168,7 +172,7 @@ static unsigned int current_shader_idx = 0;
 
 typedef struct _VtxData{
 	VertexAttributeState vertex_state;  
-	int transform_uniform[3];
+	int transform_uniform[4];
 
 	//unsigned int vao_handle;
 	unsigned int vbo_handle;
@@ -181,6 +185,8 @@ typedef struct _VtxData{
 	unsigned int n_vertices;		//number of vertices
 	unsigned int has_colour;
 	unsigned int has_texture;
+
+	int normalMin, normalRange, shadeIndex, shadeLight;
 
 #if USE_HALF_FLOATS
 	__fp16 *	p_pre_gl_buffer;
@@ -231,9 +237,14 @@ static const int GRANULARITY = 16384*4*float_size; //probably too small
 #endif
 static const int transform_stack_size = 10;
 
+static int alias_vbo = -1;				//
+static int alias_vert_offset = 0;			//
+static const int ALIAS_BUFFER_SIZE  = (1024 * 1024 * 7);
+
 SShaderProgram texture_shader;
 SShaderProgram colour_shader;
 SShaderProgram light_map_shader;
+SShaderProgram alias_shader;
 
 void TransferAndDraw(void);
 
@@ -402,6 +413,7 @@ void SetVertexMode(const VertexAttributeState state){
 #define HEIGHT DIM
 
 unsigned int debug_texture = 0;
+unsigned int normal_texture = 0;
 
 static void CreateDebugTextures(){
 	int black=0;
@@ -437,10 +449,63 @@ static void CreateDebugTextures(){
 	free(pTexture);
 }
 
+#define SHADEDOT_QUANT 16
+float	_r_avertexnormal_dots[SHADEDOT_QUANT][256] =
+#include "anorm_dots.h"
+;
+
+static void CreateANormTextures(){
+	unsigned char * pTexture = 0;
+	unsigned int h, w;
+	float max=-1.0f,min=99.0f;
+	float scaler = 0;
+	pTexture = (unsigned char*)malloc(16 * 256);
+
+	//get range clamps
+	for(h=0;h<SHADEDOT_QUANT;h++)
+	{
+		for(w=0;w<256;w++)
+		{
+			if (_r_avertexnormal_dots[h][w] > max)
+				max = _r_avertexnormal_dots[h][w];
+			if (_r_avertexnormal_dots[h][w] < min)
+				min = _r_avertexnormal_dots[h][w];
+		}	
+	}
+
+	scaler = 255.0f / (max - min);
+
+	transforms.normalRange = max - min;
+	transforms.normalMin = min;
+
+	//clamp between 0~255
+	for(h=0;h<16;h++)
+	{
+		for(w=0;w<256;w++)
+		{
+			pTexture[(h*256)+w] = (unsigned char) ((_r_avertexnormal_dots[h][w] - min) * scaler);
+		}
+	}
+
+	glGenTextures(1, &normal_texture);	
+	//debug_texture = 13;
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, normal_texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 256, 16, 0, GL_RED, GL_UNSIGNED_BYTE, pTexture);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_2D, 0);
+	free(pTexture);
+}
 
 static void SetupShaders(void){
 	int got = 0;
 	SShader vtxTxShdr, frgTxShdr;
+	SShader vtxAlShdr, frgAlShdr;
 	SShader vtxClrShdr, frgClrShdr;
 	SShader vtxLightShdr, frgLightShdr;
 	const char *pDVertStr[3] = {0,0,0}, *pDFragStr[3] = {0,0,0};
@@ -448,6 +513,7 @@ static void SetupShaders(void){
 	//shader (TEXTURED)	
 	pDVertStr[0] = header_vertex;
 	pDVertStr[1] = header_shared;
+
 	pDVertStr[2] = txt_clr_vertex;
 	CreateShader(&vtxTxShdr, VERT, pDVertStr, 3);
 	
@@ -465,8 +531,8 @@ static void SetupShaders(void){
 	LinkShaderProgram(&texture_shader);
 	Start(&texture_shader);
 	SetTextureUnitByName(&texture_shader,"tex0", 0);
+	SetTextureUnitByName(&texture_shader,"anorm", 2);
 	Stop();
-
 
 	//shader (COLOUR)	
 	pDVertStr[0] = header_vertex;
@@ -488,6 +554,7 @@ static void SetupShaders(void){
 	LinkShaderProgram(&colour_shader);	
 	Start(&colour_shader);
 	SetTextureUnitByName(&colour_shader, "tex0", 0);
+	SetTextureUnitByName(&colour_shader,"anorm", 2);
 	Stop();
 
 	//shader (LIGHTMAP)
@@ -510,6 +577,30 @@ static void SetupShaders(void){
 	LinkShaderProgram(&light_map_shader);	
 	Start(&light_map_shader);
 	SetTextureUnitByName(&light_map_shader, "tex0", 0);
+	SetTextureUnitByName(&light_map_shader,"anorm", 2);
+	Stop();
+
+	//shader (ALIAS)	
+	pDVertStr[0] = header_vertex;
+	pDVertStr[1] = header_shared;
+	pDVertStr[2] = alias_vertex;
+	CreateShader(&vtxAlShdr, VERT, pDVertStr, 3);
+
+	pDFragStr[0] = header_fragment;
+	pDFragStr[1] = header_shared;
+	pDFragStr[2] = alias_frag;
+	CreateShader(&frgAlShdr, FRAG, pDFragStr, 3);
+
+	CreateShaderProgram(&alias_shader);
+	AddShaderToProgram(&alias_shader, &vtxAlShdr);
+	AddShaderToProgram(&alias_shader, &frgAlShdr);
+	SetAttributeLocation(&alias_shader, POSITION_LOCATION, "inVertex");
+	SetAttributeLocation(&alias_shader, SHADE_LOCATION, "inShadeIndex");
+	SetAttributeLocation(&alias_shader, UV_LOCATION0, "inUV");
+	LinkShaderProgram(&alias_shader);
+	Start(&alias_shader);
+	SetTextureUnitByName(&alias_shader, "tex0", 0);
+	SetTextureUnitByName(&alias_shader, "anorm", 2);
 	Stop();
 
 	//this will delete them after we have deleted the program associated with them
@@ -519,6 +610,8 @@ static void SetupShaders(void){
 	DeleteShader(&frgClrShdr);	
 	DeleteShader(&vtxLightShdr);
 	DeleteShader(&frgLightShdr);
+	DeleteShader(&vtxAlShdr);
+	DeleteShader(&frgAlShdr);
 }
 
 static void SetupUBOs(){
@@ -526,15 +619,17 @@ static void SetupUBOs(){
 	vtx.transform_uniform[0] = glGetUniformLocation(texture_shader.handle, "trans.mvp");
 	vtx.transform_uniform[1] = glGetUniformLocation(colour_shader.handle, "trans.mvp");
 	vtx.transform_uniform[2] = glGetUniformLocation(light_map_shader.handle, "trans.mvp");
+	vtx.transform_uniform[3] = glGetUniformLocation(alias_shader.handle, "trans.mvp");
+	vtx.transform_uniform[3] = glGetUniformLocation(alias_shader.handle, "trans.mvp");
 
-	//transforms
-	//glGenBuffers(1, &vtx.transform_ubo_handle);
-	//glBindBuffer(GL_UNIFORM_BUFFER, vtx.transform_ubo_handle);
-	//glBufferData( GL_UNIFORM_BUFFER, sizeof(UBOTransforms), 0, GL_DYNAMIC_DRAW);
-	//glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_UBO_BINDING, vtx.transform_ubo_handle);
+	vtx.normalMin = glGetUniformLocation(alias_shader.handle, "trans.normalMin");
+	vtx.normalRange = glGetUniformLocation(alias_shader.handle, "trans.normalRange");
+	vtx.shadeIndex = glGetUniformLocation(alias_shader.handle, "trans.shadeIndex");
+	vtx.shadeLight = glGetUniformLocation(alias_shader.handle, "trans.shadeLight");
+	printf("JAMES: %d",vtx.shadeLight);
 }
 
-static void UpdateTransformUBOs(){	
+void UpdateTransformUBOs(){	
 	float *tmp = StackGetTop();
 	int i=0;
 	for(i=0;i<16;i++){
@@ -596,7 +691,8 @@ void StartupModernGLPatch(int w, int h){
 	// - - - - - - - - - - - - - - - -
 	InitialiseStack(transform_stack_size);
 
-	CreateDebugTextures();
+	//CreateDebugTextures();
+	CreateANormTextures();
 }
 
 static unsigned int num_draw_calls = 0;
@@ -1168,6 +1264,100 @@ void BlitFBO(const int w, const inth )
 	//does nothing RPI just renders fullscreen
 }
 
+void CreatAliasBuffers(int* pVao, int* pVbo, int numVerts, void * pData)
+{
+	if(sizeof(glAliasData)*alias_vert_offset + sizeof(glAliasData)*numVerts > ALIAS_BUFFER_SIZE)
+	{
+		printf("out of alias memory....this will be an issue just now but not in the future\n");
+	}
+	printf("Memory Used %d\n", sizeof(glAliasData)*alias_vert_offset + sizeof(glAliasData)*numVerts);
+
+	if(alias_vbo < 0)
+	{
+		char* tmp = (char*)malloc(ALIAS_BUFFER_SIZE);
+		memset(tmp,0xCD,ALIAS_BUFFER_SIZE);
+		glGenBuffers(1, &alias_vbo);
+
+
+		//send data to GPU
+		glBindBuffer(GL_ARRAY_BUFFER, alias_vbo);
+		glBufferData(GL_ARRAY_BUFFER, ALIAS_BUFFER_SIZE, tmp, GL_STATIC_DRAW);
+
+		alias_vert_offset = 0;
+
+		free(tmp);
+	}
+
+	//send data to GPU
+	glBindBuffer(GL_ARRAY_BUFFER, alias_vbo);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(glAliasData)*alias_vert_offset, sizeof(glAliasData)*numVerts, pData);
+
+	*pVao = alias_vert_offset;
+	//update offset
+	alias_vert_offset += numVerts;
+	//revert binding
+	glBindBuffer(GL_ARRAY_BUFFER, vtx.vbo_handle);
+	//*/
+}
+
+int temp = 0;
+void StartAliasBatch()
+{
+	int i = 0;
+	FlushDraw();
+	//
+	glDepthMask(1);
+	glDisable(GL_BLEND);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_FRONT);
+	glEnable(GL_TEXTURE_2D);
+	//
+	temp = current_shader_idx;
+	current_shader_idx = 3;
+	//
+	Start(&alias_shader);
+	glDepthRangef(next_render_state.depth_min, next_render_state.depth_max);
+	//
+	glBindBuffer(GL_ARRAY_BUFFER, alias_vbo);
+	//
+	for (i = 0; i<10; i++)glDisableVertexAttribArray(i);
+	//
+	glEnableVertexAttribArray(UV_LOCATION0);
+	glVertexAttribPointer(UV_LOCATION0, 2, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(glAliasData), (char *)0);
+	
+	glEnableVertexAttribArray(POSITION_LOCATION);
+	glVertexAttribPointer(POSITION_LOCATION, 3, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(glAliasData), (char *)(0 + sizeof(char) * 2));
+	
+	glEnableVertexAttribArray(SHADE_LOCATION);
+	glVertexAttribPointer(SHADE_LOCATION, 1, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(glAliasData), (char *)(0 + sizeof(char) * 2 + sizeof(char) * 3));
+}
+
+void RenderAlias(const int vao, const int vbo,  const int posenum, const int numTris, int shadeDotIndex, float shadeLight)
+{
+	transforms.shadeIndex = ((float)shadeDotIndex / 15.0f);
+	transforms.shadeLight = shadeLight;
+
+	SetFloatByLocation(vtx.normalMin,	&transforms.normalMin);
+	SetFloatByLocation(vtx.normalRange, &transforms.normalRange);
+	SetFloatByLocation(vtx.shadeIndex,	&transforms.shadeIndex);
+	SetFloatByLocation(vtx.shadeLight,	&transforms.shadeLight);
+
+	if (transform_dirty)
+		UpdateTransformUBOs();
+	
+	glDrawArrays(GL_TRIANGLES, vao + ((numTris*3)*posenum), (numTris*3));
+}
+
+void EndAliasBatch()
+{
+	glBindBuffer(GL_ARRAY_BUFFER, vtx.vbo_handle);
+	vtx.vertex_state = -1;
+	current_shader_idx = temp;
+	transform_dirty = 1;
+	SetGLRenderState();
+}
+
 void ShutdownModernGLPatch(){
 	if(1){//vtx.vao_handle){
 		//glDeleteVertexArrays(1, &vtx.vao_handle);		
@@ -1177,11 +1367,11 @@ void ShutdownModernGLPatch(){
 		free(vtx.p_pre_gl_buffer);
 		vtx.p_pre_gl_buffer = 0;
 	}
-	//vtx.p_buffer_loc = 0;
 
 	DeleteShaderProgram(&texture_shader);
 	DeleteShaderProgram(&colour_shader);
 	DeleteShaderProgram(&light_map_shader);
+	DeleteShaderProgram(&alias_shader);
 	//glswShutdown();
 	DestroyStack();
 }

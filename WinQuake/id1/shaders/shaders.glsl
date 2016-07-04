@@ -11,7 +11,9 @@ layout(location = COLOUR_LOCATION)		in vec4 inColour;
 layout(location = NORMAL_LOCATION)		in vec3 inNormal;
 layout(location = UV_LOCATION0)			in vec2 inUV;
 layout(location = TEXT_LOCATION)		in int inCharacter;
+layout(location = SHADE_LOCATION)		in float inShadeIndex;
 
+layout(binding=2) uniform sampler2D anorm;
 
 -- Header.Fragment
 layout(binding=0) uniform sampler2D tex0;
@@ -44,7 +46,10 @@ layout(std140) uniform Transforms
 	mat4		mvp;
 	mat4		proj;
 	mat4		mv;
-	mat3		nrm;
+	float		normalMin;
+	float		normalRange;
+	float		shadeIndex;
+	float		shadeLight;
 }trans;
 
 struct UBODirectionLight
@@ -194,11 +199,35 @@ out vec4 fragColour;
 
 void main()
 {
-	//fragColour = vec4(1,0,0,0) + texture(tex0, uv);
-	//fragColour = vec4(uv.x,uv.y,0,0);
-
 	fragColour = texture(tex0, uv) * colour;
-	//fragColour.a *= colour.a;	
+}
+
+-- SimpleVertexAlias
+out float shade;
+out vec2 uv;
+
+void main()
+{
+	float texAnorm = texture(anorm, vec2(inShadeIndex / 255.0, trans.shadeIndex)).r;
+	float scaledTexAnorm = trans.normalMin + (texAnorm * trans.normalRange);
+
+	shade = scaledTexAnorm * trans.shadeLight;
+
+	uv = inUV;
+
+	gl_Position = trans.mvp * inVertex;
+}
+
+-- SimpleFragmentAlias
+
+in float shade;
+in vec2 uv;
+
+out vec4 fragColour;
+
+void main()
+{
+	fragColour = texture(tex0, uv) * shade;
 }
 
 -- SimpleVertexColoured

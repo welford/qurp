@@ -19,12 +19,21 @@ static const int glMajor = 4, glMinor = 2;
 
 #endif
 
+typedef struct 
+{
+	unsigned char	st[2];
+	unsigned char	pos[3];
+	unsigned char	lightNormalIndex;
+} glAliasData;
+
 
 #define POSITION_LOCATION		0
 #define COLOUR_LOCATION			1
 #define NORMAL_LOCATION			2
 #define UV_LOCATION0			3
 #define UV_LOCATION1			4
+#define SHADE_LOCATION			5
+
 #define TEXT_LOCATION			0
 //#define JOINT_WEIGHT_LOCATION	3
 //#define JOINT_INDEX_LOCATION	4
@@ -138,6 +147,14 @@ extern void FlushDraw(void);
 
 extern void BlitFBO(const int windowWidth, const int windowHeight);
 
+extern void CreatAliasBuffers(int* pVao, int* pVbo, int numVerts, void * pData);
+extern void StartAliasBatch();
+extern void RenderAlias(const int vao, const int vbo, const int posenum, const int numTris, int shadeDotIndex, float shadeLight);
+extern void EndAliasBatch();
+
 extern void ShutdownModernGLPatch();
+
+extern void SpecialDebugState();
+extern void UpdateTransformUBOs();
 
 #endif// _MODERN_GL_PORT_H_

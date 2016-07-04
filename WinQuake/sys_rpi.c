@@ -296,8 +296,10 @@ void main (int argc, char **argv)
 	
 	//not needed seems to do nothing
 	//Sys_Init();
+	printf("Hello  World");
 
 	oldtime = Sys_FloatTime () - 0.1;
+	//raise(SIGINT);
 	while (1){		
 		// find time spent rendering last frame
         newtime = Sys_FloatTime ();		
@@ -309,8 +311,7 @@ void main (int argc, char **argv)
 			printf("fps time: %f\n", sec_counter);
 			sec_counter = 0.0f;
 			printf("fps : %d\n", host_framecount - frame_counter);
-			//Con_Printf("total calls : %d, data : %dkb\n", dcc, dcs/1024);
-			//Con_Printf("fps : %d\n", frame_counter);
+
 			dcc = 0;
 			dcs = 0;
 			frame_counter = host_framecount;

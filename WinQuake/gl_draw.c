@@ -93,7 +93,6 @@ void GL_Bind (int texnum)
 	glBindTexture(GL_TEXTURE_2D, texnum);
 }
 
-
 /*
 =============================================================================
 
@@ -492,22 +491,14 @@ void Draw_Init (void)
 	Hunk_FreeToLowMark(start);
 
 	// save a texture slot for translated picture
-	//translate_texture = texture_extension_number++;
 	//JAMES
-	texture_extension_number++;
 	glGenTextures(1, &translate_texture);
 	//END
 
 	// save slots for scraps
-	//scrap_texnum = texture_extension_number;
 	//JAMES
 	glGenTextures(MAX_SCRAPS, scrap_texnum_gl);
 	//END
-
-	//JAMES
-	//this no longer really means anything
-	//but we'll keep it here
-	texture_extension_number += MAX_SCRAPS;
 
 	//
 	// get the other pics we need
@@ -1426,14 +1417,18 @@ void GL_CleanupTextures (void)
 
 	for (i = j = 0; i < numgltextures; ++i, ++j)
 	{
-		if (gltextures[i].type & TEX_TYPE_MAP)
+		if (gltextures[i].type == TEX_TYPE_MAP)
 		{
 			Con_DPrintf("GL_FreeTextures: Clearing texture %s\n", gltextures[i].identifier);
 			glDeleteTextures(1, &gltextures[i].texnum);
+			gltextures[i].identifier[0] = '\0';
 			--j;
 		}
 		else if (j < i)
+		{
 			gltextures[j] = gltextures[i];
+			gltextures[i].identifier[0] = '\0';
+		}
 	}
 
 	Cvar_Set("gl_cleanup_textures", "0");
@@ -1467,19 +1462,19 @@ int GL_LoadTexture (char *identifier, int width, int height, byte *data, qboolea
 				return gltextures[i].texnum;
 			}
 		}
+		numgltextures++;
 	}
 	else {
 		glt = &gltextures[numgltextures];
-		glt->type = type;
-		numgltextures++;
 	}
 
 	strcpy (glt->identifier, identifier);
-	//glt->texnum = texture_extension_number;
 	//JAMES
 	glGenTextures(1, &glt->texnum);
 	//END
 
+	//
+	glt->type = type;
 	glt->width = width;
 	glt->height = height;
 	glt->mipmap = mipmap;
@@ -1488,7 +1483,6 @@ int GL_LoadTexture (char *identifier, int width, int height, byte *data, qboolea
 	GL_Upload8 (data, width, height, mipmap, alpha);
 	GL_Bind(0);
 
-	texture_extension_number++;
 
 	return glt->texnum;
 }

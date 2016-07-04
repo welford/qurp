@@ -292,6 +292,7 @@ float	r_avertexnormal_dots[SHADEDOT_QUANT][256] =
 #include "anorm_dots.h"
 ;
 
+int		shadedotsIndex = 0;
 float	*shadedots = r_avertexnormal_dots[0];
 
 int	lastposenum;
@@ -315,6 +316,10 @@ void GL_DrawAliasFrame (aliashdr_t *paliashdr, int posenum)
 	int		count;
 	int		n_tris = 0;
 
+#if ALIAS_VBO  
+	RenderAlias(paliashdr->vao, paliashdr->vbo, posenum, paliashdr->numtris, shadedotsIndex, shadelight);
+#else
+
 	//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 	//super cheap speed hack to get one draw call instead of Many
 	//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -325,13 +330,13 @@ void GL_DrawAliasFrame (aliashdr_t *paliashdr, int posenum)
 	float vtx_history1[6];//vtx,clr,tx
 	float vtx_history2[6];//vtx,clr,tx
 
-lastposenum = posenum;
+	lastposenum = posenum;
 
 	verts = (trivertx_t *)((byte *)paliashdr + paliashdr->posedata);
 	verts += posenum * paliashdr->poseverts;
 	order = (int *)((byte *)paliashdr + paliashdr->commands);
 
-	SetVertexMode(VAS_VTX_CLR_TEX);	
+	SetVertexMode(VAS_VTX_CLR_TEX);
 	BeginDrawing( RNDR_TRIANGLES);
 	while (1)
 	{
@@ -345,7 +350,7 @@ lastposenum = posenum;
 			mode = 0;
 			vtx_idx = 0;
 			emitt_poly = 0;
-			//BeginDrawing( RNDR_TRIANGLE_FAN );			
+			//BeginDrawing( RNDR_TRIANGLE_FAN );
 		}
 		else{
 			//BeginDrawing( RNDR_TRIANGLE_STRIP );
@@ -466,18 +471,13 @@ lastposenum = posenum;
 					}
 				}
 			}			
-			/*
-			AddVertex4D(VTX_COLOUR, l, l, l, 1);
-			// texture coordinates come from the draw list
-			AddVertex2D(VTX_TEXTURE, ((float *)order)[0], ((float *)order)[1]);			
-			AddVertex3D( VTX_POSITION, verts->v[0], verts->v[1], verts->v[2]);
-			*/
 			verts++;			
 			order += 2;					
 
 		} while (--count);		
 	}
 	EndDrawing();
+#endif //_WIN32
 }
 
 
@@ -662,7 +662,8 @@ void R_DrawAliasModel (entity_t *e)
 		|| !strcmp (clmodel->name, "progs/flame.mdl") )
 		ambientlight = shadelight = 256;
 
-	shadedots = r_avertexnormal_dots[((int)(e->angles[1] * (SHADEDOT_QUANT / 360.0))) & (SHADEDOT_QUANT - 1)];
+	shadedotsIndex = ((int)(e->angles[1] * (SHADEDOT_QUANT / 360.0))) & (SHADEDOT_QUANT - 1);
+	shadedots = r_avertexnormal_dots[shadedotsIndex];
 	shadelight = shadelight / 200.0;
 	
 	an = e->angles[1]/180*M_PI;
@@ -710,18 +711,7 @@ void R_DrawAliasModel (entity_t *e)
 		}
 	}
 
-	//if (gl_smoothmodels.value)
-	//	glShadeModel (GL_SMOOTH);
-	//glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-	//if (gl_affinemodels.value)
-	//	glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
-
 	R_SetupAliasFrame (currententity->frame, paliashdr);
-
-	//glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-	//glShadeModel (GL_FLAT);
-	//if (gl_affinemodels.value)
-	//	glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 
 	Pop();
 
@@ -758,20 +748,32 @@ void R_DrawEntitiesOnList (void)
 	//n_alias_draw = 0;
 
 	// draw sprites seperately, because of alpha blending
+#
+	//alias first as they will eventuall all be in the 
+	//same VBO
+	StartAliasBatch();
 	for (i=0 ; i<cl_numvisedicts ; i++)
 	{
 		currententity = cl_visedicts[i];
-
 		switch (currententity->model->type)
 		{
 		case mod_alias:
 			R_DrawAliasModel (currententity);
 			break;
-
-		case mod_brush:
-			R_DrawBrushModel (currententity);
+		default:
 			break;
+		}
+	}
+	EndAliasBatch();
 
+	for (i = 0; i<cl_numvisedicts; i++)
+	{
+		currententity = cl_visedicts[i];
+		switch (currententity->model->type)
+		{
+		case mod_brush:
+			R_DrawBrushModel(currententity);
+			break;
 		default:
 			break;
 		}
@@ -852,13 +854,15 @@ void R_DrawViewModel (void)
 		if (add > 0)
 			ambientlight += add;
 	}
-
+	//look into this!S
 	ambient[0] = ambient[1] = ambient[2] = ambient[3] = (float)ambientlight / 128;
 	diffuse[0] = diffuse[1] = diffuse[2] = diffuse[3] = (float)shadelight / 128;
 
 	// hack the depth range to prevent view model from poking into walls	
 	SetDepthRange (gldepthmin, gldepthmin + 0.3*( gldepthmax - gldepthmin ));
+	StartAliasBatch();
 	R_DrawAliasModel (currententity);	
+	EndAliasBatch();
 	SetDepthRange (gldepthmin, gldepthmax);
 }
 
@@ -1347,4 +1351,5 @@ void R_RenderView (void)
 		time2 = Sys_FloatTime ();
 		Con_Printf ("%3i ms  %4i wpoly %4i epoly\n", (int)((time2-time1)*1000), c_brush_polys, c_alias_polys); 
 	}
+	
 }

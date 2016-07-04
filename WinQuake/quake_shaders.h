@@ -17,6 +17,7 @@ attribute vec4 inVertex;\
 attribute vec4 inColour;\
 attribute vec3 inNormal;\
 attribute vec2 inUV;\
+attribute float inShadeIndex;\
 \n";
 
 static const char* header_fragment = "\n\
@@ -29,9 +30,13 @@ struct Transforms\n\
 	mat4		mvp;\n\
 	mat4		proj;\n\
 	mat4		mv;\n\
-	mat3		nrm;\n\
+	float		normalMin;\n\
+	float		normalRange;\n\
+	float		shadeIndex;\n\
+	float		shadeLight;\n\
 };\n\
 uniform  Transforms trans;\n\
+uniform sampler2D anorm;\n\
 \n";
 
 static const char* txt_clr_vertex = "\n\
@@ -90,3 +95,27 @@ void main()\n\
 }\n\
 ";
 
+static const char* alias_vertex = "\n\
+varying float shade;\n\
+varying vec2 uv;\n\
+void main()\n\
+{\n\
+	float texAnorm = texture2D(anorm, vec2(inShadeIndex / 255.0, trans.shadeIndex)).r;\n\
+	float scaledTexAnorm = trans.normalMin + (texAnorm * trans.normalRange);\n\
+	\n\
+	shade = scaledTexAnorm * trans.shadeLight;\n\
+	//shade = inShadeIndex * trans.shadeIndex;\n\
+	uv = inUV;\n\
+	gl_Position = trans.mvp * inVertex;\n\
+}\n\
+\n";
+
+static const char* alias_frag = "\n\
+varying float shade;\n\
+varying vec2 uv;\n\
+\n\
+void main()\n\
+{	\n\
+	gl_FragColor = texture2D(tex0, uv) * vec4(shade,shade,shade,1.0);\n\
+}\n\
+\n";

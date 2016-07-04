@@ -296,7 +296,7 @@ model_t *Mod_LoadModel (model_t *mod, qboolean crash)
 		break;
 	
 	default:
-		GL_CleanupTextures();
+		//GL_CleanupTextures();
 		Mod_LoadBrushModel (mod, buf);
 		Cvar_Set ("gl_cleanup_textures", "1");
 		break;
@@ -1483,6 +1483,8 @@ void *Mod_LoadAllSkins (int numskins, daliasskintype_t *pskintype)
 
 //=========================================================================
 
+
+
 /*
 =================
 Mod_LoadAliasModel
@@ -1620,6 +1622,7 @@ void Mod_LoadAliasModel (model_t *mod, void *buffer)
 		}
 	}
 
+
 	pheader->numposes = posenum;
 
 	mod->type = mod_alias;
@@ -1627,6 +1630,74 @@ void Mod_LoadAliasModel (model_t *mod, void *buffer)
 // FIXME: do this right
 	mod->mins[0] = mod->mins[1] = mod->mins[2] = -16;
 	mod->maxs[0] = mod->maxs[1] = mod->maxs[2] = 16;
+#if ALIAS_VBO
+	///////////////////////////////////////////////////////////
+	//
+	//create a gl VBO object so we don't have to send this data each frame
+	//
+	//FORMAT [TEXTURE DATA BLOCK]
+	//		 [VERTEX BLOCK FRAME 0]
+	//		 [VERTEX BLOCK FRAME 1]
+	//		 [VERTEX BLOCK FRAME 2]
+	//		 ...
+	//		 [VERTEX BLOCK FRAME N]
+	//int numfloats = pheader->numposes * pheader->numtris * /*floats per verts*/ 9 * /*verts per triangle*/ 3;
+	int numGLVerts = pheader->numposes * pheader->numtris * 3;
+	
+	glAliasData* gpuBoundData = (glAliasData*)malloc(sizeof(glAliasData)*numGLVerts);
+
+	int processedIndex = 0;
+	int f, t, v;
+	for (f=0 ; f<pheader->numposes ; f++)
+	{
+		for (t = 0; t < pheader->numtris; t++)
+		{
+			for(v=0; v<3; v++){
+				//
+				int vIdx = triangles[t].vertindex[v];
+				const trivertx_t* pVtx = &poseverts[f][vIdx];
+
+				//pintriangles[t].facesfront;
+				byte x = pVtx->v[0]; //render code applies scale + translation
+				byte y = pVtx->v[1];
+				byte z = pVtx->v[2];
+
+				/* Compute texture coordinates */
+				float cs = stverts[vIdx].s;
+				float ct = stverts[vIdx].t;
+				if (!triangles[t].facesfront && stverts[vIdx].onseam)
+				{
+					cs += pheader->skinwidth * 0.5f;
+				}
+
+				cs = (cs + 0.5f) / pheader->skinwidth;
+				ct = (ct + 0.5f) / pheader->skinheight;
+
+				gpuBoundData[processedIndex].st[0] = (unsigned char)(255 * cs);
+				gpuBoundData[processedIndex].st[1] = (unsigned char)(255 * ct);
+
+				//gpuBoundData[processedIndex].st[0] = cs;
+				//gpuBoundData[processedIndex].st[1] = ct;
+
+				gpuBoundData[processedIndex].pos[0] = x;
+				gpuBoundData[processedIndex].pos[1] = y;
+				gpuBoundData[processedIndex].pos[2] = z;
+
+				gpuBoundData[processedIndex].lightNormalIndex = pVtx->lightnormalindex;
+				processedIndex++;
+			}
+		}
+	}
+
+		CreatAliasBuffers(&pheader->vao,&pheader->vbo,numGLVerts,gpuBoundData);
+
+	free(gpuBoundData);
+
+	//JAMES
+	//we can brobably safely ditch most of what is below, just a waste of memory now
+#endif //ALIAS_VBO
+	
+	///////////////////////////////////////////////////////////
 
 	//
 	// build the draw lists

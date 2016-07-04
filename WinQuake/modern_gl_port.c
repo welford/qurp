@@ -29,33 +29,40 @@ typedef struct {
 
 //VAS_CLR
 VertexAttribute vas_clr[] = {
-	{0, COLOUR_LOCATION,	4, STREAM_FLOAT, 0, sizeof(float)*7,			   0,	0},
-	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*7, sizeof(float)*4,	0},		
+	{0, COLOUR_LOCATION,	4, STREAM_FLOAT, 0, sizeof(float)*7,			   0,	0, 0},
+	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*7, sizeof(float)*4,	0, 0},
 };
 //VAS_CLR_TEX
 VertexAttribute vas_clr_tx[] = {
-	{0, COLOUR_LOCATION,	4, STREAM_FLOAT, 0, sizeof(float)*9,			   0,	0},
-	{0, UV_LOCATION0,		2, STREAM_FLOAT, 0, sizeof(float)*9, sizeof(float)*4,	0},
-	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*9, sizeof(float)*6,	0}	
+	{0, COLOUR_LOCATION,	4, STREAM_FLOAT, 0, sizeof(float)*9,			   0,	0, 0},
+	{0, UV_LOCATION0,		2, STREAM_FLOAT, 0, sizeof(float)*9, sizeof(float)*4,	0, 0},
+	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*9, sizeof(float)*6,	0, 0}	
 };
 //VAS_VTX_CLR
 VertexAttribute vas_vtx_clr[] = {
-	{0, COLOUR_LOCATION,	4, STREAM_FLOAT, 0, sizeof(float)*7,			   0,	0},
-	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*7, sizeof(float)*4,	0}
+	{0, COLOUR_LOCATION,	4, STREAM_FLOAT, 0, sizeof(float)*7,			   0,	0, 0},
+	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*7, sizeof(float)*4,	0, 0}
 };
 //VAS_VTX_CLR_TEX
 VertexAttribute vas_vtx_clr_tx[] = {
-	{0, COLOUR_LOCATION,	4, STREAM_FLOAT, 0, sizeof(float)*9,			   0,	0},
-	{0, UV_LOCATION0,		2, STREAM_FLOAT, 0, sizeof(float)*9, sizeof(float)*4,	0},
-	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*9, sizeof(float)*6,	0}
+	{0, COLOUR_LOCATION,	4, STREAM_FLOAT, 0, sizeof(float)*9,			   0,	0, 0},
+	{0, UV_LOCATION0,		2, STREAM_FLOAT, 0, sizeof(float)*9, sizeof(float)*4,	0, 0},
+	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*9, sizeof(float)*6,	0, 0}
 };
 //VAS_VTX_CLR8_TEX
 VertexAttribute vas_vtx_clr8_tx[] = {
-	{0, COLOUR_LOCATION,	4, STREAM_UCHAR, 1, sizeof(float)*6,			   0,	0},
-	{0, UV_LOCATION0,		2, STREAM_FLOAT, 0, sizeof(float)*6, sizeof(float)*1,	0},
-	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*6, sizeof(float)*3,	0}
+	{0, COLOUR_LOCATION,	4, STREAM_UCHAR, 1, sizeof(float)*6,			   0,	0, 0},
+	{0, UV_LOCATION0,		2, STREAM_FLOAT, 0, sizeof(float)*6, sizeof(float)*1,	0, 0},
+	{0, POSITION_LOCATION,	3, STREAM_FLOAT, 0, sizeof(float)*6, sizeof(float)*3,	0, 0}
 };
 
+//VAS_VTX_TEX_ALIAS
+VertexAttribute vas_vtx_tx_alias[] = {
+	//NEEDS WORK
+	{0, UV_LOCATION0,		2, STREAM_CHAR, 0, sizeof(char)*6,	 0,					0, 0},
+	{0, POSITION_LOCATION,	3, STREAM_CHAR, 0, sizeof(char)*6,	 sizeof(char)*3,	0, 0},
+	{0, SHADE_LOCATION,	4, STREAM_UCHAR, 1, sizeof(float)*6,			   0,	0, 0},
+};
 
 static _VAS vas[VAS_MAX] = {
 	{2, vas_clr},
@@ -96,11 +103,21 @@ typedef struct
 	float dummy[3];
 }SpotLight;
 
+//for models....
+typedef struct {
+	float scale[3];
+	float scaleOrigin[3];
+	float skinWidth, skinHeight;
+}AliasSettings;
+
 typedef struct {
 	Matrix44 mvp;
 	Matrix44 proj; 
 	Matrix44 mv;
-	float nrm[12];//3x3 matrix is stored as 3 column vectors of length 4, so 3,7 and  11 are unused padding
+	float normalMin;
+	float normalRange;
+	float shadeIndex;
+	float shadeValue;
 }UBOTransforms;
 
 typedef struct {
@@ -201,9 +218,16 @@ static UBOLights lights;
 static const int GRANULARITY	 = 16384*4*4; //probably too smalll
 static const int transform_stack_size = 10;
 
+static int alias_vbo = -1;				//
+static int alias_vao = -1;				//
+static int alias_vert_offset = 0;			//
+static const int ALIAS_BUFFER_SIZE  = (1024 * 1024 * 10);
+
+
 static SShaderProgram texture_shader;
 static SShaderProgram colour_shader;
 static SShaderProgram light_map_shader;
+static SShaderProgram alias_shader;
 
 //we render to an internal buffer, then blit it to screen
 #define USE_FBO 1
@@ -374,6 +398,7 @@ void SetVertexMode(const VertexAttributeState state){
 #define HEIGHT DIM
 
 unsigned int debug_texture = 0;
+unsigned int normal_texture = 0;
 
 static void CreateDebugTextures(){
 	int black=0;
@@ -406,6 +431,60 @@ static void CreateDebugTextures(){
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
+	free(pTexture);
+}
+
+#define SHADEDOT_QUANT 16
+float	_r_avertexnormal_dots[SHADEDOT_QUANT][256] =
+#include "anorm_dots.h"
+;
+
+static void CreateANormTextures(){
+	int black=0;
+	unsigned char * pTexture = 0;
+	unsigned int h, w;
+	float max=-1.0f,min=99.0f;
+	float scaler = 0;
+	pTexture = (unsigned char*)malloc(16 * 256);
+
+	//get range clamps
+	for(h=0;h<SHADEDOT_QUANT;h++)
+	{
+		for(w=0;w<256;w++)
+		{
+			if (_r_avertexnormal_dots[h][w] > max)
+				max = _r_avertexnormal_dots[h][w];
+			if (_r_avertexnormal_dots[h][w] < min)
+				min = _r_avertexnormal_dots[h][w];
+		}	
+	}
+
+	scaler = 255.0f / (max - min);
+
+	transforms.normalRange = max - min;
+	transforms.normalMin = min;
+
+	//clamp between 0~255
+	for(h=0;h<16;h++)
+	{
+		for(w=0;w<256;w++)
+		{
+			pTexture[(h*256)+w] = (unsigned char) ((_r_avertexnormal_dots[h][w] - min) * scaler);
+		}	
+	}
+
+	glGenTextures(1, &normal_texture);	
+	//debug_texture = 13;
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, normal_texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 256, 16, 0, GL_RED, GL_UNSIGNED_BYTE, pTexture);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_2D, 0);
 	free(pTexture);
 }
 
@@ -480,8 +559,10 @@ static void SetupFBO(const int width, const int height){
 static void SetupShaders(void){
 	int got = 0;
 	SShader vtxTxShdr, frgTxShdr;
+	SShader vtxAlShdr, frgAlShdr;
 	SShader vtxClrShdr, frgClrShdr;
 	SShader vtxLightShdr, frgLightShdr;
+	SShader vtxAliasShdr;//, vtxAliasShdr;
 	const char *pDVertStr[4] = {0, 0,0,0}, *pDFragStr[4] = {0,0,0,0};
 
 	glswInit();
@@ -498,6 +579,7 @@ static void SetupShaders(void){
 
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(POSITION_LOCATION));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(COLOUR_LOCATION));
+	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(SHADE_LOCATION));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(NORMAL_LOCATION));	
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(JOINT_WEIGHT_LOCATION));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(JOINT_INDEX_LOCATION));
@@ -519,6 +601,16 @@ static void SetupShaders(void){
 	AddShaderToProgram(&texture_shader,&vtxTxShdr);
 	AddShaderToProgram(&texture_shader,&frgTxShdr);
 	LinkShaderProgram(&texture_shader);	
+
+	//shader (ALIAS)
+	got = glswGetShadersAlt("shaders.Version+shaders.Header.Vertex+shaders.Shared+shaders.SimpleVertexAlias", pDVertStr, sizeof(pDVertStr)/sizeof(pDVertStr[0]));	
+	CreateShader(&vtxAlShdr, VERT, pDVertStr, got);
+	got = glswGetShadersAlt("shaders.Version+shaders.Header.Fragment+shaders.Shared+shaders.SimpleFragmentAlias", pDFragStr, sizeof(pDFragStr)/sizeof(pDFragStr[0]));
+	CreateShader(&frgAlShdr, FRAG, pDFragStr, got);
+	CreateShaderProgram(&alias_shader);
+	AddShaderToProgram(&alias_shader,&vtxAlShdr);
+	AddShaderToProgram(&alias_shader,&frgAlShdr);
+	LinkShaderProgram(&alias_shader);	
 
 	//shader (COLOUR)
 	got = glswGetShadersAlt("shaders.Version+shaders.Header.Vertex+shaders.Shared+shaders.SimpleVertexColoured", pDVertStr, sizeof(pDVertStr)/sizeof(pDVertStr[0]));	
@@ -543,6 +635,8 @@ static void SetupShaders(void){
 	//this will delete them after we have deleted the program associated with them
 	DeleteShader(&vtxTxShdr);
 	DeleteShader(&frgTxShdr);	
+	DeleteShader(&vtxAlShdr);
+	DeleteShader(&frgAlShdr);
 	DeleteShader(&vtxClrShdr);
 	DeleteShader(&frgClrShdr);	
 	DeleteShader(&vtxLightShdr);
@@ -563,7 +657,7 @@ static void SetupUBOs(){
 	glBindBufferBase(GL_UNIFORM_BUFFER, LIGHT_UBO_BINDING, vtx.lighting_ubo_handle);
 }
 
-static void UpdateTransformUBOs(){	
+/*static*/ void UpdateTransformUBOs(){	
 	float *tmp = StackGetTop();
 	int i=0;
 	for(i=0;i<16;i++){
@@ -619,7 +713,8 @@ void StartupModernGLPatch(const int width, const int height){
 
 	SetRenderSize(width,height);
 
-	CreateDebugTextures();
+	//CreateDebugTextures();
+	CreateANormTextures();
 }
 
 static unsigned int num_draw_calls = 0;
@@ -1186,6 +1281,90 @@ void BlitFBO(const int windowWidth, const int windowHeight)
 	glDrawBuffers(1, fba);
 #endif
 
+}
+
+void CreatAliasBuffers(int* pVao, int* pVbo, int numVerts, void * pData)
+{
+	unsigned int currentVBO = GetCurrentBuffer(GL_ARRAY_BUFFER_BINDING);
+	unsigned int currentVAO = GetCurrentBuffer(GL_VERTEX_ARRAY_BINDING);
+
+	if(sizeof(glAliasData)*alias_vert_offset + sizeof(glAliasData)*numVerts > ALIAS_BUFFER_SIZE)
+	{
+		printf("out of alias memory....this will be an issue just now but not in the future\n");
+	}
+	printf("Memory Used %d\n", sizeof(glAliasData)*alias_vert_offset + sizeof(glAliasData)*numVerts);
+
+	if(alias_vbo < 0)
+	{
+		glGenVertexArrays(1, &alias_vao);
+		glGenBuffers(1, &alias_vbo);
+
+		//send data to GPU
+		glBindBuffer(GL_ARRAY_BUFFER, alias_vbo);
+		glBufferData(GL_ARRAY_BUFFER, ALIAS_BUFFER_SIZE, 0, GL_STATIC_DRAW);
+
+		alias_vert_offset = 0;
+
+		//describe data for when we draw
+		glBindVertexArray( alias_vao );
+
+		glEnableVertexAttribArray(UV_LOCATION0);
+		glBindBuffer(GL_ARRAY_BUFFER, alias_vbo);
+		glVertexAttribPointer(UV_LOCATION0, 2, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(glAliasData), (char *)0);
+
+		glEnableVertexAttribArray(POSITION_LOCATION);
+		glBindBuffer(GL_ARRAY_BUFFER, alias_vbo);
+		glVertexAttribPointer(POSITION_LOCATION, 3, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(glAliasData), (char *)(0 + sizeof(char) * 2));
+
+		glEnableVertexAttribArray(SHADE_LOCATION);
+		glBindBuffer(GL_ARRAY_BUFFER, alias_vbo);
+		glVertexAttribPointer(SHADE_LOCATION, 1, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(glAliasData), (char *)(0 + sizeof(char)*2 + sizeof(char)*3));
+
+		glBindVertexArray( currentVAO );
+	}
+
+	
+	//send data to GPU
+	glBindBuffer(GL_ARRAY_BUFFER, alias_vbo);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(glAliasData)*alias_vert_offset, sizeof(glAliasData)*numVerts, pData);
+
+	*pVao = alias_vert_offset;
+	//update offset
+	alias_vert_offset += numVerts;
+	//revert binding
+	glBindBuffer(GL_ARRAY_BUFFER, currentVBO);
+}
+
+void StartAliasBatch()
+{
+	FlushDraw();
+	
+	glDepthMask(1);
+	glDisable(GL_BLEND);
+	glEnable (GL_DEPTH_TEST);
+	glEnable (GL_CULL_FACE);
+	glCullFace(GL_FRONT);
+	glEnable(GL_TEXTURE_2D);
+	Start(&alias_shader);
+	glDepthRange(next_render_state.depth_min, next_render_state.depth_max);
+
+	glBindVertexArray(alias_vao);
+}
+
+void RenderAlias(const int vao, const int vbo,  const int posenum, const int numTris, int shadeDotIndex, float shadeLight)
+{
+	//highjack the normal matrix for now...
+	transforms.shadeIndex = ((float)shadeDotIndex / 15.0f);
+	transforms.shadeValue = shadeLight;
+
+	UpdateTransformUBOs();
+
+	glDrawArrays(GL_TRIANGLES, vao + ((numTris*3)*posenum), (numTris*3));
+}
+
+void EndAliasBatch()
+{
+	glBindVertexArray( vtx.vao_handle );
 }
 
 void ShutdownModernGLPatch(){

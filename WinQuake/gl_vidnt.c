@@ -107,7 +107,7 @@ HDC		maindc;
 
 glvert_t glv;
 
-cvar_t	gl_ztrick = {"gl_ztrick","1"};
+cvar_t	gl_ztrick = {"gl_ztrick","0"};
 
 HWND WINAPI InitializeWindow (HINSTANCE hInstance, int nCmdShow);
 
@@ -501,6 +501,7 @@ int VID_SetMode (int modenum, unsigned char *palette)
 		Sys_Error ("VID_SetMode: Bad mode type in modelist");
 	}
 
+
 	window_width = DIBWidth;
 	window_height = DIBHeight;
 	VID_UpdateWindowStatus ();
@@ -653,8 +654,6 @@ int		texture_mode = GL_LINEAR;
 //int		texture_mode = GL_LINEAR_MIPMAP_NEAREST;
 //int		texture_mode = GL_LINEAR_MIPMAP_LINEAR;
 
-int		texture_extension_number = 1;
-
 #ifdef _WIN32
 void CheckMultiTextureExtensions(void) 
 {
@@ -793,6 +792,8 @@ void GL_Init (HGLRC* rc)
 
 //	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+
+	//wglSwapIntervalEXT(1);
 
 #if 0
 	CheckArrayExtensions ();

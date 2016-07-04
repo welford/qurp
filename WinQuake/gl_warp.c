@@ -459,10 +459,8 @@ void R_InitSky (texture_t *mt)
 
 
 	if (!solidskytexture){
-		//solidskytexture = texture_extension_number++;
 		//JAMES
 		glGenTextures(1, &solidskytexture); 
-		texture_extension_number++;
 		//END
 	}
 	GL_Bind (solidskytexture );
@@ -488,10 +486,8 @@ void R_InitSky (texture_t *mt)
 		}
 
 	if (!alphaskytexture){
-		//alphaskytexture = texture_extension_number++;
 		//JAMES
 		glGenTextures(1, &alphaskytexture); 
-		texture_extension_number++;
 		//END
 	}
 	GL_Bind(alphaskytexture);
