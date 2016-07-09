@@ -1124,8 +1124,9 @@ void SV_SpawnServer (char *server)
 	sv.paused = false;
 
 	sv.time = 1.0;
-	
+#ifdef GLQUAKE
 	GL_CleanupTextures();
+#endif //GLQUAKE
 	strcpy (sv.name, server);
 	sprintf (sv.modelname,"maps/%s.bsp", server);
 	sv.worldmodel = Mod_ForName (sv.modelname, false);

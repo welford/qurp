@@ -409,11 +409,9 @@ void Con_Printf (char *fmt, ...)
 		if (!inupdate)
 		{
 			//JAMES, Disable for now
-			/*
 			inupdate = true;
 			SCR_UpdateScreen ();
 			inupdate = false;
-			*/
 		}
 	}
 }

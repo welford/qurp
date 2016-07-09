@@ -1689,7 +1689,7 @@ void Mod_LoadAliasModel (model_t *mod, void *buffer)
 		}
 	}
 
-		CreatAliasBuffers(&pheader->vao,&pheader->vbo,numGLVerts,gpuBoundData);
+		CreatAliasBuffers(&pheader->vbo_offset,numGLVerts,gpuBoundData);
 
 	free(gpuBoundData);
 

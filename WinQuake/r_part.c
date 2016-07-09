@@ -617,6 +617,7 @@ void R_DrawParticles (void)
 	float			scale;
 	byte*			p_clr;
 
+#ifdef GLQUAKE
     GL_Bind(particletexture);
 	
 	VectorScale (vup, 1.5, up);
@@ -747,9 +748,110 @@ void R_DrawParticles (void)
 
 	EndDrawing();	
 	DisableBlending();
+#else
+
+	D_StartParticles ();
+
+	VectorScale (vright, xscaleshrink, r_pright);
+	VectorScale (vup, yscaleshrink, r_pup);
+	VectorCopy (vpn, r_ppn);
+
+	frametime = host_frametime;
+	time3 = frametime * 15;
+	time2 = frametime * 10; // 15;
+	time1 = frametime * 5;
+	grav = frametime * 800 * 0.05;
+	dvel = 4*frametime;
 	
-	//glEnd ();
-	//glDisable (GL_BLEND);
-	//glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	for ( ;; ) 
+	{
+		kill = active_particles;
+		if (kill && kill->die < cl.time)
+		{
+			active_particles = kill->next;
+			kill->next = free_particles;
+			free_particles = kill;
+			continue;
+		}
+		break;
+	}
+
+	for (p=active_particles ; p ; p=p->next)
+	{
+		for ( ;; )
+		{
+			kill = p->next;
+			if (kill && kill->die < cl.time)
+			{
+				p->next = kill->next;
+				kill->next = free_particles;
+				free_particles = kill;
+				continue;
+			}
+			break;
+		}
+
+		D_DrawParticle (p);
+
+		p->org[0] += p->vel[0]*frametime;
+		p->org[1] += p->vel[1]*frametime;
+		p->org[2] += p->vel[2]*frametime;
+		
+		switch (p->type)
+		{
+		case pt_static:
+			break;
+		case pt_fire:
+			p->ramp += time1;
+			if (p->ramp >= 6)
+				p->die = -1;
+			else
+				p->color = ramp3[(int)p->ramp];
+			p->vel[2] += grav;
+			break;
+
+		case pt_explode:
+			p->ramp += time2;
+			if (p->ramp >=8)
+				p->die = -1;
+			else
+				p->color = ramp1[(int)p->ramp];
+			for (i=0 ; i<3 ; i++)
+				p->vel[i] += p->vel[i]*dvel;
+			p->vel[2] -= grav;
+			break;
+
+		case pt_explode2:
+			p->ramp += time3;
+			if (p->ramp >=8)
+				p->die = -1;
+			else
+				p->color = ramp2[(int)p->ramp];
+			for (i=0 ; i<3 ; i++)
+				p->vel[i] -= p->vel[i]*frametime;
+			p->vel[2] -= grav;
+			break;
+
+		case pt_blob:
+			for (i=0 ; i<3 ; i++)
+				p->vel[i] += p->vel[i]*dvel;
+			p->vel[2] -= grav;
+			break;
+
+		case pt_blob2:
+			for (i=0 ; i<2 ; i++)
+				p->vel[i] -= p->vel[i]*dvel;
+			p->vel[2] -= grav;
+			break;
+
+		case pt_slowgrav:
+		case pt_grav:
+			p->vel[2] -= grav;
+			break;
+		}
+	}
+	D_EndParticles ();
+
+#endif
 }
 

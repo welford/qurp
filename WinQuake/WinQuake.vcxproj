@@ -35,7 +35,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='GL Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
-    <PlatformToolset>v140_xp</PlatformToolset>
+    <PlatformToolset>v120_xp</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -110,7 +110,7 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>.\dxsdk\sdk\lib\dxguid.lib;.\scitech\lib\win32\vc\mgllt.lib;winmm.lib;wsock32.lib;opengl32.lib;glu32.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>.\dxsdk\sdk\lib\dxguid.lib;.\scitech\lib\win32\vc\mgllt.lib;winmm.lib;wsock32.lib;opengl32.lib;glu32.lib;odbc32.lib;odbccp32.lib;Imm32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>.\Release/WinQuake.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreSpecificDefaultLibraries>LIBC.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
@@ -197,7 +197,7 @@
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>.\dxsdk\sdk\lib\dxguid.lib;.\scitech\lib\win32\vc\mgllt.lib;winmm.lib;wsock32.lib;opengl32.lib;glu32.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>.\dxsdk\sdk\lib\dxguid.lib;winmm.lib;.\scitech\lib\win32\vc\mgllt.lib;winmm.lib;wsock32.lib;opengl32.lib;glu32.lib;odbc32.lib;odbccp32.lib;Imm32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>.\Debug/WinQuake.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreSpecificDefaultLibraries>LIBC.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
@@ -261,12 +261,8 @@
     </Bscmake>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\pc\utils\bstrlib.c" />
-    <ClCompile Include="..\..\..\pc\utils\glsw.c" />
-    <ClCompile Include="..\..\..\pc\utils\shader_gl.c" />
-    <ClCompile Include="..\..\..\pc\utils\vector++\vector\matrix.c" />
     <ClCompile Include="..\..\..\pc\utils\vector++\vector\quaterion.c" />
-    <ClCompile Include="..\..\..\pc\utils\vector++\vector\vector.c" />
+    <ClCompile Include="bstrlib.c" />
     <ClCompile Include="cd_win.c">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -579,6 +575,7 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="glsw.c" />
     <ClCompile Include="gl_draw.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -790,6 +787,7 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="matrix.c" />
     <ClCompile Include="menu.c">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -893,6 +891,7 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="nonintel.c" />
     <ClCompile Include="pr_cmds.c">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -1130,6 +1129,7 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="shader_gl.c" />
     <ClCompile Include="snd_dma.c">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -1230,6 +1230,7 @@
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="transforms.c" />
+    <ClCompile Include="vector.c" />
     <ClCompile Include="vid_win.c">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -1678,14 +1679,10 @@ del $(OutDir)%(Filename).spp
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\pc\utils\bstrlib.h" />
-    <ClInclude Include="..\..\..\pc\utils\debug_print.h" />
-    <ClInclude Include="..\..\..\pc\utils\glsw.h" />
-    <ClInclude Include="..\..\..\pc\utils\shader_gl.h" />
-    <ClInclude Include="..\..\..\pc\utils\vector++\vector\vector.h" />
     <ClInclude Include="anorm_dots.h" />
     <ClInclude Include="anorms.h" />
     <ClInclude Include="bspfile.h" />
+    <ClInclude Include="bstrlib.h" />
     <ClInclude Include="cdaudio.h" />
     <ClInclude Include="client.h" />
     <ClInclude Include="cmd.h" />
@@ -1694,9 +1691,11 @@ del $(OutDir)%(Filename).spp
     <ClInclude Include="console.h" />
     <ClInclude Include="crc.h" />
     <ClInclude Include="cvar.h" />
+    <ClInclude Include="debug_print.h" />
     <ClInclude Include="d_iface.h" />
     <ClInclude Include="dosisms.h" />
     <ClInclude Include="draw.h" />
+    <ClInclude Include="glsw.h" />
     <ClInclude Include="gl_model.h" />
     <ClInclude Include="gl_warp_sin.h" />
     <ClInclude Include="glquake.h" />
@@ -1718,6 +1717,7 @@ del $(OutDir)%(Filename).spp
     <ClInclude Include="progdefs.h" />
     <ClInclude Include="progs.h" />
     <ClInclude Include="protocol.h" />
+    <ClInclude Include="quakeasm.h" />
     <ClInclude Include="quakedef.h" />
     <ClInclude Include="r_local.h" />
     <ClInclude Include="r_shared.h" />
@@ -1725,10 +1725,12 @@ del $(OutDir)%(Filename).spp
     <ClInclude Include="sbar.h" />
     <ClInclude Include="screen.h" />
     <ClInclude Include="server.h" />
+    <ClInclude Include="shader_gl.h" />
     <ClInclude Include="sound.h" />
     <ClInclude Include="spritegn.h" />
     <ClInclude Include="sys.h" />
     <ClInclude Include="transforms.h" />
+    <ClInclude Include="vector.h" />
     <ClInclude Include="vid.h" />
     <ClInclude Include="view.h" />
     <ClInclude Include="wad.h" />

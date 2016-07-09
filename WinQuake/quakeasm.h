@@ -26,13 +26,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #if defined(_WIN32) && !defined(WINDED)
 
 #if defined(_M_IX86)
-#define __i386__	1
+#define __i386__	0
 #endif
 
 #endif
 
 #ifdef __i386__
-#define id386	1
+#define id386	0
 #else
 #define id386	0
 #endif

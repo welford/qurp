@@ -2141,7 +2141,7 @@ void	VID_Init (unsigned char *palette)
 			*ptmp = bestmatch;
 	}
 
-	if (COM_CheckParm("-startwindowed")) //JAMES
+	if (COM_CheckParm("-startwindowed") || COM_CheckParm("-window")) //JAMES
 	{
 		startwindowed = 1;
 		vid_default = windowed_default;

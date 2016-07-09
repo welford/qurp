@@ -317,7 +317,7 @@ void GL_DrawAliasFrame (aliashdr_t *paliashdr, int posenum)
 	int		n_tris = 0;
 
 #if ALIAS_VBO  
-	RenderAlias(paliashdr->vao, paliashdr->vbo, posenum, paliashdr->numtris, shadedotsIndex, shadelight);
+	RenderAlias(paliashdr->vbo_offset, posenum, paliashdr->numtris, shadedotsIndex, shadelight);
 #else
 
 	//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 

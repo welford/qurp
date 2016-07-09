@@ -5,6 +5,7 @@
  extern "C" {
  #endif
 
+#ifdef GLQUAKE
 /*
 Shader
 */
@@ -161,6 +162,8 @@ void SetVec3ByLocation(int loc, const float* const);
 void SetVec4ByLocation(int loc, const float* const);
 void SetMtx33ByLocation(int loc, const float* const);
 void SetMtx44ByLocation(int loc, const float* const);
+
+#endif //GLQUAKE
 
 #ifdef __cplusplus
 }

@@ -147,9 +147,9 @@ extern void FlushDraw(void);
 
 extern void BlitFBO(const int windowWidth, const int windowHeight);
 
-extern void CreatAliasBuffers(int* pVao, int* pVbo, int numVerts, void * pData);
+extern void CreatAliasBuffers(int* pVboOffset, int numVerts, void * pData);
 extern void StartAliasBatch();
-extern void RenderAlias(const int vao, const int vbo, const int posenum, const int numTris, int shadeDotIndex, float shadeLight);
+extern void RenderAlias(const int vbo_offset, const int posenum, const int numTris, int shadeDotIndex, float shadeLight);
 extern void EndAliasBatch();
 
 extern void ShutdownModernGLPatch();

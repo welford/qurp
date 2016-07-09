@@ -690,13 +690,7 @@ void IN_MouseMove (usercmd_t *cmd)
 		mouse_x = mx;
 		mouse_y = my;
 	}
-#ifdef SUPERMOD
-	extern int player_moved;
-	if(mx != 0 || 	my != 0)
-	{
-		player_moved = 1;
-	}
-#endif
+
 	old_mouse_x = mx;
 	old_mouse_y = my;
 

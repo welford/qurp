@@ -1,6 +1,6 @@
 #ifndef _TRANSFORMS_H_
 #define _TRANSFORMS_H_
-
+#include "quakedef.h"
 #include "vector.h"
 #include <stdlib.h>
 //#include <string.h>
@@ -57,7 +57,9 @@ void InitialiseStack(const unsigned int depth){
 	stack.idx = 0;
 	stack.size = depth;
 	stack.pStack = (Matrix44*) malloc(sizeof(Matrix44) * depth);
+#if GLQUAKE
 	Identity();
+#endif
 }
 
 extern void DestroyStack(){

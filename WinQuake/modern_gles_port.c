@@ -1264,7 +1264,7 @@ void BlitFBO(const int w, const inth )
 	//does nothing RPI just renders fullscreen
 }
 
-void CreatAliasBuffers(int* pVao, int* pVbo, int numVerts, void * pData)
+void CreatAliasBuffers(int* pVboOffset, int numVerts, void * pData)
 {
 	if(sizeof(glAliasData)*alias_vert_offset + sizeof(glAliasData)*numVerts > ALIAS_BUFFER_SIZE)
 	{
@@ -1292,7 +1292,7 @@ void CreatAliasBuffers(int* pVao, int* pVbo, int numVerts, void * pData)
 	glBindBuffer(GL_ARRAY_BUFFER, alias_vbo);
 	glBufferSubData(GL_ARRAY_BUFFER, sizeof(glAliasData)*alias_vert_offset, sizeof(glAliasData)*numVerts, pData);
 
-	*pVao = alias_vert_offset;
+	*pVboOffset = alias_vert_offset;
 	//update offset
 	alias_vert_offset += numVerts;
 	//revert binding
@@ -1333,7 +1333,7 @@ void StartAliasBatch()
 	glVertexAttribPointer(SHADE_LOCATION, 1, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(glAliasData), (char *)(0 + sizeof(char) * 2 + sizeof(char) * 3));
 }
 
-void RenderAlias(const int vao, const int vbo,  const int posenum, const int numTris, int shadeDotIndex, float shadeLight)
+void RenderAlias(const int vbo_offset,  const int posenum, const int numTris, int shadeDotIndex, float shadeLight)
 {
 	transforms.shadeIndex = ((float)shadeDotIndex / 15.0f);
 	transforms.shadeLight = shadeLight;
@@ -1346,7 +1346,7 @@ void RenderAlias(const int vao, const int vbo,  const int posenum, const int num
 	if (transform_dirty)
 		UpdateTransformUBOs();
 	
-	glDrawArrays(GL_TRIANGLES, vao + ((numTris*3)*posenum), (numTris*3));
+	glDrawArrays(GL_TRIANGLES, vbo_offset + ((numTris*3)*posenum), (numTris*3));
 }
 
 void EndAliasBatch()

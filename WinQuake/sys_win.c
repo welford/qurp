@@ -475,7 +475,7 @@ double Sys_FloatTime (void)
 	unsigned int		temp, t2;
 	double				time;
 
-	Sys_PushFPCW_SetHigh ();
+	//Sys_PushFPCW_SetHigh ();
 
 	QueryPerformanceCounter (&PerformanceCount);
 
@@ -522,7 +522,7 @@ double Sys_FloatTime (void)
 		}
 	}
 
-	Sys_PopFPCW ();
+	//Sys_PopFPCW ();
 
     return curtime;
 }

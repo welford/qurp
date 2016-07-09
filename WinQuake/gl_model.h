@@ -305,7 +305,7 @@ typedef struct {
 	int			flags;
 	float		size;
 
-	int			vao,vbo;	//store all frames in one big VBO :)
+	int			vbo_offset;	//store all frames in one big VBO, this is our index into that
 
 	int					numposes;
 	int					poseverts;

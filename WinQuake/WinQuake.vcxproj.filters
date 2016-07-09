@@ -285,22 +285,25 @@
     <ClCompile Include="modern_gl_port_map.c">
       <Filter>port</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\pc\utils\vector++\vector\vector.c">
-      <Filter>port</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\pc\utils\shader_gl.c">
-      <Filter>port</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\pc\utils\vector++\vector\matrix.c">
-      <Filter>port</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\pc\utils\glsw.c">
-      <Filter>port</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\pc\utils\bstrlib.c">
-      <Filter>port</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\pc\utils\vector++\vector\quaterion.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bstrlib.c">
+      <Filter>port</Filter>
+    </ClCompile>
+    <ClCompile Include="glsw.c">
+      <Filter>port</Filter>
+    </ClCompile>
+    <ClCompile Include="matrix.c">
+      <Filter>port</Filter>
+    </ClCompile>
+    <ClCompile Include="shader_gl.c">
+      <Filter>port</Filter>
+    </ClCompile>
+    <ClCompile Include="vector.c">
+      <Filter>port</Filter>
+    </ClCompile>
+    <ClCompile Include="nonintel.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -482,20 +485,23 @@
     <ClInclude Include="transforms.h">
       <Filter>port</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\pc\utils\vector++\vector\vector.h">
+    <ClInclude Include="bstrlib.h">
       <Filter>port</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\pc\utils\shader_gl.h">
+    <ClInclude Include="debug_print.h">
       <Filter>port</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\pc\utils\glsw.h">
+    <ClInclude Include="glsw.h">
       <Filter>port</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\pc\utils\debug_print.h">
+    <ClInclude Include="shader_gl.h">
       <Filter>port</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\pc\utils\bstrlib.h">
+    <ClInclude Include="vector.h">
       <Filter>port</Filter>
+    </ClInclude>
+    <ClInclude Include="quakeasm.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

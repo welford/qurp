@@ -1,5 +1,7 @@
 #include "modern_gl_port.h"
 
+#ifdef GLQUAKE
+
 #include "transforms.h"
 #include <GL/glew.h>
 #include <GL/glew.h>
@@ -1283,7 +1285,7 @@ void BlitFBO(const int windowWidth, const int windowHeight)
 
 }
 
-void CreatAliasBuffers(int* pVao, int* pVbo, int numVerts, void * pData)
+void CreatAliasBuffers(int* pVboOffset, int numVerts, void * pData)
 {
 	unsigned int currentVBO = GetCurrentBuffer(GL_ARRAY_BUFFER_BINDING);
 	unsigned int currentVAO = GetCurrentBuffer(GL_VERTEX_ARRAY_BINDING);
@@ -1328,7 +1330,7 @@ void CreatAliasBuffers(int* pVao, int* pVbo, int numVerts, void * pData)
 	glBindBuffer(GL_ARRAY_BUFFER, alias_vbo);
 	glBufferSubData(GL_ARRAY_BUFFER, sizeof(glAliasData)*alias_vert_offset, sizeof(glAliasData)*numVerts, pData);
 
-	*pVao = alias_vert_offset;
+	*pVboOffset = alias_vert_offset;
 	//update offset
 	alias_vert_offset += numVerts;
 	//revert binding
@@ -1351,7 +1353,7 @@ void StartAliasBatch()
 	glBindVertexArray(alias_vao);
 }
 
-void RenderAlias(const int vao, const int vbo,  const int posenum, const int numTris, int shadeDotIndex, float shadeLight)
+void RenderAlias(const int vbo_offset,  const int posenum, const int numTris, int shadeDotIndex, float shadeLight)
 {
 	//highjack the normal matrix for now...
 	transforms.shadeIndex = ((float)shadeDotIndex / 15.0f);
@@ -1359,7 +1361,7 @@ void RenderAlias(const int vao, const int vbo,  const int posenum, const int num
 
 	UpdateTransformUBOs();
 
-	glDrawArrays(GL_TRIANGLES, vao + ((numTris*3)*posenum), (numTris*3));
+	glDrawArrays(GL_TRIANGLES, vbo_offset + ((numTris*3)*posenum), (numTris*3));
 }
 
 void EndAliasBatch()
@@ -1386,3 +1388,5 @@ void ShutdownModernGLPatch(){
 	glswShutdown();
 	DestroyStack();
 }
+
+#endif // GLQUAKE

@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "r_shared.h"
 
+#ifndef GLQUAKE
 //
 // TODO: fine-tune this; it's based on providing some overage even if there
 // is a 2k-wide scan, with subdivision every 8, for 256 spans of 12 bytes each
@@ -109,3 +110,4 @@ extern float	d_scalemip[3];
 
 extern void (*d_drawspans) (espan_t *pspan);
 
+#endif

@@ -508,21 +508,6 @@ qboolean Host_FilterTime (float time)
 	host_frametime = realtime - oldrealtime;
 	oldrealtime = realtime;
 
-#ifdef SUPERMOD
-	extern int player_moved;
-	if(!player_moved)
-	{
-		host_frametime = 0.001;
-	}
-	else
-	{	// don't allow really long or short frames
-		if (host_frametime > 0.1)
-			host_frametime = 0.1;
-		if (host_frametime < 0.001)
-			host_frametime = 0.001;
-	}
-	player_moved = 0;
-#else
 	if (host_framerate.value > 0)
 		host_frametime = host_framerate.value;
 	else
@@ -532,7 +517,7 @@ qboolean Host_FilterTime (float time)
 		if (host_frametime < 0.001)
 			host_frametime = 0.001;
 	}
-#endif
+
 	return true;
 }
 
