@@ -90,6 +90,14 @@ void GL_Bind (int texnum)
 
 	//if we are changing textures we need to do a little drawing
 	FlushDraw();
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texnum);
+}
+
+void GL_BindNoFlush (int texnum, int target)
+{
+	currenttexture = texnum;
+	glActiveTexture(GL_TEXTURE0 + target);
 	glBindTexture(GL_TEXTURE_2D, texnum);
 }
 

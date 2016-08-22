@@ -671,7 +671,7 @@ void R_DrawParticles (void)
 			scale = 1;
 		else
 			scale = 1 + scale * 0.004;
-		
+		scale *= 3;
 		//glColor3ubv ((byte *)&d_8to24table[(int)p->color]);
 		p_clr = (byte *)&d_8to24table[(int)p->color];		
 

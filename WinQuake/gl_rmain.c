@@ -87,7 +87,7 @@ cvar_t	r_dynamic = {"r_dynamic","1"};
 cvar_t	r_novis = {"r_novis","0"};
 
 cvar_t	gl_finish = {"gl_finish","0"};
-cvar_t	gl_clear = {"gl_clear","0"};
+cvar_t	gl_clear = {"gl_clear","1"};
 cvar_t	gl_cull = {"gl_cull","1"};
 cvar_t	gl_texsort = {"gl_texsort","1"};
 cvar_t	gl_smoothmodels = {"gl_smoothmodels","1"};
@@ -751,7 +751,7 @@ void R_DrawEntitiesOnList (void)
 #
 	//alias first as they will eventuall all be in the 
 	//same VBO
-	StartAliasBatch();
+	StartAliasBatch(gldepthmin, gldepthmax);
 	for (i=0 ; i<cl_numvisedicts ; i++)
 	{
 		currententity = cl_visedicts[i];
@@ -766,6 +766,7 @@ void R_DrawEntitiesOnList (void)
 	}
 	EndAliasBatch();
 
+	StartBrushBatch(gldepthmin, gldepthmax);
 	for (i = 0; i<cl_numvisedicts; i++)
 	{
 		currententity = cl_visedicts[i];
@@ -778,6 +779,7 @@ void R_DrawEntitiesOnList (void)
 			break;
 		}
 	}
+	EndBrushBatch();
 
 	for (i=0 ; i<cl_numvisedicts ; i++)
 	{
@@ -859,8 +861,8 @@ void R_DrawViewModel (void)
 	diffuse[0] = diffuse[1] = diffuse[2] = diffuse[3] = (float)shadelight / 128;
 
 	// hack the depth range to prevent view model from poking into walls	
-	SetDepthRange (gldepthmin, gldepthmin + 0.3*( gldepthmax - gldepthmin ));
-	StartAliasBatch();
+	//SetDepthRange (gldepthmin, gldepthmin + 0.3*( gldepthmax - gldepthmin ));
+	StartAliasBatch(gldepthmin, gldepthmin + 0.3*( gldepthmax - gldepthmin ));
 	R_DrawAliasModel (currententity);	
 	EndAliasBatch();
 	SetDepthRange (gldepthmin, gldepthmax);
@@ -872,21 +874,21 @@ void R_DrawViewModel (void)
 R_PolyBlend
 ============
 */
-void R_PolyBlend (void)
+int R_PolyBlend (void)
 {
 	Matrix44 mtxX,mtxZ;
 
 	if (!gl_polyblend.value)
-		return;
+		return 0;
 	if (!v_blend[3])
-		return;
+		return 0;
 
 	FlushDraw();
 	GL_DisableMultitexture();
 
 	DisableAlphaTest();
 	EnableBlending();
-	//DisableDepth();
+	DisableDepth();
 	DisableTexture();
 
 	Identity();
@@ -899,17 +901,22 @@ void R_PolyBlend (void)
 
 	BeginDrawing(RNDR_TRIANGLE_STRIP);
 	AddVertex4D (VTX_COLOUR, v_blend[0], v_blend[1], v_blend[2], v_blend[3]);	 
-	AddVertex3D (VTX_POSITION, 10, 100, 100);
-	AddVertex3D (VTX_POSITION, 10, -100, 100);	
-	AddVertex3D (VTX_POSITION, 10, 100, -100);
-	AddVertex3D (VTX_POSITION, 10, -100, -100);
+	
+	int width = -(vid.width), height = vid.height;
+	
+	AddVertex3D (VTX_POSITION, 10, 0,		height);
+	AddVertex3D (VTX_POSITION, 10, width,	height);	
+	AddVertex3D (VTX_POSITION, 10, 0,		0);
+	AddVertex3D (VTX_POSITION, 10, width,	0);
+
 	EndDrawing();
 	FlushDraw();
 
 	EnableAlphaTest();
 	DisableBlending();
 	EnableTexture();
-	//EnableDepth();
+	EnableDepth();
+	return 1;
 }
 
 
@@ -1157,18 +1164,17 @@ void R_RenderScene (void)
 	//
 	R_DrawEntitiesOnList ();
 	//
-	////GL_DisableMultitexture();
 	//
 	R_RenderDlights ();
 	//
 	R_DrawParticles ();	
-	
+
+	R_UpdateLightmaps();
+
 #ifdef GLTEST
 	Test_Draw ();
 #endif
-
 }
-
 
 /*
 =============
@@ -1214,16 +1220,15 @@ void R_Clear (void)
 	else
 	{
 		glDepthMask(1); 
-		if (gl_clear.value)
-			glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		else
-			glClear (GL_DEPTH_BUFFER_BIT);
+		//if (gl_clear.value)
+		//	glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		//else
+		glClear (GL_DEPTH_BUFFER_BIT);
 		gldepthmin = 0;
 		gldepthmax = 1;
 		glDepthFunc (GL_LEQUAL);
 	}
 
-	//glDepthRange (gldepthmin, gldepthmax);
 	SetDepthRange (gldepthmin, gldepthmax);
 }
 
@@ -1344,7 +1349,8 @@ void R_RenderView (void)
 	// render mirror view
 	//R_Mirror ();
 
-	R_PolyBlend ();
+	//the flashes on top of the screen
+	//R_PolyBlend ();
 
 	if (r_speeds.value)
 	{

@@ -909,7 +909,7 @@ void SCR_UpdateScreen (void)
 	// draw any areas not covered by the refresh
 	//
 
-	SCR_TileClear ();			
+	SCR_TileClear ();
 	
 	if (scr_drawdialog)
 	{
@@ -943,8 +943,13 @@ void SCR_UpdateScreen (void)
 		SCR_DrawPause ();
 		SCR_CheckDrawCenterString ();
 		Sbar_Draw ();		
-		SCR_DrawConsole ();				
+		SCR_DrawConsole ();
 		M_Draw ();
+	}
+
+	//the flashes on top of the screen
+	if(R_PolyBlend ()){
+		Sbar_Changed();
 	}
 
 	V_UpdatePalette ();

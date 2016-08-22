@@ -132,7 +132,7 @@ typedef struct {
 	SpotLight		spot_light[MAX_SPOT_LIGHTS];
 }UBOLights;
 
-static const GLenum enumToGLAttribType[] = {GL_BYTE, GL_UNSIGNED_BYTE, GL_SHORT,GL_INT,GL_FLOAT};
+static const GLenum enumToGLAttribType[] = {GL_BYTE, GL_UNSIGNED_BYTE, GL_SHORT,GL_INT,QURP_FLOAT};
 
 typedef enum{
 	FRONT=0,
@@ -214,7 +214,7 @@ RenderState next_render_state = {
 	0,0,0,0, 
 	0,
 	1};
-
+static int force_render_state_change = 0;
 static UBOTransforms transforms;
 static UBOLights lights;
 static const int GRANULARITY	 = 16384*4*4; //probably too smalll
@@ -223,13 +223,17 @@ static const int transform_stack_size = 10;
 static int alias_vbo = -1;				//
 static int alias_vao = -1;				//
 static int alias_vert_offset = 0;			//
-static const int ALIAS_BUFFER_SIZE  = (1024 * 1024 * 10);
+static const int ALIAS_BUFFER_SIZE  = (1024 * 1024 * 12);
 
+static int brush_vbo = -1;				//
+static int brush_vao = -1;				//
+static int brush_vbo_size = -1;			//
 
 static SShaderProgram texture_shader;
 static SShaderProgram colour_shader;
 static SShaderProgram light_map_shader;
 static SShaderProgram alias_shader;
+static SShaderProgram brush_shader;
 
 //we render to an internal buffer, then blit it to screen
 #define USE_FBO 1
@@ -243,6 +247,11 @@ void TransferAndDraw(void);
 
 #define EPSILON 0.0001f//complete hack
 static int HasRenderStateChanged(){
+	if(force_render_state_change)
+	{
+		force_render_state_change = 0;
+		return 1;
+	}
 	if(current_render_state.render_mode != next_render_state.render_mode)
 		return 1;
 	if(current_render_state.enable_blend != next_render_state.enable_blend)
@@ -324,7 +333,7 @@ void UnbindVAO(void){	glBindVertexArray( 0 ); }
 #define BUFFER_OFFSET(i) ((char *)0 + (i))
 static void SetAttributeFormat( const VertexAttribute* pAttr, unsigned int numAttr, unsigned int v_offset)
 {
-	GLenum type = GL_FLOAT;		
+	GLenum type = QURP_FLOAT;		
 	unsigned int currentVBO = GetCurrentBuffer(GL_ARRAY_BUFFER_BINDING);
 	unsigned int i;
 
@@ -399,8 +408,7 @@ void SetVertexMode(const VertexAttributeState state){
 #define WIDTH DIM
 #define HEIGHT DIM
 
-unsigned int debug_texture = 0;
-unsigned int normal_texture = 0;
+unsigned int debug_texture = 0, normal_texture = 0, light_texture;
 
 static void CreateDebugTextures(){
 	int black=0;
@@ -477,7 +485,7 @@ static void CreateANormTextures(){
 
 	glGenTextures(1, &normal_texture);	
 	//debug_texture = 13;
-	glActiveTexture(GL_TEXTURE2);
+	glActiveTexture(GL_TEXTURE0 + TEX_SLOT_ANORM);
 	glBindTexture(GL_TEXTURE_2D, normal_texture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 256, 16, 0, GL_RED, GL_UNSIGNED_BYTE, pTexture);
 
@@ -485,8 +493,42 @@ static void CreateANormTextures(){
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-	glActiveTexture(GL_TEXTURE0);
-	//glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(GL_TEXTURE0 + TEX_SLOT_CLR);
+	free(pTexture);
+}
+
+static void CreateLightTextures(){
+	int black=0;
+	unsigned char * pTexture = 0;
+	unsigned int h, w;
+	pTexture = (unsigned char*)malloc(WIDTH * HEIGHT * 3);
+	for(h=0;h<HEIGHT;h++)
+	{
+		for(w=0;w<WIDTH;w++)
+		{
+			if((w > WIDTH/2 && h< HEIGHT/2) || (w < WIDTH/2 && h> HEIGHT/2))
+				black = 0;
+			else
+				black = 1;
+
+			pTexture[(h*WIDTH*3)+(w*3)+0] = (black)?0:255;	//R
+			pTexture[(h*WIDTH*3)+(w*3)+1] = (black)?0:255;	//G
+			pTexture[(h*WIDTH*3)+(w*3)+2] = (black)?0:255;	//B
+		}	
+	}
+	
+	glGenTextures(1, &light_texture);	
+	//debug_texture = 13;
+	glActiveTexture(GL_TEXTURE0 + TEX_SLOT_LIGHT);
+	glBindTexture(GL_TEXTURE_2D, light_texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WIDTH, HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, pTexture);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	glActiveTexture(GL_TEXTURE0 + TEX_SLOT_CLR);
 	free(pTexture);
 }
 
@@ -577,7 +619,7 @@ static void SetupShaders(void){
 	glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(MAX_DIRECTION_LIGHTS));
 	glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(MAX_POINT_LIGHTS));
 	glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(MAX_SPOT_LIGHTS));
-	glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(TEXT_TEX_UNIT));
+	glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(TEXT_TEX_UNIT));	
 
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(POSITION_LOCATION));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(COLOUR_LOCATION));
@@ -588,6 +630,11 @@ static void SetupShaders(void){
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(UV_LOCATION0));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(UV_LOCATION1));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(TEXT_LOCATION));
+	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(TEX_SLOT_ANORM));
+
+	glswAddDirectiveToken("Fragment", HASH_DEFINE_VALUE(TEX_SLOT_CLR));	
+	glswAddDirectiveToken("Fragment", HASH_DEFINE_VALUE(TEX_SLOT_LIGHT));
+
 
 	//glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(SKINNING_TEXTURE_BINDING));
 	//glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(WEIGHTS_PER_VERTEX));	
@@ -603,6 +650,16 @@ static void SetupShaders(void){
 	AddShaderToProgram(&texture_shader,&vtxTxShdr);
 	AddShaderToProgram(&texture_shader,&frgTxShdr);
 	LinkShaderProgram(&texture_shader);	
+
+	//shader (BRUSH)
+	got = glswGetShadersAlt("shaders.Version+shaders.Header.Vertex+shaders.Shared+shaders.BrushVertex", pDVertStr, sizeof(pDVertStr)/sizeof(pDVertStr[0]));	
+	CreateShader(&vtxTxShdr, VERT, pDVertStr, got);
+	got = glswGetShadersAlt("shaders.Version+shaders.Header.Fragment+shaders.Shared+shaders.BrushFragment", pDFragStr, sizeof(pDFragStr)/sizeof(pDFragStr[0]));
+	CreateShader(&frgTxShdr, FRAG, pDFragStr, got);
+	CreateShaderProgram(&brush_shader);
+	AddShaderToProgram(&brush_shader,&vtxTxShdr);
+	AddShaderToProgram(&brush_shader,&frgTxShdr);
+	LinkShaderProgram(&brush_shader);	
 
 	//shader (ALIAS)
 	got = glswGetShadersAlt("shaders.Version+shaders.Header.Vertex+shaders.Shared+shaders.SimpleVertexAlias", pDVertStr, sizeof(pDVertStr)/sizeof(pDVertStr[0]));	
@@ -717,6 +774,7 @@ void StartupModernGLPatch(const int width, const int height){
 
 	//CreateDebugTextures();
 	CreateANormTextures();
+	CreateLightTextures();
 }
 
 static unsigned int num_draw_calls = 0;
@@ -1337,7 +1395,7 @@ void CreatAliasBuffers(int* pVboOffset, int numVerts, void * pData)
 	glBindBuffer(GL_ARRAY_BUFFER, currentVBO);
 }
 
-void StartAliasBatch()
+void StartAliasBatch(float depthmin, float depthmax)
 {
 	FlushDraw();
 	
@@ -1348,7 +1406,7 @@ void StartAliasBatch()
 	glCullFace(GL_FRONT);
 	glEnable(GL_TEXTURE_2D);
 	Start(&alias_shader);
-	glDepthRange(next_render_state.depth_min, next_render_state.depth_max);
+	glDepthRange(depthmin, depthmax);
 
 	glBindVertexArray(alias_vao);
 }
@@ -1369,8 +1427,133 @@ void EndAliasBatch()
 	glBindVertexArray( vtx.vao_handle );
 }
 
+void CreateBrushBuffers(int numVerts)
+{
+#if BATCH_BRUSH
+	unsigned int currentVBO = GetCurrentBuffer(GL_ARRAY_BUFFER_BINDING);
+	unsigned int currentVAO = GetCurrentBuffer(GL_VERTEX_ARRAY_BINDING);
+
+	if(brush_vbo >= 0)
+	{
+		glDeleteBuffers(1, &brush_vbo);
+		glDeleteVertexArrays(1, &brush_vao);
+	}
+
+	glGenVertexArrays(1, &brush_vao);
+	glGenBuffers(1, &brush_vbo);
+
+	//send data to GPU
+	glBindBuffer(GL_ARRAY_BUFFER, brush_vbo);
+	glBufferData(GL_ARRAY_BUFFER, numVerts * sizeof(glBrushData), 0, GL_STATIC_DRAW);
+
+	//describe data for when we draw
+	glBindVertexArray( brush_vao );
+
+	glEnableVertexAttribArray(POSITION_LOCATION);
+	glBindBuffer(GL_ARRAY_BUFFER, brush_vbo);
+	glVertexAttribPointer(POSITION_LOCATION, 3, QURP_FLOAT, GL_FALSE, sizeof(glBrushData), (char *)(0));
+
+	glEnableVertexAttribArray(UV_LOCATION0);
+	glBindBuffer(GL_ARRAY_BUFFER, brush_vbo);
+	glVertexAttribPointer(UV_LOCATION0, 2, QURP_FLOAT, GL_FALSE, sizeof(glBrushData), (char *)(0 + sizeof(float)*3));
+
+
+	glEnableVertexAttribArray(UV_LOCATION1);
+	glBindBuffer(GL_ARRAY_BUFFER, brush_vbo);
+	glVertexAttribPointer(UV_LOCATION1, 2, QURP_FLOAT, GL_FALSE, sizeof(glBrushData), (char *)(0 + sizeof(float)*5));
+
+	glBindVertexArray( currentVAO );
+	glBindBuffer(GL_ARRAY_BUFFER, currentVBO);
+#endif
+}
+
+void AddBrushData(int vertexOffset, int numVerts, void * pData)
+{
+#if BATCH_BRUSH
+	unsigned int currentVBO = GetCurrentBuffer(GL_ARRAY_BUFFER_BINDING);
+	glBindBuffer(GL_ARRAY_BUFFER, brush_vbo);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(glBrushData)*vertexOffset, sizeof(glBrushData)*numVerts, pData);
+	glBindBuffer(GL_ARRAY_BUFFER, currentVBO);
+#endif
+}
+
+void StartBrushBatch(float depthmin, float depthmax)
+{
+#if BATCH_BRUSH
+	force_render_state_change = 1;
+	FlushDraw();
+
+	glDepthMask(1);
+	glDisable(GL_BLEND);
+	glEnable (GL_DEPTH_TEST);
+	glEnable (GL_CULL_FACE);
+	glCullFace(GL_FRONT);
+	glEnable(GL_TEXTURE_2D);
+	glDepthRange(depthmin, depthmax);
+
+	Start(&brush_shader);
+	UpdateTransformUBOs();
+	glBindVertexArray(brush_vao);
+#endif
+}
+
+void SetupColourPass()
+{
+#if BATCH_BRUSH
+	glDisable(GL_BLEND);
+	glDepthMask(1);
+	Start(&brush_shader);
+#endif
+}
+
+void SetupLightMapPass()
+{
+#if BATCH_BRUSH
+	force_render_state_change = 1;
+	glEnable(GL_BLEND);
+	glBlendFunc( GL_ZERO, GL_ONE_MINUS_SRC_COLOR );
+	glDepthMask(0);
+	Start(&light_map_shader);
+#endif
+}
+
+void RenderBrushData(int vertexOffset, int numTris)
+{
+#if BATCH_BRUSH
+	unsigned int currentVBO = GetCurrentBuffer(GL_ARRAY_BUFFER_BINDING);
+	unsigned int currentVAO = GetCurrentBuffer(GL_VERTEX_ARRAY_BINDING);
+
+	glDrawArrays(GL_TRIANGLES, vertexOffset, (numTris*3));
+#endif
+}
+
+void RenderBrushDataElements(unsigned short *pIndices, int numElements)
+{
+#if BATCH_BRUSH
+	unsigned int currentVBO = GetCurrentBuffer(GL_ARRAY_BUFFER_BINDING);
+	unsigned int currentVAO = GetCurrentBuffer(GL_VERTEX_ARRAY_BINDING);
+
+	glDrawElements(GL_TRIANGLES, numElements, GL_UNSIGNED_SHORT, pIndices);
+#endif
+}
+
+void EndBrushBatch()
+{
+	force_render_state_change = 1;
+	glDisable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glDepthMask(1);
+	SetLightmapMode(0);
+	SetDepthMask(1);
+
+#if BATCH_BRUSH
+	glBindVertexArray( vtx.vao_handle );
+#endif
+}
+
 void ShutdownModernGLPatch(){
 	if(vtx.vao_handle){
+
 		glDeleteVertexArrays(1, &vtx.vao_handle);		
 		glDeleteBuffers(1,&vtx.vbo_handle);
 		glDeleteBuffers(1,&vtx.transform_ubo_handle);
@@ -1385,6 +1568,8 @@ void ShutdownModernGLPatch(){
 	DeleteShaderProgram(&texture_shader);
 	DeleteShaderProgram(&colour_shader);
 	DeleteShaderProgram(&light_map_shader);
+	DeleteShaderProgram(&brush_shader);
+	DeleteShaderProgram(&alias_shader);	
 	glswShutdown();
 	DestroyStack();
 }

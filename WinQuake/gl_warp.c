@@ -25,8 +25,8 @@ extern	model_t	*loadmodel;
 
 int		skytexturenum;
 
-int		solidskytexture;
-int		alphaskytexture;
+int		solidskytexture = 0;
+int		alphaskytexture = 0;
 float	speedscale;		// for top sky and bottom sky
 
 msurface_t	*warpface;
@@ -191,6 +191,7 @@ EmitWaterPolys
 Does a water warp on the pre-fragmented glpoly_t chain
 =============
 */
+extern void AppendGLPoly (glpoly_t *p);
 void EmitWaterPolys (msurface_t *fa)
 {
 	glpoly_t	*p;
@@ -200,6 +201,15 @@ void EmitWaterPolys (msurface_t *fa)
 	float		first_s, first_t;
 	int ntriangles;
 
+#if BATCH_BRUSH
+#if SUBDIVIDE_WARP_POLYS
+	for (p=fa->polys ; p ; p=p->next){
+		AppendGLPoly(p);
+	}
+#else
+	AppendGLPoly(fa->polys);
+#endif
+#else
 	SetVertexMode(VAS_CLR_TEX);
 	EnableTexture();
 	BeginDrawing(RNDR_TRIANGLES);
@@ -220,7 +230,6 @@ void EmitWaterPolys (msurface_t *fa)
 			t = ot + turbsin[(int)((os*0.125+realtime) * TURBSCALE) & 255];
 			t *= (1.0/64);
 			AddVertex2D (VTX_TEXTURE, s, t);
-			//AddVertex2D (VTX_TEXTURE, 0, 0);
 			AddVertex3D (VTX_POSITION, first_vtx[0], first_vtx[1], first_vtx[2]);
 
 			os = v[3];	
@@ -230,7 +239,6 @@ void EmitWaterPolys (msurface_t *fa)
 			t = ot + turbsin[(int)((os*0.125+realtime) * TURBSCALE) & 255];
 			t *= (1.0/64);
 			AddVertex2D (VTX_TEXTURE, s, t);
-			//AddVertex2D (VTX_TEXTURE, 1, 0);
 			AddVertex3D (VTX_POSITION, v[0], v[1], v[2]);
 
 			os = v[10];	
@@ -240,11 +248,11 @@ void EmitWaterPolys (msurface_t *fa)
 			t = ot + turbsin[(int)((os*0.125+realtime) * TURBSCALE) & 255];
 			t *= (1.0/64);
 			AddVertex2D (VTX_TEXTURE, s, t);
-			//AddVertex2D (VTX_TEXTURE, 1, 1);
 			AddVertex3D (VTX_POSITION, v[7], v[8], v[9]);
 		}
 	}
 	EndDrawing();
+#endif
 }
 
 
@@ -263,7 +271,15 @@ void EmitSkyPolys (msurface_t *fa)
 	float	s, t;
 	vec3_t	dir;
 	float	length;
-
+#if BATCH_BRUSH
+	#if SUBDIVIDE_WARP_POLYS
+	for (p=fa->polys ; p ; p=p->next){
+		AppendGLPoly(p);
+	}
+	#else
+	AppendGLPoly(fa->polys);
+	#endif
+#else
 	for (p=fa->polys ; p ; p=p->next)
 	{
 		int ntriangles = (p->numverts-2);
@@ -318,9 +334,6 @@ void EmitSkyPolys (msurface_t *fa)
 
 			AddVertex2D (VTX_TEXTURE, s, t);
 			AddVertex3D (VTX_POSITION, (v+VERTEXSIZE)[0], (v+VERTEXSIZE)[1], (v+VERTEXSIZE)[2]);
-			
-			//glTexCoord2f (s, t);
-			//glVertex3fv (v);
 		}
 		EndDrawing();
 		
@@ -348,6 +361,7 @@ void EmitSkyPolys (msurface_t *fa)
 		glEnd ();
 		*/
 	}
+#endif
 }
 
 /*
@@ -374,7 +388,7 @@ void EmitBothSkyLayers (msurface_t *fa)
 	EmitSkyPolys (fa);
 
 	glEnable (GL_BLEND);
-	GL_Bind (alphaskytexture);
+	GL_BindNoFlush (alphaskytexture);
 	speedscale = realtime*16;
 	speedscale -= (int)speedscale & ~127 ;
 
@@ -396,7 +410,7 @@ void R_DrawSkyChain (msurface_t *s)
 	GL_DisableMultitexture();
 
 	// used when gl_texsort is on
-	GL_Bind(solidskytexture);
+	GL_BindNoFlush(solidskytexture);
 	speedscale = realtime*8;
 	speedscale -= (int)speedscale & ~127 ;
 
@@ -404,7 +418,7 @@ void R_DrawSkyChain (msurface_t *s)
 		EmitSkyPolys (fa);
 
 	glEnable (GL_BLEND);
-	GL_Bind (alphaskytexture);
+	GL_BindNoFlush(alphaskytexture);
 	speedscale = realtime*16;
 	speedscale -= (int)speedscale & ~127 ;
 

@@ -25,11 +25,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdio.h>
 #include <signal.h>
 
-#include <asm/io.h>
+#include <sys/io.h>
 
-#include "vga.h"
-#include "vgakeyboard.h"
-#include "vgamouse.h"
+#include "video/vga.h"
+#include "video/vgakeyboard.h"
+#include "video/vgamouse.h"
 
 #include "quakedef.h"
 #include "d_local.h"

@@ -283,7 +283,7 @@ int GetUniformBlockInfo(const SShaderProgram* const pProgram, const int loc, con
 
 	if(pData == NULL)
 	{
-		int size = 0;		
+		int size = 0;
 		glGetActiveUniformBlockiv(pProgram->handle,loc,enumToGLBlockParams[param],&size);
 		return size;
 	}

@@ -9,7 +9,7 @@ ARM_LIBS=/opt/vc/lib
 
 # directory to find khronos linux make files (with include/ containing
 # headers! Make needs them.)
-INCLUDES="-I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads -I/opt/vc/include/interface/vmcs_host/linux"
+INCLUDES="-I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads -I/opt/vc/include/interface/vmcs_host/linux "
 
 # prefix of arm cross compiler installed
 #CROSS_COMPILE=bcm2708-
@@ -26,11 +26,8 @@ echo "- - - - - - - - - - - - - - - "
 
 make -j4 -f make.rpi $1 ARCH=arm \
 	CC=""$CROSS_COMPILE"gcc" USE_SVN=0 USE_CURL=0 USE_OPENAL=0 \
-	CFLAGS="-DUSE_GLES -march=armv6 -mfpu=vfp -mfloat-abi=hard $INCLUDES" \
+	CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard $INCLUDES" \
 	LDFLAGS="-pthread -lm -L"$ARM_LIBS" -lvchostif -lvmcs_rpc_client -lvcfiled_check -lbcm_host -lkhrn_static -lvchiq_arm -lopenmaxil -L/opt/vc/lib/ -lEGL -lGLESv2 -lvcos -lrt -lSDL -ludev"
 	
-# copy the required pak3 files over
-# cp "$BASEQ3_DIR"/baseq3/*.pk3 "build/release-linux-arm/baseq3/"
-# cp -a lib build/release-linux-arm/baseq3/
 exit 0
 

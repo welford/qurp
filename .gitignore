@@ -237,3 +237,5 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+*.ms2
+*.pal

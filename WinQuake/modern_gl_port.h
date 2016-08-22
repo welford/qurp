@@ -5,6 +5,12 @@
 static const int glMajor = 4, glMinor = 2;
 #include <GL/glew.h>
 #include <GL/glu.h>
+
+#define float_type float
+#define float_size sizeof(float)
+
+#define QURP_FLOAT GL_FLOAT
+
 #else
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
@@ -17,6 +23,16 @@ static const int glMajor = 4, glMinor = 2;
 #define GL_RG  GL_LUMINANCE_ALPHA
 #endif 
 
+#if USE_HALF_FLOATS
+#define float_type __fp16
+#define float_size 2
+#define QURP_FLOAT GL_HALF_FLOAT_OES
+#else
+#define float_type float
+#define float_size sizeof(float)
+#define QURP_FLOAT GL_FLOAT
+#endif
+
 #endif
 
 typedef struct 
@@ -25,6 +41,14 @@ typedef struct
 	unsigned char	pos[3];
 	unsigned char	lightNormalIndex;
 } glAliasData;
+
+
+typedef struct 
+{
+	float_type	pos[3];
+	float_type	st1[2];
+	float_type	st2[2];
+} glBrushData;
 
 
 #define POSITION_LOCATION		0
@@ -39,7 +63,41 @@ typedef struct
 //#define JOINT_INDEX_LOCATION	4
 
 #define LINEAR_TEXTURES 0
+#define BATCH_BRUSH 1
 
+#define TEX_SLOT_CLR		0
+#define TEX_SLOT_ANORM		1
+#define TEX_SLOT_LIGHT		2
+#define TEX_LIGHT_NUM		1
+#define TEX_SLOT_SKY		3
+#define TEX_SLOT_SKY_ALPHA	4
+
+
+#define SUBDIVIDE_WARP_POLYS 0
+
+#if BATCH_BRUSH
+#define TEMP_INDEX_BUFFER unsigned short buffer[3*19] = {\
+0, 1, 2,\
+0, 2, 3,\
+0, 3, 4,\
+0, 4, 5,\
+0, 5, 6,\
+0, 6, 7,\
+0, 7, 8,\
+0, 8, 9,\
+0, 9,10,\
+0,10,11,\
+0,11,12,\
+0,12,13\
+0,13,14,\
+0,14,15,\
+0,15,16,\
+0,16,17,\
+0,17,18,\
+0,18,19,\
+0,19,20,\
+}, i=0;
+#endif
 
 typedef enum {
 	VAS_CLR = 0,	//vtx + clr (single colour)
@@ -87,6 +145,16 @@ typedef struct _VertexAttribute
 	unsigned int	array_offset;
 	unsigned int	divisor; //for instancing	
 }VertexAttribute;
+
+
+#define MAX_ELEMENTS  4096
+#define MAX_ELEMENT_BUFFERS  3
+typedef struct _BatchElements
+{
+	unsigned short index;
+	unsigned short bufferIndex;
+	unsigned short element[MAX_ELEMENT_BUFFERS][MAX_ELEMENTS];
+}BatchElements;
 
 #ifdef _WIN32
 	static GLenum texDataType[5] = {GL_RED, GL_RED, GL_RG, GL_RGB, GL_RGBA};
@@ -148,9 +216,18 @@ extern void FlushDraw(void);
 extern void BlitFBO(const int windowWidth, const int windowHeight);
 
 extern void CreatAliasBuffers(int* pVboOffset, int numVerts, void * pData);
-extern void StartAliasBatch();
+extern void StartAliasBatch(float depthmin, float depthmax);
 extern void RenderAlias(const int vbo_offset, const int posenum, const int numTris, int shadeDotIndex, float shadeLight);
 extern void EndAliasBatch();
+
+extern void CreateBrushBuffers(int numVerts);
+extern void AddBrushData(int vertexOffset, int numVerts, void * pData);
+extern void StartBrushBatch(float depthmin, float depthmax);
+extern void SetupColourPass();
+extern void SetupLightMapPass();
+extern void RenderBrushData(int vertexOffset, int numVerts);
+extern void RenderBrushDataElements(unsigned short *pIndices, int numElements);
+extern void EndBrushBatch();
 
 extern void ShutdownModernGLPatch();
 

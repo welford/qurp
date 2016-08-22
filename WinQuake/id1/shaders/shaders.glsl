@@ -10,13 +10,15 @@ layout(location = POSITION_LOCATION)	in vec4 inVertex;
 layout(location = COLOUR_LOCATION)		in vec4 inColour;
 layout(location = NORMAL_LOCATION)		in vec3 inNormal;
 layout(location = UV_LOCATION0)			in vec2 inUV;
+layout(location = UV_LOCATION1)			in vec2 inUV1;
 layout(location = TEXT_LOCATION)		in int inCharacter;
 layout(location = SHADE_LOCATION)		in float inShadeIndex;
 
-layout(binding=2) uniform sampler2D anorm;
+layout(binding=TEX_SLOT_ANORM) uniform sampler2D anorm;
 
 -- Header.Fragment
-layout(binding=0) uniform sampler2D tex0;
+layout(binding=TEX_SLOT_CLR) uniform sampler2D tex0;
+layout(binding=TEX_SLOT_LIGHT) uniform sampler2D texLightmap;
 
 
 -- Header.Vertex.ES
@@ -202,6 +204,30 @@ void main()
 	fragColour = texture(tex0, uv) * colour;
 }
 
+-- BrushVertex
+
+out vec2 uv;
+out vec2 uvLightmap;
+void main()
+{
+	uv = inUV;
+	uvLightmap = inUV1;
+	gl_Position = trans.mvp * inVertex;
+}
+
+-- BrushFragment
+
+in vec2 uv;
+in vec2 uvLightmap;
+
+out vec4 fragColour;
+
+void main()
+{
+	//fragColour = texture(tex0, uv) * (1.0 - texture(texLightmap, uvLightmap).r);
+	fragColour = texture(tex0, uv);
+}
+
 -- SimpleVertexAlias
 out float shade;
 out vec2 uv;
@@ -253,7 +279,7 @@ void main()
 out vec2 uv;
 void main()
 {
-	uv = inUV;
+	uv = inUV1;
 	gl_Position = trans.mvp * inVertex;
 }
 
@@ -263,6 +289,6 @@ in vec2 uv;
 out vec4 fragColour;
 void main()
 {
-	fragColour = texture(tex0, uv).rrra;
+	fragColour = texture(texLightmap, uv).rrra;
 
 }
