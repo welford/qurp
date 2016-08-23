@@ -1,13 +1,12 @@
 =======================================
-QURP
+QURP : Quake Raspberry Pi Edition.
 =======================================
-###Quake Raspberry Pi Edition.
 
-A barebones port of Quake 1 from id Software for Raspberry Pi. Made with the intention of    
+A barebones port of Quake 1 from id Software for Raspberry Pi. Made with the intention of keeping the look and feel of Quake 1 but with better performance on Raspberry Pi.   
 
 This port is from the original source found here : https://github.com/id-Software/Quake All the original legal stuff can be found in the original readme files.
 
-##Raspberry Pi Edition
+#Raspberry Pi Edition
 
 Downloading & Prerequisites
 ------------------------
@@ -57,18 +56,19 @@ run the game with the commands:
 ./debugarm/bin/glquake
 ```
 
-##PC Edition
+#PC Edition
 
 This also compiles/builds/runs on a windows PC using VS2015. Windows support is mostly for ease of development purposes.   
 
-Contributors
-------------------------
+#Contributors
 
 https://github.com/welford/qurp/graphs/contributors
 
-Issues
-------------------------
+#Issues
 
 - Input Issues
 
 it seems as though input recognition can be tempermental at times (i've noticed this exclusively on my overclocked pi though)
+
+
+if you notice anything else please let me know via the issues tab above.
