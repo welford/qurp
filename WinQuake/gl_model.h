@@ -147,6 +147,10 @@ typedef struct msurface_s
 	int			dlightbits;
 
 	int			lightmaptexturenum;
+#if LIGHT_MAP_ATLAS || 1
+	byte		sOffset; //could easilybe an int
+	byte		tOffset;
+#endif
 	byte		styles[MAXLIGHTMAPS];
 	int			cached_light[MAXLIGHTMAPS];	// values currently used in lightmap
 	qboolean	cached_dlight;				// true if dynamic light in cache

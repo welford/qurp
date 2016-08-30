@@ -519,7 +519,7 @@ static void CreateLightTextures(){
 	
 	glGenTextures(1, &light_texture);	
 	//debug_texture = 13;
-	glActiveTexture(GL_TEXTURE0 + TEX_SLOT_LIGHT);
+	glActiveTexture(GL_TEXTURE0 + TEX_SLOT_LIGHT_RENDER);
 	glBindTexture(GL_TEXTURE_2D, light_texture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WIDTH, HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, pTexture);
 
@@ -633,7 +633,7 @@ static void SetupShaders(void){
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(TEX_SLOT_ANORM));
 
 	glswAddDirectiveToken("Fragment", HASH_DEFINE_VALUE(TEX_SLOT_CLR));	
-	glswAddDirectiveToken("Fragment", HASH_DEFINE_VALUE(TEX_SLOT_LIGHT));
+	glswAddDirectiveToken("Fragment", HASH_DEFINE_VALUE(TEX_SLOT_LIGHT_RENDER));
 
 
 	//glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(SKINNING_TEXTURE_BINDING));

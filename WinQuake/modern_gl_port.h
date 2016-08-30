@@ -65,12 +65,13 @@ typedef struct
 #define LINEAR_TEXTURES 0
 #define BATCH_BRUSH 1
 
-#define TEX_SLOT_CLR		0
-#define TEX_SLOT_ANORM		1
-#define TEX_SLOT_LIGHT		2
-#define TEX_LIGHT_NUM		1
-#define TEX_SLOT_SKY		3
-#define TEX_SLOT_SKY_ALPHA	4
+#define TEX_SLOT_CLR			0
+#define TEX_SLOT_ANORM			1
+#define TEX_SLOT_LIGHT			2 //temporary so that the gles version works until we get atlasing working on that too
+#define TEX_SLOT_LIGHT_RENDER	2
+#define TEX_SLOT_LIGHT_UPDATE	3
+#define TEX_SLOT_SKY			4
+#define TEX_SLOT_SKY_ALPHA		5
 
 
 #define SUBDIVIDE_WARP_POLYS 0

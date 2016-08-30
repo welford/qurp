@@ -18,7 +18,7 @@ layout(binding=TEX_SLOT_ANORM) uniform sampler2D anorm;
 
 -- Header.Fragment
 layout(binding=TEX_SLOT_CLR) uniform sampler2D tex0;
-layout(binding=TEX_SLOT_LIGHT) uniform sampler2D texLightmap;
+layout(binding=TEX_SLOT_LIGHT_RENDER) uniform sampler2D texLightmap;
 
 
 -- Header.Vertex.ES
@@ -224,7 +224,7 @@ out vec4 fragColour;
 
 void main()
 {
-	//fragColour = texture(tex0, uv) * (1.0 - texture(texLightmap, uvLightmap).r);
+	//fragColour = texture(tex0, uv) * texture(texLightmap, uvLightmap).r;
 	fragColour = texture(tex0, uv);
 }
 

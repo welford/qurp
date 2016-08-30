@@ -28,16 +28,30 @@ int			skytexturenum;
 #endif
 
 
-int		lightmap_bytes;		// 1, 2, or 4
+int			lightmap_bytes;		// 1, 2, or 4
 
-#define	MAX_LIGHTMAPS	64
+#if LIGHT_MAP_ATLAS
+#define		ATLAS_WIDTH		8 //in units of BLOCK_WIDTH
+#define		ATLAS_HEIGHT	8 //in units of BLOCK_HEIGHT
+#define		MAX_LIGHTMAPS	ATLAS_WIDTH * ATLAS_HEIGHT
+#define		BLOCK_WIDTH		128
+#define		BLOCK_HEIGHT	128
 
-int		lightmap_textures_gl[2][MAX_LIGHTMAPS] = {0};// double buffered
-int		lightmap_active_index[MAX_LIGHTMAPS] = {0};
-unsigned		blocklights[18*18];
+int			lightmap_textures_gl[2] = { 0 };// double buffered, one atlassed texture
+int			lightmap_active_index = {0};
+int			lightmapsDataOffets[MAX_LIGHTMAPS];
+int			lightmapsGLSOffets[MAX_LIGHTMAPS];
+int			lightmapsGLTOffets[MAX_LIGHTMAPS];
+#else
+#define		MAX_LIGHTMAPS	64
+#define		BLOCK_WIDTH		128
+#define		BLOCK_HEIGHT	128
 
-#define	BLOCK_WIDTH		128
-#define	BLOCK_HEIGHT	128
+int			lightmap_textures_gl[2][MAX_LIGHTMAPS] = { 0 };// double buffered
+int			lightmap_active_index[MAX_LIGHTMAPS] = {0};
+#endif
+
+unsigned	blocklights[18*18];
 
 int			active_lightmaps;
 
@@ -56,7 +70,6 @@ int			allocated[MAX_LIGHTMAPS][BLOCK_WIDTH];
 // the lightmap texture data needs to be kept in
 // main memory so texsubimage can update properly
 byte		lightmapsData[4*MAX_LIGHTMAPS*BLOCK_WIDTH*BLOCK_HEIGHT];
-
 // For gl_texsort 0
 msurface_t  *skychain = NULL;
 msurface_t  *waterchain = NULL;
@@ -201,7 +214,11 @@ store:
 				t >>= 7;
 				if (t > 255)
 					t = 255;
-				dest[3] = 255-t;
+#if LIGHT_MAP_ATLAS
+				dest[3] = t;
+#else
+				dest[3] = 255 - t;
+#endif
 				dest += 4;
 			}
 		}
@@ -216,7 +233,11 @@ store:
 				t >>= 7;
 				if (t > 255)
 					t = 255;
-				dest[j] = 255-t;
+#if LIGHT_MAP_ATLAS
+				dest[j] = t;
+#else
+				dest[j] = 255 - t;
+#endif
 			}
 		}
 		break;
@@ -461,17 +482,19 @@ void R_UpdateLightmaps (void)
 		return;
 	if (!gl_texsort.value)
 		return;
+
+#if LIGHT_MAP_ATLAS
+	GL_BindNoFlush(lightmap_textures_gl[lightmap_active_index], TEX_SLOT_LIGHT_UPDATE);	//UPDATE target
+	GL_BindNoFlush(lightmap_textures_gl[!lightmap_active_index], TEX_SLOT_LIGHT_RENDER);		//RENDER target
+#endif
 	for (i=0 ; i<MAX_LIGHTMAPS ; i++)
 	{
 		if (lightmap_modified[i])
 		{
+#if !LIGHT_MAP_ATLAS
 			lightmap_active_index[i] = !lightmap_active_index[i];
-
-			#if BATCH_BRUSH
-			GL_BindNoFlush( lightmap_textures_gl[lightmap_active_index[i]][i], TEX_SLOT_LIGHT);
-			#else
-			GL_Bind( lightmap_textures_gl[lightmap_active_index[i]][i] );
-			#endif
+			GL_BindNoFlush(lightmap_textures_gl[lightmap_active_index[i]][i], TEX_SLOT_LIGHT_UPDATE);
+#endif
 			lightmap_modified[i] = false;
 
 			if(lightmap_rectchange_cache[i].h == 0){
@@ -487,15 +510,15 @@ void R_UpdateLightmaps (void)
 
 			theRect = &lightmap_rectchange_cache[i];
 
-			//if(lightmap_active_index[i] == 1 && lightmap_was_modified[i] == 0){
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, theRect->t, 
-				BLOCK_WIDTH, theRect->h, gl_lightmap_format, GL_UNSIGNED_BYTE,
-				lightmapsData+(i* BLOCK_HEIGHT + theRect->t) *BLOCK_WIDTH*lightmap_bytes);
-			//}
-			//else{
-			//	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, BLOCK_WIDTH, BLOCK_HEIGHT, gl_lightmap_format, GL_UNSIGNED_BYTE,
-			//		lightmapsData + i*lightmap_bytes*BLOCK_WIDTH*BLOCK_HEIGHT);
-			//}
+#if LIGHT_MAP_ATLAS
+			glTexSubImage2D(GL_TEXTURE_2D, 0, lightmapsGLSOffets[i], lightmapsGLTOffets[i] + theRect->t,
+							BLOCK_WIDTH, theRect->h, gl_lightmap_format, GL_UNSIGNED_BYTE,
+							lightmapsData + (i* BLOCK_HEIGHT + theRect->t) *BLOCK_WIDTH*lightmap_bytes);
+#else
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, theRect->t,
+							BLOCK_WIDTH, theRect->h, gl_lightmap_format, GL_UNSIGNED_BYTE,
+							lightmapsData + (i* BLOCK_HEIGHT + theRect->t) *BLOCK_WIDTH*lightmap_bytes);
+#endif
 			lightmap_was_modified[i] = 2;
 
 			lightmap_rectchange[i].l = BLOCK_WIDTH;
@@ -505,27 +528,31 @@ void R_UpdateLightmaps (void)
 		}
 		else if(lightmap_was_modified[i] > 0) //final update fix for double buffering
 		{
+#if !LIGHT_MAP_ATLAS
 			lightmap_active_index[i] = !lightmap_active_index[i];
+			GL_BindNoFlush(lightmap_textures_gl[lightmap_active_index[i]][i], TEX_SLOT_LIGHT_UPDATE);
+#endif
 
-			#if BATCH_BRUSH
-			GL_BindNoFlush( lightmap_textures_gl[lightmap_active_index[i]][i], TEX_SLOT_LIGHT);
-			#else
-			GL_Bind( lightmap_textures_gl[lightmap_active_index[i]][i] );
-			#endif
 			lightmap_was_modified[i] = 0;
 			theRect = &lightmap_rectchange_cache[i];
-			//glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, BLOCK_WIDTH, BLOCK_HEIGHT, gl_lightmap_format, GL_UNSIGNED_BYTE,
-			//	lightmapsData + i*lightmap_bytes*BLOCK_WIDTH*BLOCK_HEIGHT);
+#if LIGHT_MAP_ATLAS
+			glTexSubImage2D(GL_TEXTURE_2D, 0, lightmapsGLSOffets[i], lightmapsGLTOffets[i] + theRect->t,
+							BLOCK_WIDTH, theRect->h, gl_lightmap_format, GL_UNSIGNED_BYTE,
+							lightmapsData + (i* BLOCK_HEIGHT + theRect->t) *BLOCK_WIDTH*lightmap_bytes);
+#else
 			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, theRect->t, 
-				BLOCK_WIDTH, theRect->h, gl_lightmap_format, GL_UNSIGNED_BYTE,
-				lightmapsData+(i* BLOCK_HEIGHT + theRect->t) *BLOCK_WIDTH*lightmap_bytes);
+							BLOCK_WIDTH, theRect->h, gl_lightmap_format, GL_UNSIGNED_BYTE,
+							lightmapsData + (i* BLOCK_HEIGHT + theRect->t) *BLOCK_WIDTH*lightmap_bytes);
+#endif
 			lightmap_rectchange_cache[i].l = BLOCK_WIDTH;
 			lightmap_rectchange_cache[i].t = BLOCK_HEIGHT;
 			lightmap_rectchange_cache[i].h = 0;
 			lightmap_rectchange_cache[i].w = 0;
 		}
 	}
-	//lightmap_active_index[i] = !lightmap_active_index[i];
+#if LIGHT_MAP_ATLAS //once per frame
+	lightmap_active_index = !lightmap_active_index;
+#endif 
 }
 
 
@@ -534,6 +561,7 @@ void R_UpdateLightmaps (void)
 R_BlendLightmaps
 ================
 */
+#if !LIGHT_MAP_ATLAS
 void R_BlendLightmaps (void)
 {
 	int			i, j;
@@ -551,11 +579,7 @@ void R_BlendLightmaps (void)
 		p = lightmap_polys[i];
 		if (!p)
 			continue;
-#if BATCH_BRUSH
-		GL_BindNoFlush( lightmap_textures_gl[lightmap_active_index[i]][i], TEX_SLOT_LIGHT);
-#else
-		GL_Bind( lightmap_textures_gl[lightmap_active_index[i]][i] );
-#endif
+		GL_BindNoFlush( lightmap_textures_gl[lightmap_active_index[i]][i], TEX_SLOT_LIGHT_RENDER);
 		for ( ; p ; p=p->chain)
 		{
 			if (p->flags & SURF_UNDERWATER)
@@ -603,6 +627,7 @@ void R_BlendLightmaps (void)
 	SetDepthMask(1);
 	#endif
 }
+#endif
 
 /*
 ================
@@ -684,9 +709,19 @@ dynamic:
 				theRect->w = (fa->light_s-theRect->l)+smax;
 			if ((theRect->h + theRect->t) < (fa->light_t + tmax))
 				theRect->h = (fa->light_t-theRect->t)+tmax;
+			#if LIGHT_MAP_ATLAS
+			//maybe just update the lightmap whoelsale?
+			//base = lightmapsData + lightmapsDataOffets[fa->lightmaptexturenum];
+			//base += ((fa->light_t * BLOCK_WIDTH*ATLAS_WIDTH) + fa->light_s) * lightmap_bytes;
+			//R_BuildLightMap (fa, base, ATLAS_WIDTH* BLOCK_WIDTH*lightmap_bytes);
 			base = lightmapsData + fa->lightmaptexturenum*lightmap_bytes*BLOCK_WIDTH*BLOCK_HEIGHT;
 			base += fa->light_t * BLOCK_WIDTH * lightmap_bytes + fa->light_s * lightmap_bytes;
 			R_BuildLightMap (fa, base, BLOCK_WIDTH*lightmap_bytes);
+			#else
+			base = lightmapsData + fa->lightmaptexturenum*lightmap_bytes*BLOCK_WIDTH*BLOCK_HEIGHT;
+			base += fa->light_t * BLOCK_WIDTH * lightmap_bytes + fa->light_s * lightmap_bytes;
+			R_BuildLightMap (fa, base, BLOCK_WIDTH*lightmap_bytes);
+			#endif
 		}
 	}
 }
@@ -744,9 +779,19 @@ dynamic:
 				theRect->w = (fa->light_s-theRect->l)+smax;
 			if ((theRect->h + theRect->t) < (fa->light_t + tmax))
 				theRect->h = (fa->light_t-theRect->t)+tmax;
+			#if LIGHT_MAP_ATLAS
+			//maybe just update the lightmap whoelsale?
+			//base = lightmapsData + lightmapsDataOffets[fa->lightmaptexturenum];
+			//base += ((fa->light_t * BLOCK_WIDTH*ATLAS_WIDTH) + fa->light_s) * lightmap_bytes;
+			//R_BuildLightMap(fa, base, ATLAS_WIDTH* BLOCK_WIDTH*lightmap_bytes);
 			base = lightmapsData + fa->lightmaptexturenum*lightmap_bytes*BLOCK_WIDTH*BLOCK_HEIGHT;
 			base += fa->light_t * BLOCK_WIDTH * lightmap_bytes + fa->light_s * lightmap_bytes;
-			R_BuildLightMap (fa, base, BLOCK_WIDTH*lightmap_bytes);
+			R_BuildLightMap(fa, base, BLOCK_WIDTH*lightmap_bytes);
+			#else
+			base = lightmapsData + fa->lightmaptexturenum*lightmap_bytes*BLOCK_WIDTH*BLOCK_HEIGHT;
+			base += fa->light_t * BLOCK_WIDTH * lightmap_bytes + fa->light_s * lightmap_bytes;
+			R_BuildLightMap(fa, base, BLOCK_WIDTH*lightmap_bytes);
+			#endif
 		}
 	}
 }
@@ -1002,9 +1047,10 @@ e->angles[0] = -e->angles[0];	// stupid quake bug
 		}
 	}
 	DrawGLPoly();
+#if !LIGHT_MAP_ATLAS
 	SetupLightMapPass();
 	R_BlendLightmaps ();
-
+#endif
 	Pop();
 }
 
@@ -1163,8 +1209,10 @@ void R_DrawWorld (void)
 	R_RecursiveWorldNode (cl.worldmodel->nodes);
 	StartBrushBatch(gldepthmin, gldepthmax);
 	DrawTextureChains();
+#if !LIGHT_MAP_ATLAS
 	SetupLightMapPass();
 	R_BlendLightmaps();
+#endif
 	EndBrushBatch();
 
 }
@@ -1338,14 +1386,22 @@ void BuildSurfaceDisplayList (msurface_t *fa)
 		s -= fa->texturemins[0];
 		s += fa->light_s*16;
 		s += 8;
-		s /= BLOCK_WIDTH*16; //fa->texinfo->texture->width;
+		s /= BLOCK_WIDTH * 16; //fa->texinfo->texture->width;
 
 		t = DotProduct (vec, fa->texinfo->vecs[1]) + fa->texinfo->vecs[1][3];
 		t -= fa->texturemins[1];
 		t += fa->light_t*16;
 		t += 8;
-		t /= BLOCK_HEIGHT*16; //fa->texinfo->texture->height;
+		t /= BLOCK_HEIGHT * 16; //fa->texinfo->texture->height;
 
+#if LIGHT_MAP_ATLAS
+		// s and t are now in the range of BLOCK_HEIGHT
+		s /= ATLAS_WIDTH;
+		t /= ATLAS_HEIGHT;
+		// 
+		s += ((float)(fa->sOffset*BLOCK_WIDTH) / (float)(ATLAS_WIDTH * BLOCK_WIDTH));
+		t += ((float)(fa->tOffset*BLOCK_HEIGHT) / (float)(ATLAS_HEIGHT * BLOCK_HEIGHT));
+#endif
 		poly->verts[i][5] = s;
 		poly->verts[i][6] = t;
 	}
@@ -1401,7 +1457,7 @@ GL_CreateSurfaceLightmap
 */
 void GL_CreateSurfaceLightmap (msurface_t *surf)
 {
-	int		smax, tmax, s, t, l, i;
+	int		smax, tmax, s, t, l, i, counter;
 	byte	*base;
 
 	if (surf->flags & (SURF_DRAWSKY|SURF_DRAWTURB))
@@ -1411,9 +1467,27 @@ void GL_CreateSurfaceLightmap (msurface_t *surf)
 	tmax = (surf->extents[1]>>4)+1;
 
 	surf->lightmaptexturenum = AllocBlock (smax, tmax, &surf->light_s, &surf->light_t);
+	#if LIGHT_MAP_ATLAS
+	surf->sOffset = surf->lightmaptexturenum % ATLAS_WIDTH;
+	surf->tOffset = 0;
+	counter = surf->lightmaptexturenum;
+	while (counter >= ATLAS_WIDTH)
+	{
+		counter -= ATLAS_WIDTH;
+		surf->tOffset++;
+	}
+	//might need to see if we can just update the whole lightmap at once 
+	//base = lightmapsData + lightmapsDataOffets[surf->lightmaptexturenum];
+	//base += ((surf->light_t * BLOCK_WIDTH*ATLAS_WIDTH) + surf->light_s) * lightmap_bytes;
+	//R_BuildLightMap (surf, base, ATLAS_WIDTH* BLOCK_WIDTH*lightmap_bytes);
 	base = lightmapsData + surf->lightmaptexturenum*lightmap_bytes*BLOCK_WIDTH*BLOCK_HEIGHT;
 	base += (surf->light_t * BLOCK_WIDTH + surf->light_s) * lightmap_bytes;
 	R_BuildLightMap (surf, base, BLOCK_WIDTH*lightmap_bytes);
+	#else
+	base = lightmapsData + surf->lightmaptexturenum*lightmap_bytes*BLOCK_WIDTH*BLOCK_HEIGHT;
+	base += (surf->light_t * BLOCK_WIDTH + surf->light_s) * lightmap_bytes;
+	R_BuildLightMap (surf, base, BLOCK_WIDTH*lightmap_bytes);
+	#endif
 }
 
 
@@ -1440,8 +1514,12 @@ void GL_BuildLightmaps (void)
 	static int lightmap_init = false;
 	if (!lightmap_init)
 	{
+#if LIGHT_MAP_ATLAS
+		glGenTextures(2, lightmap_textures_gl);
+#else
 		glGenTextures(MAX_LIGHTMAPS, lightmap_textures_gl[0]);
 		glGenTextures(MAX_LIGHTMAPS, lightmap_textures_gl[1]);
+#endif
 		lightmap_init = true;
 	}
 
@@ -1450,7 +1528,7 @@ void GL_BuildLightmaps (void)
 	// default differently on the Permedia
 	if (isPermedia)
 		gl_lightmap_format = GL_RGBA;
-
+	
 	if (COM_CheckParm ("-lm_1"))
 		gl_lightmap_format = GL_RED;
 	if (COM_CheckParm ("-lm_a"))
@@ -1493,6 +1571,24 @@ void GL_BuildLightmaps (void)
 		lightmap_bytes = 1;
 		break;
 	}
+
+#if LIGHT_MAP_ATLAS
+	for (i = 0; i < MAX_LIGHTMAPS; i++)
+	{
+		int sOffset = i % ATLAS_WIDTH;
+		int tOffset = 0;
+		int counter = i;
+		while (counter >= ATLAS_WIDTH)
+		{
+			counter -= ATLAS_WIDTH;
+			tOffset++;
+		}
+		lightmapsDataOffets[i] = tOffset*lightmap_bytes*BLOCK_HEIGHT*BLOCK_WIDTH*ATLAS_WIDTH;	//height into the atlas
+		lightmapsDataOffets[i] += sOffset * lightmap_bytes*BLOCK_WIDTH;							//block width into the atlas
+		lightmapsGLSOffets[i] = sOffset*BLOCK_WIDTH;
+		lightmapsGLTOffets[i] = tOffset*BLOCK_HEIGHT;
+	}
+#endif
 
 	for (j=1 ; j<MAX_MODELS ; j++)
 	{
@@ -1582,8 +1678,8 @@ void GL_BuildLightmaps (void)
 					pBrushData[offset].pos[1] = v[1];	//position
 					pBrushData[offset].pos[2] = v[2];	//position
 
-					pBrushData[offset].st1[0] = v[3]; pBrushData[offset].st1[1] = v[4];	//textures
-					pBrushData[offset].st2[0] = v[5]; pBrushData[offset].st2[1] = v[6];	//textures
+					pBrushData[offset].st1[0] = v[3]; pBrushData[offset].st1[1] = v[4];	//textures Colour
+					pBrushData[offset].st2[0] = v[5]; pBrushData[offset].st2[1] = v[6];	//textures Lightmaps
 
 					offset++;
 				}
@@ -1604,30 +1700,61 @@ void GL_BuildLightmaps (void)
 	//
 	// upload all lightmaps that were filled
 	//
-	for (i=0 ; i<MAX_LIGHTMAPS ; i++)
+
+#if LIGHT_MAP_ATLAS
+	lightmap_active_index = 0;
+	for (i = 0; i < 2; i++)
+	{
+		GL_BindNoFlush(lightmap_textures_gl[i], TEX_SLOT_LIGHT_UPDATE);
+		//lightmapsData + i*BLOCK_WIDTH*BLOCK_HEIGHT*lightmap_bytes
+		glTexImage2D(GL_TEXTURE_2D, 0, texDataType[lightmap_bytes],
+					 (BLOCK_WIDTH * ATLAS_WIDTH), (BLOCK_HEIGHT * ATLAS_HEIGHT),
+					 0, texDataType[lightmap_bytes], GL_UNSIGNED_BYTE, 0);
+		//lightmaps should never be nearest i think
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	}
+#endif
+
+	for (i = 0; i<MAX_LIGHTMAPS; i++)
 	{
 		if (!allocated[i][0])
 			break;		// no more used
+
 		lightmap_modified[i] = false;
 		lightmap_was_modified[i] = 0;
-		lightmap_active_index[i] = 0;
 		lightmap_rectchange[i].l = lightmap_rectchange_cache[i].l = BLOCK_WIDTH;
 		lightmap_rectchange[i].t = lightmap_rectchange_cache[i].t = BLOCK_HEIGHT;
 		lightmap_rectchange[i].w = lightmap_rectchange_cache[i].w = 0;
 		lightmap_rectchange[i].h = lightmap_rectchange_cache[i].h = 0;
 
-		GL_BindNoFlush (lightmap_textures_gl[0][ i ], TEX_SLOT_LIGHT);
-		glTexImage2D (GL_TEXTURE_2D, 0, texDataType[lightmap_bytes]	, BLOCK_WIDTH, BLOCK_HEIGHT, 0, texDataType[lightmap_bytes], GL_UNSIGNED_BYTE, lightmapsData+i*BLOCK_WIDTH*BLOCK_HEIGHT*lightmap_bytes);
+#if LIGHT_MAP_ATLAS
+		GL_BindNoFlush(lightmap_textures_gl[0], TEX_SLOT_LIGHT_UPDATE);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, lightmapsGLSOffets[i], lightmapsGLTOffets[i],
+						BLOCK_WIDTH, BLOCK_HEIGHT, gl_lightmap_format, GL_UNSIGNED_BYTE,
+						lightmapsData + (i* BLOCK_HEIGHT) *BLOCK_WIDTH*lightmap_bytes);
+		GL_BindNoFlush(lightmap_textures_gl[1], TEX_SLOT_LIGHT_UPDATE);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, lightmapsGLSOffets[i], lightmapsGLTOffets[i],
+						BLOCK_WIDTH, BLOCK_HEIGHT, gl_lightmap_format, GL_UNSIGNED_BYTE,
+						lightmapsData + (i* BLOCK_HEIGHT) *BLOCK_WIDTH*lightmap_bytes);
+#else
+		lightmap_active_index[i] = 0;
+		GL_BindNoFlush (lightmap_textures_gl[0][ i ], TEX_SLOT_LIGHT_UPDATE);
+		glTexImage2D (GL_TEXTURE_2D, 0, texDataType[lightmap_bytes], 
+					  BLOCK_WIDTH, BLOCK_HEIGHT, 
+					  0, texDataType[lightmap_bytes], GL_UNSIGNED_BYTE, lightmapsData+i*BLOCK_WIDTH*BLOCK_HEIGHT*lightmap_bytes);
 		//lightmaps should never be nearest i think
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-		GL_BindNoFlush (lightmap_textures_gl[1][ i ], TEX_SLOT_LIGHT);
-		glTexImage2D (GL_TEXTURE_2D, 0, texDataType[lightmap_bytes]	, BLOCK_WIDTH, BLOCK_HEIGHT, 0, texDataType[lightmap_bytes], GL_UNSIGNED_BYTE, lightmapsData+i*BLOCK_WIDTH*BLOCK_HEIGHT*lightmap_bytes);
+		GL_BindNoFlush (lightmap_textures_gl[1][ i ], TEX_SLOT_LIGHT_UPDATE);
+		glTexImage2D (GL_TEXTURE_2D, 0, texDataType[lightmap_bytes]	, 
+					  BLOCK_WIDTH, BLOCK_HEIGHT, 
+					  0, texDataType[lightmap_bytes], GL_UNSIGNED_BYTE, lightmapsData+i*BLOCK_WIDTH*BLOCK_HEIGHT*lightmap_bytes);
 		//lightmaps should never be nearest i think
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
+#endif
 	}
 
  	if (!gl_texsort.value)
