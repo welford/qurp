@@ -224,6 +224,7 @@ extern void EndAliasBatch();
 extern void CreateBrushBuffers(int numVerts);
 extern void AddBrushData(int vertexOffset, int numVerts, void * pData);
 extern void StartBrushBatch(float depthmin, float depthmax);
+extern void StartWarpBatch();
 extern void SetupColourPass();
 extern void SetupLightMapPass();
 extern void RenderBrushData(int vertexOffset, int numVerts);

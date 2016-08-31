@@ -120,6 +120,7 @@ typedef struct {
 	float normalRange;
 	float shadeIndex;
 	float shadeValue;
+	float realtime;
 }UBOTransforms;
 
 typedef struct {
@@ -234,6 +235,7 @@ static SShaderProgram colour_shader;
 static SShaderProgram light_map_shader;
 static SShaderProgram alias_shader;
 static SShaderProgram brush_shader;
+static SShaderProgram warp_shader;
 
 //we render to an internal buffer, then blit it to screen
 #define USE_FBO 1
@@ -659,7 +661,16 @@ static void SetupShaders(void){
 	CreateShaderProgram(&brush_shader);
 	AddShaderToProgram(&brush_shader,&vtxTxShdr);
 	AddShaderToProgram(&brush_shader,&frgTxShdr);
-	LinkShaderProgram(&brush_shader);	
+	LinkShaderProgram(&brush_shader);
+
+	//shader (WARP)
+	got = glswGetShadersAlt("shaders.Version+shaders.Header.Fragment+shaders.Shared+shaders.WarpFragment", pDFragStr, sizeof(pDFragStr) / sizeof(pDFragStr[0]));
+	CreateShader(&frgTxShdr, FRAG, pDFragStr, got);
+	CreateShaderProgram(&warp_shader);
+	AddShaderToProgram(&warp_shader, &vtxTxShdr);
+	AddShaderToProgram(&warp_shader, &frgTxShdr);
+	LinkShaderProgram(&warp_shader);
+	transforms.realtime = 0.0f;
 
 	//shader (ALIAS)
 	got = glswGetShadersAlt("shaders.Version+shaders.Header.Vertex+shaders.Shared+shaders.SimpleVertexAlias", pDVertStr, sizeof(pDVertStr)/sizeof(pDVertStr[0]));	
@@ -1494,6 +1505,13 @@ void StartBrushBatch(float depthmin, float depthmax)
 	Start(&brush_shader);
 	UpdateTransformUBOs();
 	glBindVertexArray(brush_vao);
+#endif
+}
+void StartWarpBatch()
+{
+#if BATCH_BRUSH
+	transforms.realtime += 0.16f;
+	Start(&warp_shader);
 #endif
 }
 

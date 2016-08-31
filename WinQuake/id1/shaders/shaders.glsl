@@ -52,6 +52,7 @@ layout(std140) uniform Transforms
 	float		normalRange;
 	float		shadeIndex;
 	float		shadeLight;
+	float		realtime;
 }trans;
 
 struct UBODirectionLight
@@ -226,6 +227,23 @@ void main()
 {
 	//fragColour = texture(tex0, uv) * texture(texLightmap, uvLightmap).r;
 	fragColour = texture(tex0, uv);
+}
+
+-- WarpFragment
+
+in vec2 uv;
+in vec2 uvLightmap;
+
+out vec4 fragColour;
+
+void main()
+{
+	vec2 warpUV;
+	//warpUV.x = (uv.x + sin( (uv.y * 0.125 + trans.realtime)*0.05) );// * (1.0/64.0);
+	//warpUV.y = (uv.y + sin( (uv.t * 0.125 + trans.realtime)*0.05) );// * (1.0/64.0);
+	warpUV.x = uv.x + sin( (2*uv.y + trans.realtime*0.01)) * (1.0/16.0);
+	warpUV.y = uv.y + sin( (2*uv.t + trans.realtime*0.01)) * (1.0/16.0);
+	fragColour = texture(tex0, warpUV);
 }
 
 -- SimpleVertexAlias

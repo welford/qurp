@@ -1277,34 +1277,6 @@ void R_Mirror (void)
 	
 	FlushDraw();
 
-	/*
-	gldepthmin = 0;
-	gldepthmax = 0.5;
-	//glDepthRange (gldepthmin, gldepthmax);
-	SetDepthRange ( gldepthmin, gldepthmax );
-	glDepthFunc (GL_LEQUAL);
-	
-	// blend on top
-	EnableBlending();
-	glMatrixMode(GL_PROJECTION);
-	if (mirror_plane->normal[2])
-		glScalef (1,-1,1);
-	else
-		glScalef (-1,1,1);
-	//glCullFace(GL_FRONT);
-	CullFront();
-	glMatrixMode(GL_MODELVIEW);
-
-	glLoadMatrixf (r_base_world_matrix);
-
-	glColor4f (1,1,1,r_mirroralpha.value);
-	s = cl.worldmodel->textures[mirrortexturenum]->texturechain;
-	for ( ; s ; s=s->texturechain)
-		R_RenderBrushPoly (s);
-	cl.worldmodel->textures[mirrortexturenum]->texturechain = NULL;
-	glDisable (GL_BLEND);
-	glColor4f (1,1,1,1);
-	*/
 }
 
 /*================

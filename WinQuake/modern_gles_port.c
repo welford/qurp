@@ -1439,6 +1439,11 @@ void StartBrushBatch(float depthmin, float depthmax)
 #endif
 }
 
+void StartWarpBatch(){
+#if BATCH_BRUSH
+#endif
+}
+
 void SetupColourPass()
 {
 #if BATCH_BRUSH
@@ -1447,6 +1452,7 @@ void SetupColourPass()
 	Start(&brush_shader);
 #endif
 }
+
 void SetupLightMapPass()
 {
 #if BATCH_BRUSH

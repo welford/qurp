@@ -632,6 +632,7 @@ void R_RenderBrushPoly (msurface_t *fa)
 	glRect_t    *theRect;
 	int smax, tmax;
 
+
 	c_brush_polys++;
 
 	t = R_TextureAnimation (fa->texinfo->texture);
@@ -642,11 +643,10 @@ void R_RenderBrushPoly (msurface_t *fa)
 		GL_BindNoFlush( t->gl_texturenum, TEX_SLOT_CLR );
 	}
 
-	if (fa->flags & SURF_DRAWTURB)
-	{	// warp texture, no lightmaps
-		EmitWaterPolys (fa);
-		return;
+	if (fa->flags & SURF_DRAWTURB){
+		EmitWaterPolys(fa);  return;
 	}
+
 
 	if (fa->flags & SURF_UNDERWATER){
  		AppendGLPoly (fa->polys);
@@ -705,6 +705,7 @@ dynamic:
 		}
 	}
 }
+
 
 /*
 ================
@@ -853,7 +854,7 @@ void R_DrawWaterSurfaces (void)
 DrawTextureChains
 ================
 */
-void DrawTextureChains (void)
+void DrawTextureChains(qboolean water)
 {
 	int		i;
 	msurface_t	*s;
@@ -872,18 +873,17 @@ void DrawTextureChains (void)
 		s = t->texturechain;
 		if (!s)
 			continue;
-		if (i == skytexturenum)
+		if (i == skytexturenum && !water)
 			R_DrawSkyChain(s);
-		else if (i == mirrortexturenum && r_mirroralpha.value != 1.0)
+		else if (i == mirrortexturenum && r_mirroralpha.value != 1.0 &&  !water)
 		{
 			R_MirrorChain (s);
 			continue;
 		}
 		else
 		{
-			if ((s->flags & SURF_DRAWTURB) && r_wateralpha.value != 1.0)
-			{
-				continue;	// draw translucent water later
+			if (s->flags & SURF_DRAWTURB && !water){
+				continue;
 			}
 			for ( ; s ; s=s->texturechain)
 			{
@@ -1157,7 +1157,9 @@ void R_DrawWorld (void)
 
 	R_RecursiveWorldNode (cl.worldmodel->nodes);
 	StartBrushBatch(gldepthmin, gldepthmax);
-	DrawTextureChains();
+	DrawTextureChains(false);
+	StartWarpBatch();
+	DrawTextureChains(true);
 #if !LIGHT_MAP_ATLAS
 	SetupLightMapPass();
 	R_BlendLightmaps();
