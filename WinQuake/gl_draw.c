@@ -59,6 +59,8 @@ int		gl_alpha_format = 4;
 int		gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
 int		gl_filter_max = GL_LINEAR;
 #else
+//int		gl_filter_min = GL_NEAREST_MIPMAP_NEAREST;
+//int		gl_filter_max = GL_NEAREST_MIPMAP_NEAREST;
 int		gl_filter_min = GL_NEAREST;
 int		gl_filter_max = GL_NEAREST;
 #endif
@@ -67,7 +69,6 @@ int		texels;
 
 typedef struct
 {
-	//JAMES was just an int before
 	unsigned int	texnum;
 	int				type;
 	char			identifier[64];
@@ -225,9 +226,7 @@ qpic_t *Draw_PicFromWad (char *name)
 		//texnum += scrap_texnum;
 
 		//gl->texnum = texnum;
-		//JAMES
 		gl->texnum = scrap_texnum_gl[texnum];
-		//glGenTextures(1, &gl->texnum);
 
 		gl->sl = (x+0.01)/(float)BLOCK_WIDTH;
 		gl->sh = (x+p->width-0.01)/(float)BLOCK_WIDTH;
@@ -499,14 +498,10 @@ void Draw_Init (void)
 	Hunk_FreeToLowMark(start);
 
 	// save a texture slot for translated picture
-	//JAMES
 	glGenTextures(1, &translate_texture);
-	//END
 
 	// save slots for scraps
-	//JAMES
 	glGenTextures(MAX_SCRAPS, scrap_texnum_gl);
-	//END
 
 	//
 	// get the other pics we need
@@ -1216,17 +1211,12 @@ static	unsigned	scaled[1024*512];	// [512*256];
 	{
 		if (!mipmap)
 		{
-			//glTexImage2D (GL_TEXTURE_2D, 0, samples, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-			//JAMES
-			//glTexImage2D (GL_TEXTURE_2D, 0, texDataType[samples], scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 			if(alpha){
 				glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);				
 			}
 			else{
 				glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);						
-			}			
-			//END
-
+			}
 			goto done;
 		}
 		memcpy (scaled, data, width*height*4);
@@ -1234,17 +1224,13 @@ static	unsigned	scaled[1024*512];	// [512*256];
 	else
 		GL_ResampleTexture (data, width, height, scaled, scaled_width, scaled_height);
 
-	//glTexImage2D (GL_TEXTURE_2D, 0, samples, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaled);
-	//JAMES
 	if(alpha){
 		glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaled);
 	}
 	else{
 		glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, scaled_width, scaled_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, scaled);
 	}
-	//END
-	if (mipmap)
-	{
+	if (mipmap){
 		glGenerateMipmap(GL_TEXTURE_2D);		
 	}
 done: ;
@@ -1253,23 +1239,15 @@ done: ;
 	{
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_min);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
-		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);		
-		//JAMES
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		//END
 	}
 	else
 	{
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, gl_filter_max);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, gl_filter_max);
-		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		//JAMES
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		//END
 	}
 }
 
@@ -1373,7 +1351,7 @@ GL_Upload8
 */
 void GL_Upload8 (byte *data, int width, int height,  qboolean mipmap, qboolean alpha)
 {
-static	unsigned	trans[640*480];		// FIXME, temporary
+	static	unsigned	trans[640*480];
 	int			i, s;
 	qboolean	noalpha;
 	int			p;
@@ -1401,17 +1379,12 @@ static	unsigned	trans[640*480];		// FIXME, temporary
 			Sys_Error ("GL_Upload8: s&3");
 		for (i=0 ; i<s ; i+=4)
 		{
-			trans[i] = d_8to24table[data[i]];
-			trans[i+1] = d_8to24table[data[i+1]];
-			trans[i+2] = d_8to24table[data[i+2]];
-			trans[i+3] = d_8to24table[data[i+3]];
+			trans[i]	=	d_8to24table[data[i]];
+			trans[i+1]	=	d_8to24table[data[i+1]];
+			trans[i+2]	=	d_8to24table[data[i+2]];
+			trans[i+3]	=	d_8to24table[data[i+3]];
 		}
 	}
-
- 	//if (VID_Is8bit() && !alpha && (data!=scrap_texels[0])) {
- 		//GL_Upload8_EXT (data, width, height, mipmap, alpha);
- 	//	return;
-	//}
 	GL_Upload32 (trans, width, height, mipmap, alpha);
 }
 
@@ -1477,9 +1450,7 @@ int GL_LoadTexture (char *identifier, int width, int height, byte *data, qboolea
 	}
 
 	strcpy (glt->identifier, identifier);
-	//JAMES
 	glGenTextures(1, &glt->texnum);
-	//END
 
 	//
 	glt->type = type;

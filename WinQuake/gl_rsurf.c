@@ -70,7 +70,6 @@ int			allocated[MAX_LIGHTMAPS][BLOCK_WIDTH];
 // the lightmap texture data needs to be kept in
 // main memory so texsubimage can update properly
 byte		lightmapsData[4*MAX_LIGHTMAPS*BLOCK_WIDTH*BLOCK_HEIGHT];
-// For gl_texsort 0
 msurface_t  *skychain = NULL;
 msurface_t  *waterchain = NULL;
 
@@ -291,10 +290,6 @@ texture_t *R_TextureAnimation (texture_t *base)
 
 =============================================================
 */
-
-
-extern	int		solidskytexture;
-extern	int		alphaskytexture;
 extern	float	speedscale;		// for top sky and bottom sky
 
 void DrawGLWaterPoly (glpoly_t *p);
@@ -429,7 +424,6 @@ DrawGLPoly
 void DrawGLPoly ()
 {
 	if(batchElements.index == 0)return;
-	//RenderBrushDataElements(batchElements.element, batchElements.index);
 	RenderBrushDataElements(batchElements.element[batchElements.bufferIndex], batchElements.index);
 	batchElements.bufferIndex = (batchElements.bufferIndex + 1) % MAX_ELEMENT_BUFFERS;
 	batchElements.index = 0;
@@ -479,8 +473,6 @@ void R_UpdateLightmaps (void)
 	glRect_t	*theRect;
 
 	if (r_fullbright.value)
-		return;
-	if (!gl_texsort.value)
 		return;
 
 #if LIGHT_MAP_ATLAS
@@ -571,8 +563,6 @@ void R_BlendLightmaps (void)
 
 	if (r_fullbright.value)
 		return;
-	if (!gl_texsort.value)
-		return;
 
 	for (i=0 ; i<MAX_LIGHTMAPS ; i++)
 	{
@@ -644,17 +634,10 @@ void R_RenderBrushPoly (msurface_t *fa)
 
 	c_brush_polys++;
 
-	if (fa->flags & SURF_DRAWSKY)
-	{	// warp texture, no lightmaps
-		//EmitBothSkyLayers (fa);
-		return;
-	}
-	
 	t = R_TextureAnimation (fa->texinfo->texture);
 	if(t != fa->texinfo->texture)
 	{
 		//draw what we have so far and then start again
-		//
 		DrawGLPoly ();
 		GL_BindNoFlush( t->gl_texturenum, TEX_SLOT_CLR );
 	}
@@ -666,16 +649,13 @@ void R_RenderBrushPoly (msurface_t *fa)
 	}
 
 	if (fa->flags & SURF_UNDERWATER){
- 		//DrawGLWaterPoly (fa->polys);
-		AppendGLPoly (fa->polys);
+ 		AppendGLPoly (fa->polys);
 	}
 	else{
 		AppendGLPoly (fa->polys);
-		//DrawGLPoly (fa->polys);
 	}
 
 	// add the poly to the proper lightmap chain
-
 	fa->polys->chain = lightmap_polys[fa->lightmaptexturenum];
 	lightmap_polys[fa->lightmaptexturenum] = fa->polys;
 
@@ -821,54 +801,39 @@ void R_DrawWaterSurfaces (void)
 	msurface_t	*s;
 	texture_t	*t;
 
-	if (r_wateralpha.value == 1.0 && gl_texsort.value)
+	if (r_wateralpha.value == 1.0 )
 		return;
 
 	//
 	// go back to the world matrix
 	//
 
-    glLoadMatrixf (r_world_matrix);
+	glLoadMatrixf (r_world_matrix);
 
 	if (r_wateralpha.value < 1.0) {
 		EnableBlending();
 	}
 
-	if (!gl_texsort.value) {
-		if (!waterchain)
-			return;
+	for (i=0 ; i<cl.worldmodel->numtextures ; i++)
+	{
+		t = cl.worldmodel->textures[i];
+		if (!t)
+			continue;
+		s = t->texturechain;
+		if (!s)
+			continue;
+		if ( !(s->flags & SURF_DRAWTURB ) )
+			continue;
 
-		for ( s = waterchain ; s ; s=s->texturechain) {
-			GL_Bind (s->texinfo->texture->gl_texturenum);
+		// set modulate mode explicitly
+		GL_BindNoFlush (t->gl_texturenum, TEX_SLOT_CLR);
+
+		for ( ; s ; s=s->texturechain)
 			EmitWaterPolys (s);
-		}
+
+		DrawGLPoly();
 		
-		waterchain = NULL;
-	} else {
-
-		for (i=0 ; i<cl.worldmodel->numtextures ; i++)
-		{
-			t = cl.worldmodel->textures[i];
-			if (!t)
-				continue;
-			s = t->texturechain;
-			if (!s)
-				continue;
-			if ( !(s->flags & SURF_DRAWTURB ) )
-				continue;
-
-			// set modulate mode explicitly
-			
-			GL_BindNoFlush (t->gl_texturenum, TEX_SLOT_CLR);
-
-			for ( ; s ; s=s->texturechain)
-				EmitWaterPolys (s);
-
-			DrawGLPoly();
-			
-			t->texturechain = NULL;
-		}
-
+		t->texturechain = NULL;
 	}
 
 	if (r_wateralpha.value < 1.0) {
@@ -896,16 +861,6 @@ void DrawTextureChains (void)
 
 	int batchedIndices[1024] = {0};
 
-	if (!gl_texsort.value) {
-		GL_DisableMultitexture();
-
-		if (skychain) {
-			R_DrawSkyChain(skychain);
-			skychain = NULL;
-		}
-		return;
-	} 
-
 	for (i=0 ; i<cl.worldmodel->numtextures ; i++)
 	{
 		t = cl.worldmodel->textures[i];
@@ -918,7 +873,7 @@ void DrawTextureChains (void)
 		if (!s)
 			continue;
 		if (i == skytexturenum)
-			R_DrawSkyChain (s);
+			R_DrawSkyChain(s);
 		else if (i == mirrortexturenum && r_mirroralpha.value != 1.0)
 		{
 			R_MirrorChain (s);
@@ -1160,7 +1115,7 @@ void R_RecursiveWorldNode (mnode_t *node)
 					continue;		// wrong side
 
 				// if sorting by texture, just store it out
-				if (gl_texsort.value)
+				if (1)
 				{
 					if (!mirror
 					|| surf->texinfo->texture != cl.worldmodel->textures[mirrortexturenum])
@@ -1168,12 +1123,6 @@ void R_RecursiveWorldNode (mnode_t *node)
 						surf->texturechain = surf->texinfo->texture->texturechain;
 						surf->texinfo->texture->texturechain = surf;
 					}
-				} else if (surf->flags & SURF_DRAWSKY) {
-					surf->texturechain = skychain;
-					skychain = surf;
-				} else if (surf->flags & SURF_DRAWTURB) {
-					surf->texturechain = waterchain;
-					waterchain = surf;
 				}
 			}
 		}
@@ -1401,6 +1350,12 @@ void BuildSurfaceDisplayList (msurface_t *fa)
 		// 
 		s += ((float)(fa->sOffset*BLOCK_WIDTH) / (float)(ATLAS_WIDTH * BLOCK_WIDTH));
 		t += ((float)(fa->tOffset*BLOCK_HEIGHT) / (float)(ATLAS_HEIGHT * BLOCK_HEIGHT));
+
+		if (fa->flags & SURF_DRAWTURB || fa->flags & SURF_DRAWSKY)
+		{
+			s = -1.0f;
+			t = -1.0f;
+		}
 #endif
 		poly->verts[i][5] = s;
 		poly->verts[i][6] = t;
@@ -1694,9 +1649,6 @@ void GL_BuildLightmaps (void)
 	//free temp buffer
 	free(pBrushData);
 
- 	if (!gl_texsort.value)
- 		GL_SelectTexture(TEXTURE1_SGIS);
-
 	//
 	// upload all lightmaps that were filled
 	//
@@ -1705,6 +1657,7 @@ void GL_BuildLightmaps (void)
 	lightmap_active_index = 0;
 	for (i = 0; i < 2; i++)
 	{
+		float borderColour[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 		GL_BindNoFlush(lightmap_textures_gl[i], TEX_SLOT_LIGHT_UPDATE);
 		//lightmapsData + i*BLOCK_WIDTH*BLOCK_HEIGHT*lightmap_bytes
 		glTexImage2D(GL_TEXTURE_2D, 0, texDataType[lightmap_bytes],
@@ -1713,6 +1666,9 @@ void GL_BuildLightmaps (void)
 		//lightmaps should never be nearest i think
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColour);
 	}
 #endif
 
@@ -1756,9 +1712,5 @@ void GL_BuildLightmaps (void)
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 #endif
 	}
-
- 	if (!gl_texsort.value)
- 		GL_SelectTexture(TEXTURE0_SGIS);
-
 }
 

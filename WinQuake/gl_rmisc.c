@@ -204,10 +204,6 @@ void R_Init (void)
 
 	Cvar_RegisterVariable (&gl_finish);
 	Cvar_RegisterVariable (&gl_clear);
-	Cvar_RegisterVariable (&gl_texsort);
-
- 	if (gl_mtexable)
-		Cvar_SetValue ("gl_texsort", 0.0);
 
 	Cvar_RegisterVariable (&gl_cull);
 	Cvar_RegisterVariable (&gl_smoothmodels);
@@ -301,10 +297,7 @@ void R_TranslatePlayerSkin (int playernum)
 
 	// because this happens during gameplay, do it fast
 	// instead of sending it through gl_upload 8
-    //GL_Bind(playertextures + playernum);
-    //JAMES
 	GL_Bind(playertextures_gl[playernum]);
-	//END
 
 #if 0
 	byte	translated[320*200];

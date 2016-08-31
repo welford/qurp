@@ -89,7 +89,6 @@ cvar_t	r_novis = {"r_novis","0"};
 cvar_t	gl_finish = {"gl_finish","0"};
 cvar_t	gl_clear = {"gl_clear","1"};
 cvar_t	gl_cull = {"gl_cull","1"};
-cvar_t	gl_texsort = {"gl_texsort","1"};
 cvar_t	gl_smoothmodels = {"gl_smoothmodels","1"};
 cvar_t	gl_affinemodels = {"gl_affinemodels","0"};
 cvar_t	gl_polyblend = {"gl_polyblend","1"};
@@ -1163,7 +1162,6 @@ void R_RenderScene (void)
 	S_ExtraUpdate ();	// don't let sound get messed up if going slow
 	//
 	R_DrawEntitiesOnList ();
-	//
 	//
 	R_RenderDlights ();
 	//

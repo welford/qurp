@@ -409,7 +409,6 @@ void R_DrawSkyChain (msurface_t *s)
 
 	GL_DisableMultitexture();
 
-	// used when gl_texsort is on
 	GL_BindNoFlush(solidskytexture);
 	speedscale = realtime*8;
 	speedscale -= (int)speedscale & ~127 ;
@@ -473,9 +472,7 @@ void R_InitSky (texture_t *mt)
 
 
 	if (!solidskytexture){
-		//JAMES
 		glGenTextures(1, &solidskytexture); 
-		//END
 	}
 	GL_Bind (solidskytexture );
 	//glTexImage2D (GL_TEXTURE_2D, 0, texDataType[gl_solid_format], 128, 128, 0, GL_RGBA, GL_UNSIGNED_BYTE, trans);
@@ -500,9 +497,7 @@ void R_InitSky (texture_t *mt)
 		}
 
 	if (!alphaskytexture){
-		//JAMES
 		glGenTextures(1, &alphaskytexture); 
-		//END
 	}
 	GL_Bind(alphaskytexture);
 	//glTexImage2D (GL_TEXTURE_2D, 0, texDataType[gl_alpha_format], 128, 128, 0, GL_RGBA, GL_UNSIGNED_BYTE, trans);
