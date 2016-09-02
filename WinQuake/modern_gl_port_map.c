@@ -378,13 +378,10 @@ static void SetupShaders(void){
 	glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(MAX_DIRECTION_LIGHTS));
 	glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(MAX_POINT_LIGHTS));
 	glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(MAX_SPOT_LIGHTS));
-	glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(TEXT_TEX_UNIT));
 
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(POSITION_LOCATION));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(COLOUR_LOCATION));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(NORMAL_LOCATION));	
-	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(JOINT_WEIGHT_LOCATION));		
-	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(JOINT_INDEX_LOCATION));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(UV_LOCATION0));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(UV_LOCATION1));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(TEXT_LOCATION));

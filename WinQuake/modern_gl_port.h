@@ -89,7 +89,7 @@ typedef struct
 0, 9,10,\
 0,10,11,\
 0,11,12,\
-0,12,13\
+0,12,13,\
 0,13,14,\
 0,14,15,\
 0,15,16,\
@@ -224,7 +224,8 @@ extern void EndAliasBatch();
 extern void CreateBrushBuffers(int numVerts);
 extern void AddBrushData(int vertexOffset, int numVerts, void * pData);
 extern void StartBrushBatch(float depthmin, float depthmax);
-extern void StartWarpBatch();
+extern void SetupWarpBatch();
+extern void SetupSkyBatch();
 extern void SetupColourPass();
 extern void SetupLightMapPass();
 extern void RenderBrushData(int vertexOffset, int numVerts);
@@ -235,5 +236,7 @@ extern void ShutdownModernGLPatch();
 
 extern void SpecialDebugState();
 extern void UpdateTransformUBOs();
+extern void SetRenderOrigin(float x, float y, float z);
+extern void SetRealTime(float time);
 
 #endif// _MODERN_GL_PORT_H_

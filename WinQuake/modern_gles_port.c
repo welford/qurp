@@ -1439,7 +1439,12 @@ void StartBrushBatch(float depthmin, float depthmax)
 #endif
 }
 
-void StartWarpBatch(){
+void SetupWarpBatch(){
+#if BATCH_BRUSH
+#endif
+}
+
+void SetupSkyBatch(){
 #if BATCH_BRUSH
 #endif
 }
@@ -1451,6 +1456,20 @@ void SetupColourPass()
 	glDepthMask(1);
 	Start(&brush_shader);
 #endif
+}
+
+void SetRenderOrigin(float x, float y, float z)
+{
+	//todo
+	//transforms.r_origin[0] = x;
+	//transforms.r_origin[1] = y;
+	//transforms.r_origin[2] = z;
+}
+
+void SetRealTime(float time)
+{
+	//todo
+	//transforms.realtime = time;
 }
 
 void SetupLightMapPass()

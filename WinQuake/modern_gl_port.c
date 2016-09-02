@@ -116,6 +116,7 @@ typedef struct {
 	Matrix44 mvp;
 	Matrix44 proj; 
 	Matrix44 mv;
+	float r_origin[3];
 	float normalMin;
 	float normalRange;
 	float shadeIndex;
@@ -236,6 +237,7 @@ static SShaderProgram light_map_shader;
 static SShaderProgram alias_shader;
 static SShaderProgram brush_shader;
 static SShaderProgram warp_shader;
+static SShaderProgram sky_shader;
 
 //we render to an internal buffer, then blit it to screen
 #define USE_FBO 1
@@ -621,14 +623,11 @@ static void SetupShaders(void){
 	glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(MAX_DIRECTION_LIGHTS));
 	glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(MAX_POINT_LIGHTS));
 	glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(MAX_SPOT_LIGHTS));
-	glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(TEXT_TEX_UNIT));	
 
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(POSITION_LOCATION));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(COLOUR_LOCATION));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(SHADE_LOCATION));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(NORMAL_LOCATION));	
-	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(JOINT_WEIGHT_LOCATION));
-	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(JOINT_INDEX_LOCATION));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(UV_LOCATION0));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(UV_LOCATION1));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(TEXT_LOCATION));
@@ -636,12 +635,8 @@ static void SetupShaders(void){
 
 	glswAddDirectiveToken("Fragment", HASH_DEFINE_VALUE(TEX_SLOT_CLR));	
 	glswAddDirectiveToken("Fragment", HASH_DEFINE_VALUE(TEX_SLOT_LIGHT_RENDER));
-
-
-	//glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(SKINNING_TEXTURE_BINDING));
-	//glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(WEIGHTS_PER_VERTEX));	
-	//glswAddDirectiveToken("Shared", HASH_DEFINE(TEXTURE_BUFFER_SKINNING));	
-	//glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(RESERVED_JOINTS));
+	glswAddDirectiveToken("Fragment", HASH_DEFINE_VALUE(TEX_SLOT_SKY));
+	glswAddDirectiveToken("Fragment", HASH_DEFINE_VALUE(TEX_SLOT_SKY_ALPHA));
 
 	//shader (TEXTURED)
 	got = glswGetShadersAlt("shaders.Version+shaders.Header.Vertex+shaders.Shared+shaders.SimpleVertexTextured", pDVertStr, sizeof(pDVertStr)/sizeof(pDVertStr[0]));	
@@ -671,6 +666,16 @@ static void SetupShaders(void){
 	AddShaderToProgram(&warp_shader, &frgTxShdr);
 	LinkShaderProgram(&warp_shader);
 	transforms.realtime = 0.0f;
+
+	//shader (SKY)
+	got = glswGetShadersAlt("shaders.Version+shaders.Header.Vertex+shaders.Shared+shaders.SkyVertex", pDVertStr, sizeof(pDVertStr) / sizeof(pDVertStr[0]));
+	CreateShader(&vtxTxShdr, VERT, pDVertStr, got);
+	got = glswGetShadersAlt("shaders.Version+shaders.Header.Fragment+shaders.Shared+shaders.SkyFragment", pDFragStr, sizeof(pDFragStr) / sizeof(pDFragStr[0]));
+	CreateShader(&frgTxShdr, FRAG, pDFragStr, got);
+	CreateShaderProgram(&sky_shader);
+	AddShaderToProgram(&sky_shader, &vtxTxShdr);
+	AddShaderToProgram(&sky_shader, &frgTxShdr);
+	LinkShaderProgram(&sky_shader);
 
 	//shader (ALIAS)
 	got = glswGetShadersAlt("shaders.Version+shaders.Header.Vertex+shaders.Shared+shaders.SimpleVertexAlias", pDVertStr, sizeof(pDVertStr)/sizeof(pDVertStr[0]));	
@@ -745,6 +750,18 @@ static void UpdateLightUBOs(){
 	glBindBuffer(GL_UNIFORM_BUFFER, vtx.lighting_ubo_handle);
 	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(UBOLights), &lights);
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+}
+
+void SetRenderOrigin(float x, float y, float z)
+{
+	transforms.r_origin[0] = x;
+	transforms.r_origin[1] = y;
+	transforms.r_origin[2] = z;
+}
+
+void SetRealTime(float time)
+{
+	transforms.realtime = time;
 }
 
 void StartupModernGLPatch(const int width, const int height){
@@ -1507,11 +1524,18 @@ void StartBrushBatch(float depthmin, float depthmax)
 	glBindVertexArray(brush_vao);
 #endif
 }
-void StartWarpBatch()
+
+void SetupWarpBatch()
 {
 #if BATCH_BRUSH
-	transforms.realtime += 0.16f;
 	Start(&warp_shader);
+#endif
+}
+
+void SetupSkyBatch()
+{
+#if BATCH_BRUSH
+	Start(&sky_shader);
 #endif
 }
 

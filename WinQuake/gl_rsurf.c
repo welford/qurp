@@ -332,9 +332,8 @@ void AppendGLPoly (glpoly_t *p)
 #if BATCH_BRUSH
 	TEMP_INDEX_BUFFER
 	for(i=0;i<(p->numverts-2)*3;i++){
-		batchElements.element[batchElements.bufferIndex][batchElements.index++] = buffer[i] += p->vertexOffset;
+		batchElements.element[batchElements.bufferIndex][batchElements.index++] = buffer[i] + p->vertexOffset;
 	}
-	//RenderBrushDataElements(buffer, (p->numverts - 2)*3);
 #endif
 }
 
@@ -854,7 +853,7 @@ void R_DrawWaterSurfaces (void)
 DrawTextureChains
 ================
 */
-void DrawTextureChains(qboolean water)
+void DrawTextureChains(int phase) //temporary 0 = normal, 1 = water, 2 = sky
 {
 	int		i;
 	msurface_t	*s;
@@ -869,28 +868,37 @@ void DrawTextureChains(qboolean water)
 		if (!t)
 			continue;
 
-		GL_BindNoFlush( t->gl_texturenum, TEX_SLOT_CLR );
 		s = t->texturechain;
 		if (!s)
 			continue;
-		if (i == skytexturenum && !water)
-			R_DrawSkyChain(s);
-		else if (i == mirrortexturenum && r_mirroralpha.value != 1.0 &&  !water)
+		if (i == skytexturenum)
 		{
-			R_MirrorChain (s);
-			continue;
+			if (phase == 2)
+				R_DrawSkyChain(s);
+			else
+				continue;
+		}
+		else if (i == mirrortexturenum && r_mirroralpha.value != 1.0)
+		{
+			if (phase == 0){
+				GL_BindNoFlush(t->gl_texturenum, TEX_SLOT_CLR);
+				R_MirrorChain(s);
+				DrawGLPoly();
+				continue;
+			}
 		}
 		else
 		{
-			if (s->flags & SURF_DRAWTURB && !water){
+			if (s->flags & SURF_DRAWTURB && phase != 1)
 				continue;
-			}
+			
+			GL_BindNoFlush(t->gl_texturenum, TEX_SLOT_CLR);
 			for ( ; s ; s=s->texturechain)
 			{
-				R_RenderBrushPoly (s);
+				R_RenderBrushPoly(s);
+				DrawGLPoly();
 			}
 		}
-		DrawGLPoly();
 
 		t->texturechain = NULL;
 	}
@@ -1157,9 +1165,11 @@ void R_DrawWorld (void)
 
 	R_RecursiveWorldNode (cl.worldmodel->nodes);
 	StartBrushBatch(gldepthmin, gldepthmax);
-	DrawTextureChains(false);
-	StartWarpBatch();
-	DrawTextureChains(true);
+	DrawTextureChains(0);
+	SetupWarpBatch();
+	DrawTextureChains(1);
+	SetupSkyBatch();
+	DrawTextureChains(2);
 #if !LIGHT_MAP_ATLAS
 	SetupLightMapPass();
 	R_BlendLightmaps();

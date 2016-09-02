@@ -51,7 +51,7 @@ byte		conback_buffer[sizeof(qpic_t) + sizeof(glpic_t)];
 qpic_t		*conback = (qpic_t *)&conback_buffer;
 
 int		gl_lightmap_format = GL_RGBA;
-int		gl_solid_format = 3;
+int		gl_solid_format = 4;
 int		gl_alpha_format = 4;
 
 

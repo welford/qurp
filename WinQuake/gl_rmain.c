@@ -1126,7 +1126,8 @@ void R_SetupGL (void)
 	TransformMatrix(mtxY.a);
 	TransformMatrix(mtxZ.a);
 	Translate(-r_refdef.vieworg[0],  -r_refdef.vieworg[1],  -r_refdef.vieworg[2]);
-
+	SetRenderOrigin(r_refdef.vieworg[0], r_refdef.vieworg[1], r_refdef.vieworg[2]);
+	SetRealTime(realtime);
 	//
 	// set drawing parms
 	//

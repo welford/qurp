@@ -13,12 +13,13 @@ layout(location = UV_LOCATION0)			in vec2 inUV;
 layout(location = UV_LOCATION1)			in vec2 inUV1;
 layout(location = TEXT_LOCATION)		in int inCharacter;
 layout(location = SHADE_LOCATION)		in float inShadeIndex;
-
-layout(binding=TEX_SLOT_ANORM) uniform sampler2D anorm;
+layout(binding=TEX_SLOT_ANORM)			uniform sampler2D anorm;
 
 -- Header.Fragment
-layout(binding=TEX_SLOT_CLR) uniform sampler2D tex0;
-layout(binding=TEX_SLOT_LIGHT_RENDER) uniform sampler2D texLightmap;
+layout(binding=TEX_SLOT_CLR)			uniform sampler2D tex0;
+layout(binding=TEX_SLOT_LIGHT_RENDER)	uniform sampler2D texLightmap;
+layout(binding=TEX_SLOT_SKY)			uniform	sampler2D sky;
+layout(binding=TEX_SLOT_SKY_ALPHA)		uniform sampler2D skyAlpha;
 
 
 -- Header.Vertex.ES
@@ -48,6 +49,7 @@ layout(std140) uniform Transforms
 	mat4		mvp;
 	mat4		proj;
 	mat4		mv;
+	vec3		r_origin;
 	float		normalMin;
 	float		normalRange;
 	float		shadeIndex;
@@ -241,9 +243,40 @@ void main()
 	vec2 warpUV;
 	//warpUV.x = (uv.x + sin( (uv.y * 0.125 + trans.realtime)*0.05) );// * (1.0/64.0);
 	//warpUV.y = (uv.y + sin( (uv.t * 0.125 + trans.realtime)*0.05) );// * (1.0/64.0);
-	warpUV.x = uv.x + sin( (2*uv.y + trans.realtime*0.01)) * (1.0/16.0);
-	warpUV.y = uv.y + sin( (2*uv.t + trans.realtime*0.01)) * (1.0/16.0);
+	warpUV.x = uv.x + sin( (uv.y + trans.realtime)) * (1.0/5.0);
+	warpUV.y = uv.y + cos( (uv.t + trans.realtime)) * (1.0/5.0);
 	fragColour = texture(tex0, warpUV);
+}
+
+-- SkyVertex
+
+out vec2 uvslow, uvfast;
+//out vec4 profSpacePosition;
+void main()
+{
+	vec3 eyeSpacePosition =  inVertex.xyz - trans.r_origin;
+	eyeSpacePosition.z *= 3.0;
+	float length = length(eyeSpacePosition.xyz);
+	length = 6*63.0/length;
+	
+	eyeSpacePosition.x *= length;
+	eyeSpacePosition.y *= length;
+	
+	uvslow = vec2(trans.realtime*8 + eyeSpacePosition.x,trans.realtime*8 + eyeSpacePosition.y)*(1/128.0);
+	uvfast = vec2(trans.realtime*16 + eyeSpacePosition.x,trans.realtime*16 + eyeSpacePosition.y)*(1/128.0);
+
+	gl_Position = trans.mvp * inVertex;
+}
+
+-- SkyFragment
+
+in vec2 uvslow,uvfast;
+out vec4 fragColour;
+
+void main()
+{
+	vec4 alpha = texture(skyAlpha, uvfast);
+	fragColour = mix(texture(sky, uvslow), alpha, alpha.a);
 }
 
 -- SimpleVertexAlias

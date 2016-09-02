@@ -306,7 +306,7 @@ void EmitSkyPolys (msurface_t *fa)
 			s = (speedscale + dir[0]) * (1.0/128);		t = (speedscale + dir[1]) * (1.0/128);
 
 			AddVertex2D (VTX_TEXTURE, s, t);
-			AddVertex3D (VTX_POSITION, first_vtx[0], first_vtx[1], first_vtx[2]);			
+			AddVertex3D (VTX_POSITION, first_vtx[0], first_vtx[1], first_vtx[2]);
 
 			// - - - - - - - - - - - - - - - - - - - - - - - - -
 			VectorSubtract (v, r_origin, dir);
@@ -319,7 +319,7 @@ void EmitSkyPolys (msurface_t *fa)
 			s = (speedscale + dir[0]) * (1.0/128);		t = (speedscale + dir[1]) * (1.0/128);
 
 			AddVertex2D (VTX_TEXTURE, s, t);
-			AddVertex3D (VTX_POSITION, v[0], v[1], v[2]);			
+			AddVertex3D (VTX_POSITION, v[0], v[1], v[2]);
 
 			// - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -407,24 +407,13 @@ void R_DrawSkyChain (msurface_t *s)
 {
 	msurface_t	*fa;
 
-	GL_DisableMultitexture();
-
-	GL_BindNoFlush(solidskytexture);
-	speedscale = realtime*8;
-	speedscale -= (int)speedscale & ~127 ;
+	GL_BindNoFlush(solidskytexture, TEX_SLOT_SKY);
+	GL_BindNoFlush(alphaskytexture, TEX_SLOT_SKY_ALPHA);
 
 	for (fa=s ; fa ; fa=fa->texturechain)
 		EmitSkyPolys (fa);
 
-	glEnable (GL_BLEND);
-	GL_BindNoFlush(alphaskytexture);
-	speedscale = realtime*16;
-	speedscale -= (int)speedscale & ~127 ;
-
-	for (fa=s ; fa ; fa=fa->texturechain)
-		EmitSkyPolys (fa);
-
-	glDisable (GL_BLEND);
+	DrawGLPoly();
 }
 
 #endif
@@ -499,6 +488,7 @@ void R_InitSky (texture_t *mt)
 	if (!alphaskytexture){
 		glGenTextures(1, &alphaskytexture); 
 	}
+
 	GL_Bind(alphaskytexture);
 	//glTexImage2D (GL_TEXTURE_2D, 0, texDataType[gl_alpha_format], 128, 128, 0, GL_RGBA, GL_UNSIGNED_BYTE, trans);
 	glTexImage2D (GL_TEXTURE_2D, 0, texDataType[gl_alpha_format], 128, 128, 0, texDataType[gl_alpha_format], GL_UNSIGNED_BYTE, trans);
