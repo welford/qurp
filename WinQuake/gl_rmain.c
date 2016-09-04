@@ -656,12 +656,6 @@ void R_DrawAliasModel (entity_t *e)
 		if (ambientlight < 8)
 			ambientlight = shadelight = 8;
 
-	// HACK HACK HACK -- no fullbright colors, so make torches full light
-#if !LIGHT_MAP_ATLAS
-	if (!strcmp (clmodel->name, "progs/flame2.mdl")
-		|| !strcmp (clmodel->name, "progs/flame.mdl") )
-		ambientlight = shadelight = 256;
-#endif
 	shadedotsIndex = ((int)(e->angles[1] * (SHADEDOT_QUANT / 360.0))) & (SHADEDOT_QUANT - 1);
 	shadedots = r_avertexnormal_dots[shadedotsIndex];
 	shadelight = shadelight / 200.0;

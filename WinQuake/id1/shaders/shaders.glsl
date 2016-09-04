@@ -304,7 +304,9 @@ out vec4 fragColour;
 
 void main()
 {
-	fragColour = pow(texture(tex0, uv),vec4(trans.gamma))* shade;
+	vec4 base = texture(tex0, uv);
+	float fullbright = (1.0 - base.a);
+	fragColour = pow(base*clamp(shade+fullbright,0.0,1.0),vec4(trans.gamma));
 }
 
 -- SimpleVertexColoured
