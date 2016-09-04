@@ -169,7 +169,7 @@ RECT		window_rect;
 
 //static const unsigned int multisamples = 16;
 static const unsigned int multisamples = 0; //if we are going down the blitting/FBO route we need to make sure multisamples match between , FBO and backbuffer
-static const unsigned int clr_bits = 24, alpha_bits = 8, depth_bits = 16, stencil_bits = 8;
+static const unsigned int clr_bits = 16, alpha_bits = 8, depth_bits = 16, stencil_bits = 8;
 static const unsigned int default_width = 320, default_height = 240;
 static const unsigned int minimum_width = 320, minimum_height = 240;
 
@@ -885,10 +885,12 @@ void	VID_SetPalette (unsigned char *palette)
 		g = pal[1];
 		b = pal[2];
 		pal += 3;
-		
-//		v = (255<<24) + (r<<16) + (g<<8) + (b<<0);
-//		v = (255<<0) + (r<<8) + (g<<16) + (b<<24);
-		v = (255<<24) + (r<<0) + (g<<8) + (b<<16);
+
+		if (i >= 224)
+			v = (0 << 24) + (r << 0) + (g << 8) + (b << 16);
+		else
+			v = (255 << 24) + (r << 0) + (g << 8) + (b << 16);
+
 		*table++ = v;
 	}
 	d_8to24table[255] &= 0xffffff;	// 255 is transparent

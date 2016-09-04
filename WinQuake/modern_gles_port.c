@@ -1472,6 +1472,12 @@ void SetRealTime(float time)
 	//transforms.realtime = time;
 }
 
+void SetGamma(float gamma)
+{
+	//todo
+	//transforms.gamma = gamma;
+}
+
 void SetupLightMapPass()
 {
 #if BATCH_BRUSH

@@ -55,6 +55,7 @@ layout(std140) uniform Transforms
 	float		shadeIndex;
 	float		shadeLight;
 	float		realtime;
+	float		gamma;
 }trans;
 
 struct UBODirectionLight
@@ -227,8 +228,10 @@ out vec4 fragColour;
 
 void main()
 {
-	//fragColour = texture(tex0, uv) * texture(texLightmap, uvLightmap).r;
-	fragColour = texture(tex0, uv);
+	//vec4 base = texture(tex0, uv);
+	//float fullbright = (1.0 - base.a);
+	//fragColour = pow(base * clamp(texture(texLightmap, uvLightmap).r+fullbright,0.0,1.0), vec4(trans.gamma));
+	fragColour = pow(texture(tex0, uv), vec4(trans.gamma));
 }
 
 -- WarpFragment
@@ -241,17 +244,14 @@ out vec4 fragColour;
 void main()
 {
 	vec2 warpUV;
-	//warpUV.x = (uv.x + sin( (uv.y * 0.125 + trans.realtime)*0.05) );// * (1.0/64.0);
-	//warpUV.y = (uv.y + sin( (uv.t * 0.125 + trans.realtime)*0.05) );// * (1.0/64.0);
 	warpUV.x = uv.x + sin( (uv.y + trans.realtime)) * (1.0/5.0);
 	warpUV.y = uv.y + cos( (uv.t + trans.realtime)) * (1.0/5.0);
-	fragColour = texture(tex0, warpUV);
+	fragColour = pow(texture(tex0, warpUV),vec4(trans.gamma));
 }
 
 -- SkyVertex
 
 out vec2 uvslow, uvfast;
-//out vec4 profSpacePosition;
 void main()
 {
 	vec3 eyeSpacePosition =  inVertex.xyz - trans.r_origin;
@@ -276,7 +276,7 @@ out vec4 fragColour;
 void main()
 {
 	vec4 alpha = texture(skyAlpha, uvfast);
-	fragColour = mix(texture(sky, uvslow), alpha, alpha.a);
+	fragColour = pow(mix(texture(sky, uvslow), alpha, alpha.a),vec4(trans.gamma));
 }
 
 -- SimpleVertexAlias
@@ -304,7 +304,7 @@ out vec4 fragColour;
 
 void main()
 {
-	fragColour = texture(tex0, uv) * shade;
+	fragColour = pow(texture(tex0, uv),vec4(trans.gamma))* shade;
 }
 
 -- SimpleVertexColoured
@@ -340,6 +340,5 @@ in vec2 uv;
 out vec4 fragColour;
 void main()
 {
-	fragColour = texture(texLightmap, uv).rrra;
-
+	fragColour = pow(texture(texLightmap, uv).rrra,vec4(trans.gamma));
 }

@@ -122,6 +122,7 @@ typedef struct {
 	float shadeIndex;
 	float shadeValue;
 	float realtime;
+	float gamma;
 }UBOTransforms;
 
 typedef struct {
@@ -666,6 +667,7 @@ static void SetupShaders(void){
 	AddShaderToProgram(&warp_shader, &frgTxShdr);
 	LinkShaderProgram(&warp_shader);
 	transforms.realtime = 0.0f;
+	transforms.gamma = 1.0f;
 
 	//shader (SKY)
 	got = glswGetShadersAlt("shaders.Version+shaders.Header.Vertex+shaders.Shared+shaders.SkyVertex", pDVertStr, sizeof(pDVertStr) / sizeof(pDVertStr[0]));
@@ -762,6 +764,11 @@ void SetRenderOrigin(float x, float y, float z)
 void SetRealTime(float time)
 {
 	transforms.realtime = time;
+}
+
+void SetGamma(float gamma)
+{
+	transforms.gamma = gamma;
 }
 
 void StartupModernGLPatch(const int width, const int height){

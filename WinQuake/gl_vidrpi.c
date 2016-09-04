@@ -159,8 +159,11 @@ void	VID_SetPalette (unsigned char *palette)
 		g = pal[1];
 		b = pal[2];
 		pal += 3;
-		
-		v = (255<<24) + (r<<0) + (g<<8) + (b<<16);
+		if(i >= 224)
+			v = (0<<24) + (r<<0) + (g<<8) + (b<<16);
+		else
+			v = (255<<24) + (r << 0) + (g << 8) + (b << 16);
+
 		*table++ = v;
 	}
 	d_8to24table[255] &= 0xffffff;	// 255 is transparent

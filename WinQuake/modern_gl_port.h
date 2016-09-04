@@ -73,7 +73,6 @@ typedef struct
 #define TEX_SLOT_SKY			4
 #define TEX_SLOT_SKY_ALPHA		5
 
-
 #define SUBDIVIDE_WARP_POLYS 0
 
 #if BATCH_BRUSH
@@ -238,5 +237,6 @@ extern void SpecialDebugState();
 extern void UpdateTransformUBOs();
 extern void SetRenderOrigin(float x, float y, float z);
 extern void SetRealTime(float time);
+extern void SetGamma(float gamma);
 
 #endif// _MODERN_GL_PORT_H_
