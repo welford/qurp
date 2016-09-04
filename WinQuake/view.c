@@ -302,7 +302,7 @@ qboolean V_CheckGamma (void)
 	
 	BuildGammaTable (v_gamma.value);
 	vid.recalc_refdef = 1;				// force a surface cache flush
-	SetGamma(1.25f - (1.0f - (v_gamma.value - 0.5f)*2.0f)*0.5f);
+	SetGamma(1.4f - (1.0f - (v_gamma.value - 0.5f)*2.0f)*0.5f);
 	return true;
 }
 

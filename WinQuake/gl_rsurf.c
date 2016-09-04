@@ -230,11 +230,14 @@ store:
 			{
 				t = *bl++;
 				t >>= 7;
-				if (t > 255)
-					t = 255;
 #if LIGHT_MAP_ATLAS
+				if (t > 511)
+					t = 511;
+				t = (((float)t) / ((float)511)) * 255;
 				dest[j] = t;
 #else
+				if (t > 255)
+					t = 255;
 				dest[j] = 255 - t;
 #endif
 			}
