@@ -217,7 +217,7 @@ extern void BlitFBO(const int windowWidth, const int windowHeight);
 
 extern void CreatAliasBuffers(int* pVboOffset, int numVerts, void * pData);
 extern void StartAliasBatch(float depthmin, float depthmax);
-extern void RenderAlias(const int vbo_offset, const int posenum, const int numTris, int shadeDotIndex, float shadeLight);
+extern void RenderAlias(const int vbo_offset, const int posenum, const int numTris, int shadeDotIndex, float shadeLight, float ambientLight);
 extern void EndAliasBatch();
 
 extern void CreateBrushBuffers(int numVerts);

@@ -116,11 +116,12 @@ typedef struct {
 	Matrix44 mvp;
 	Matrix44 proj; 
 	Matrix44 mv;
-	float r_origin[3];
+	float r_origin_shade[3];
 	float normalMin;
 	float normalRange;
 	float shadeIndex;
-	float shadeValue;
+	float shadeLight;
+	float ambientLight;
 	float realtime;
 	float gamma;
 }UBOTransforms;
@@ -756,9 +757,9 @@ static void UpdateLightUBOs(){
 
 void SetRenderOrigin(float x, float y, float z)
 {
-	transforms.r_origin[0] = x;
-	transforms.r_origin[1] = y;
-	transforms.r_origin[2] = z;
+	transforms.r_origin_shade[0] = x;
+	transforms.r_origin_shade[1] = y;
+	transforms.r_origin_shade[2] = z;
 }
 
 void SetRealTime(float time)
@@ -1446,11 +1447,12 @@ void StartAliasBatch(float depthmin, float depthmax)
 	glBindVertexArray(alias_vao);
 }
 
-void RenderAlias(const int vbo_offset,  const int posenum, const int numTris, int shadeDotIndex, float shadeLight)
+void RenderAlias(const int vbo_offset,  const int posenum, const int numTris, int shadeDotIndex, float shadeLight, float ambientlight)
 {
 	//highjack the normal matrix for now...
 	transforms.shadeIndex = ((float)shadeDotIndex / 15.0f);
-	transforms.shadeValue = shadeLight;
+	transforms.shadeLight = shadeLight;
+	transforms.ambientLight = ambientlight;
 
 	UpdateTransformUBOs();
 

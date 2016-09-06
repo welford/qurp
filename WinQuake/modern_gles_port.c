@@ -1347,7 +1347,7 @@ void StartAliasBatch(float depthmin, float depthmax)
 	glVertexAttribPointer(SHADE_LOCATION, 1, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(glAliasData), (char *)(0 + sizeof(char) * 2 + sizeof(char) * 3));
 }
 
-void RenderAlias(const int vbo_offset,  const int posenum, const int numTris, int shadeDotIndex, float shadeLight)
+void RenderAlias(const int vbo_offset,  const int posenum, const int numTris, int shadeDotIndex, float shadeLight, float ambientLight)
 {
 	transforms.shadeIndex = ((float)shadeDotIndex / 15.0f);
 	transforms.shadeLight = shadeLight;

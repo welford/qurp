@@ -59,8 +59,6 @@ int		gl_alpha_format = 4;
 int		gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
 int		gl_filter_max = GL_LINEAR;
 #else
-//int		gl_filter_min = GL_NEAREST_MIPMAP_NEAREST;
-//int		gl_filter_max = GL_NEAREST_MIPMAP_NEAREST;
 int		gl_filter_min = GL_NEAREST;
 int		gl_filter_max = GL_NEAREST;
 #endif

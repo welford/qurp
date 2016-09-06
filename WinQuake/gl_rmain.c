@@ -316,7 +316,7 @@ void GL_DrawAliasFrame (aliashdr_t *paliashdr, int posenum)
 	int		n_tris = 0;
 
 #if ALIAS_VBO  
-	RenderAlias(paliashdr->vbo_offset, posenum, paliashdr->numtris, shadedotsIndex, shadelight);
+	RenderAlias(paliashdr->vbo_offset, posenum, paliashdr->numtris, shadedotsIndex, shadelight, (float)(ambientlight / 256.0f));
 #else
 
 	//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -639,7 +639,7 @@ void R_DrawAliasModel (entity_t *e)
 			if (add > 0) {
 				ambientlight += add;
 				//ZOID models should be affected by dlights as well
-				shadelight += add;
+				//shadelight += add;
 			}
 		}
 	}
@@ -797,13 +797,12 @@ R_DrawViewModel
 */
 void R_DrawViewModel (void)
 {
-	float		ambient[4], diffuse[4];
 	int			j;
 	int			lnum;
 	vec3_t		dist;
 	float		add;
 	dlight_t	*dl;
-	int			ambientlight, shadelight;
+	//int			ambientlight, shadelight;
 
 	if (!r_drawviewmodel.value)
 		return;
@@ -831,10 +830,11 @@ void R_DrawViewModel (void)
 
 	if (j < 24)
 		j = 24;		// allways give some light on gun
+
 	ambientlight = j;
 	shadelight = j;
 
-// add dynamic lights		
+	// add dynamic lights
 	for (lnum=0 ; lnum<MAX_DLIGHTS ; lnum++)
 	{
 		dl = &cl_dlights[lnum];
@@ -850,12 +850,8 @@ void R_DrawViewModel (void)
 		if (add > 0)
 			ambientlight += add;
 	}
-	//look into this!S
-	ambient[0] = ambient[1] = ambient[2] = ambient[3] = (float)ambientlight / 128;
-	diffuse[0] = diffuse[1] = diffuse[2] = diffuse[3] = (float)shadelight / 128;
 
-	// hack the depth range to prevent view model from poking into walls	
-	//SetDepthRange (gldepthmin, gldepthmin + 0.3*( gldepthmax - gldepthmin ));
+	// hack the depth range to prevent view model from poking into walls
 	StartAliasBatch(gldepthmin, gldepthmin + 0.3*( gldepthmax - gldepthmin ));
 	R_DrawAliasModel (currententity);	
 	EndAliasBatch();
