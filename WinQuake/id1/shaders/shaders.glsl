@@ -49,129 +49,16 @@ layout(std140) uniform Transforms
 	mat4		mvp;
 	mat4		proj;
 	mat4		mv;
-	vec3		r_origin;
+	vec3		r_origin_shade; //for the sky shader it's the origin, for alias it's the light direction
 	float		normalMin;
 	float		normalRange;
 	float		shadeIndex;
 	float		shadeLight;
+	float		ambientLight;
 	float		realtime;
 	float		gamma;
 }trans;
 
-struct UBODirectionLight
-{
-	vec4 direction;		//eye space
-	vec4 diffuse;
-};//32 bytes
-
-struct UBOPointLight
-{
-	vec4	position;	//eye space
-	vec4	diffuse;
-	float	intensity, half_intensity_distance, linear_attenuation, quadratic_attenuation;
-};//48 bytes
-
-struct UBOSpotLight
-{
-	vec4	position;	//eye space
-	vec4	direction;	//eye space
-	vec4	diffuse;
-	float	intensity, half_intensity_distance, linear_attenuation, quadratic_attenuation;
-	float	cosine_cutoff, dummy0, dummy1, dummy2;
-};//48 bytes
-
-layout(std140, binding=LIGHT_UBO_BINDING) uniform Lights
-{
-	int		number_of_direction_lights;
-	int		number_of_point_lights;
-	int		number_of_spot_lights;
-	int		dummy;
-
-	UBODirectionLight direction_light[MAX_DIRECTION_LIGHTS];
-	UBOPointLight point_light[MAX_POINT_LIGHTS];
-	UBOSpotLight spot_light[MAX_SPOT_LIGHTS];
-
-}lights;
-
-//can be done in the vertex or fragment shader so we'll plop it here for nwo
-void DirectionalLight(const in UBODirectionLight light, /*const in vec3 esHalfVector, */ const in vec3 normal, inout vec4 diffuse, inout vec4 specular)
-{
-	float nDotVP;
-	float nDotHV;
-	float pf;
-
-	nDotVP = max(0.0, dot(normal, light.direction.xyz ));	
-	//nDotHV = max(0.0, dot(normal, esHalfVector ));
-	if(nDotVP == 0.0)	
-		pf = 0.0;
-	else
-		pf = pow(nDotHV, 16);	
-
-	diffuse += light.diffuse  * nDotVP;	
-	//specular += light.specular * pf * min(1.0, nDotVP*5.0);	
-}
-
-void PointLight(const in UBOPointLight light, in vec3 esVtx, /*const in vec3 esHalfVector, */  in vec3 normal, inout vec4 diffuse, inout vec4 specular)
-{
-	vec3 surfaceToLight;			// direction from surface to light position
-	float distanceSurfaceToLight;	//
-	float dotNormalLightDir;		// normal . light direction	
-	float attenuation = 0;			// computed attenuation factor
-
-	surfaceToLight = light.position.xyz - esVtx;
-	distanceSurfaceToLight = length(surfaceToLight);
-	surfaceToLight = normalize(surfaceToLight);
-
-
-	// Compute attenuation;
-	float D2 = pow(light.half_intensity_distance,2);
-	attenuation = max(0, D2 / (D2 + light.quadratic_attenuation * pow(distanceSurfaceToLight,2)));
-	//halfVector = normalize (VP + eye);
-	dotNormalLightDir = max (0.0, dot(normal, surfaceToLight));
-
-	//nDotHV = max (0.0, dot (normal, halfVector));
-	//if (nDotVP == 0.0)
-	//	pf = 0.0;
-	//else
-	//	pf = pow (nDotHV, uniMaterial.shininess);
-	//ambient  += light.ambient;
-	diffuse  += light.diffuse * dotNormalLightDir * attenuation;
-	//specular += light.specular * pf * attenuation * min(1.0, nDotVP*2.0);
-}
-
-void SpotLight(const in UBOSpotLight light, in vec3 esVtx, /*const in vec3 esHalfVector, */  in vec3 normal, inout vec4 diffuse, inout vec4 specular)
-{
-	vec3 surfaceToLight;			// direction from surface to light position
-	float distanceSurfaceToLight;	//
-	float dotNormalLightDir;		// normal . light direction
-	float dotSpotDirLightDir;		// normal . spot direction
-	float attenuation = 0;			// computed attenuation factor
-
-	surfaceToLight = light.position.xyz - esVtx;
-	distanceSurfaceToLight = length(surfaceToLight);
-	surfaceToLight = normalize(surfaceToLight);
-
-	dotSpotDirLightDir = dot(surfaceToLight, light.direction.xyz);
-
-	// Compute attenuation;
-	float D2 = pow(light.half_intensity_distance,2);
-	attenuation = max(0, D2 / (D2 + light.quadratic_attenuation * pow(distanceSurfaceToLight,2)));
-
-	if(dotSpotDirLightDir <	 light.cosine_cutoff)
-		attenuation = 0;
-
-	//halfVector = normalize (VP + eye);
-	dotNormalLightDir = max (0.0, dot(normal, surfaceToLight));
-
-	//nDotHV = max (0.0, dot (normal, halfVector));
-	//if (nDotVP == 0.0)
-	//	pf = 0.0;
-	//else
-	//	pf = pow (nDotHV, uniMaterial.shininess);
-	//ambient  += light.ambient;
-	diffuse  += light.diffuse * dotNormalLightDir * attenuation;
-	//specular += light.specular * pf * attenuation * min(1.0, nDotVP*2.0);
-}
 
 -- Shared.ES
 
@@ -205,7 +92,8 @@ out vec4 fragColour;
 
 void main()
 {
-	fragColour = texture(tex0, uv) * colour;
+	//fragColour = texture(tex0, uv) * colour;
+	fragColour = pow(texture(tex0, uv),vec4(trans.gamma)) * colour;
 }
 
 -- BrushVertex
@@ -230,7 +118,7 @@ void main()
 {
 	//vec4 base = texture(tex0, uv);
 	//float fullbright = (1.0 - base.a);
-	//fragColour = pow(base * clamp(texture(texLightmap, uvLightmap).r+fullbright,0.0,1.0), vec4(trans.gamma));
+	//fragColour = pow(base * clamp(texture(texLightmap, uvLightmap).r*2.0+fullbright,0.0,2.0), vec4(trans.gamma));
 	fragColour = pow(texture(tex0, uv), vec4(trans.gamma));
 }
 
@@ -254,7 +142,7 @@ void main()
 out vec2 uvslow, uvfast;
 void main()
 {
-	vec3 eyeSpacePosition =  inVertex.xyz - trans.r_origin;
+	vec3 eyeSpacePosition =  inVertex.xyz - trans.r_origin_shade;
 	eyeSpacePosition.z *= 3.0;
 	float length = length(eyeSpacePosition.xyz);
 	length = 6*63.0/length;
@@ -288,7 +176,7 @@ void main()
 	float texAnorm = texture(anorm, vec2(inShadeIndex / 255.0, trans.shadeIndex)).r;
 	float scaledTexAnorm = trans.normalMin + (texAnorm * trans.normalRange);
 
-	shade = scaledTexAnorm * trans.shadeLight;
+	shade = (scaledTexAnorm * trans.shadeLight) + trans.ambientLight;
 
 	uv = inUV;
 
@@ -306,7 +194,7 @@ void main()
 {
 	vec4 base = texture(tex0, uv);
 	float fullbright = (1.0 - base.a);
-	fragColour = pow(base*clamp(shade+fullbright,0.0,1.0),vec4(trans.gamma));
+	fragColour = pow(base*clamp(shade+fullbright,0.0,4.0),vec4(trans.gamma));
 }
 
 -- SimpleVertexColoured
@@ -342,5 +230,5 @@ in vec2 uv;
 out vec4 fragColour;
 void main()
 {
-	fragColour = pow(texture(texLightmap, uv).rrra,vec4(trans.gamma));
+	fragColour = pow(texture(texLightmap, uv).rrra,vec4(trans.gamma)); //applying gamme twice?
 }
