@@ -229,9 +229,15 @@ static int alias_vao = -1;				//
 static int alias_vert_offset = 0;			//
 static const int ALIAS_BUFFER_SIZE  = (1024 * 1024 * 12);
 
-static int brush_vbo = -1;				//
-static int brush_vao = -1;				//
-static int brush_vbo_size = -1;			//
+int active_brush_vao = -1, num_brush_vbo = 0;
+
+int brush_vertex_size;
+static int currentOffset = 0;		//used when we are filling data
+static int currentBrushVBO = 0;		//
+
+static int brush_vbo[MAX_BRUSH_VBOS] = {-1};				//
+static int brush_vao[MAX_BRUSH_VBOS] = {-1};				//
+static int brush_vbo_size[MAX_BRUSH_VBOS] = {0};			//
 
 static SShaderProgram texture_shader;
 static SShaderProgram colour_shader;
@@ -1467,50 +1473,71 @@ void EndAliasBatch()
 void CreateBrushBuffers(int numVerts)
 {
 #if BATCH_BRUSH
+	int i = 0;
 	unsigned int currentVBO = GetCurrentBuffer(GL_ARRAY_BUFFER_BINDING);
 	unsigned int currentVAO = GetCurrentBuffer(GL_VERTEX_ARRAY_BINDING);
 
-	if(brush_vbo >= 0)
+	if(brush_vbo[0] >= 0)
 	{
-		glDeleteBuffers(1, &brush_vbo);
-		glDeleteVertexArrays(1, &brush_vao);
+		glDeleteBuffers(num_brush_vbo, brush_vbo);
+		glDeleteVertexArrays(num_brush_vbo, brush_vao);
 	}
-
-	glGenVertexArrays(1, &brush_vao);
-	glGenBuffers(1, &brush_vbo);
+	num_brush_vbo = (numVerts / 65536) + 1;
+	brush_vertex_size = 0;
+	currentBrushVBO = 0;
+	currentOffset = 0;
+	glGenVertexArrays(num_brush_vbo, brush_vao);
+	glGenBuffers(num_brush_vbo, brush_vbo);
 
 	//send data to GPU
-	glBindBuffer(GL_ARRAY_BUFFER, brush_vbo);
-	glBufferData(GL_ARRAY_BUFFER, numVerts * sizeof(glBrushData), 0, GL_STATIC_DRAW);
+	for (i = 0; i < num_brush_vbo; i++){
+		glBindBuffer(GL_ARRAY_BUFFER, brush_vbo[i]);
+		glBufferData(GL_ARRAY_BUFFER, numVerts * sizeof(glBrushData), 0, GL_STATIC_DRAW);
 
-	//describe data for when we draw
-	glBindVertexArray( brush_vao );
+		//describe data for when we draw
+		glBindVertexArray(brush_vao[i]);
 
-	glEnableVertexAttribArray(POSITION_LOCATION);
-	glBindBuffer(GL_ARRAY_BUFFER, brush_vbo);
-	glVertexAttribPointer(POSITION_LOCATION, 3, QURP_FLOAT, GL_FALSE, sizeof(glBrushData), (char *)(0));
+		glEnableVertexAttribArray(POSITION_LOCATION);
+		glBindBuffer(GL_ARRAY_BUFFER, brush_vbo[i]);
+		glVertexAttribPointer(POSITION_LOCATION, 3, QURP_FLOAT, GL_FALSE, sizeof(glBrushData), (char *)(0));
 
-	glEnableVertexAttribArray(UV_LOCATION0);
-	glBindBuffer(GL_ARRAY_BUFFER, brush_vbo);
-	glVertexAttribPointer(UV_LOCATION0, 2, QURP_FLOAT, GL_FALSE, sizeof(glBrushData), (char *)(0 + sizeof(float)*3));
+		glEnableVertexAttribArray(UV_LOCATION0);
+		glBindBuffer(GL_ARRAY_BUFFER, brush_vbo[i]);
+		glVertexAttribPointer(UV_LOCATION0, 2, QURP_FLOAT, GL_FALSE, sizeof(glBrushData), (char *)(0 + sizeof(float) * 3));
 
 
-	glEnableVertexAttribArray(UV_LOCATION1);
-	glBindBuffer(GL_ARRAY_BUFFER, brush_vbo);
-	glVertexAttribPointer(UV_LOCATION1, 2, QURP_FLOAT, GL_FALSE, sizeof(glBrushData), (char *)(0 + sizeof(float)*5));
-
+		glEnableVertexAttribArray(UV_LOCATION1);
+		glBindBuffer(GL_ARRAY_BUFFER, brush_vbo[i]);
+		glVertexAttribPointer(UV_LOCATION1, 2, QURP_FLOAT, GL_FALSE, sizeof(glBrushData), (char *)(0 + sizeof(float) * 5));
+	}
 	glBindVertexArray( currentVAO );
 	glBindBuffer(GL_ARRAY_BUFFER, currentVBO);
 #endif
 }
 
-void AddBrushData(int vertexOffset, int numVerts, void * pData)
+BrushVBOData AppendBrushData(int numVerts, void * pData)
 {
 #if BATCH_BRUSH
 	unsigned int currentVBO = GetCurrentBuffer(GL_ARRAY_BUFFER_BINDING);
-	glBindBuffer(GL_ARRAY_BUFFER, brush_vbo);
-	glBufferSubData(GL_ARRAY_BUFFER, sizeof(glBrushData)*vertexOffset, sizeof(glBrushData)*numVerts, pData);
+	BrushVBOData out = {-1,-1};
+
+
+	if (numVerts <= 0)return out;
+
+	if ((currentOffset + numVerts) > 65535){
+		currentOffset = 0;
+		currentBrushVBO++;
+	}
+	out.vbo = currentBrushVBO;
+	out.offset = currentOffset;
+	
+	brush_vertex_size += numVerts;
+
+	glBindBuffer(GL_ARRAY_BUFFER, brush_vbo[currentBrushVBO]);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(glBrushData)*currentOffset, sizeof(glBrushData)*numVerts, pData);
 	glBindBuffer(GL_ARRAY_BUFFER, currentVBO);
+	currentOffset += numVerts;
+	return out;
 #endif
 }
 
@@ -1530,8 +1557,17 @@ void StartBrushBatch(float depthmin, float depthmax)
 
 	Start(&brush_shader);
 	UpdateTransformUBOs();
-	glBindVertexArray(brush_vao);
+	active_brush_vao = 0;
+	glBindVertexArray(brush_vao[active_brush_vao]);
 #endif
+}
+
+void SetBrushBuffer(int idx)
+{
+	if (active_brush_vao == idx)return;
+
+	active_brush_vao = idx;
+	glBindVertexArray(brush_vao[active_brush_vao]);
 }
 
 void SetupWarpBatch()

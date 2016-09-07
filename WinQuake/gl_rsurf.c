@@ -73,7 +73,8 @@ byte		lightmapsData[4*MAX_LIGHTMAPS*BLOCK_WIDTH*BLOCK_HEIGHT];
 msurface_t  *skychain = NULL;
 msurface_t  *waterchain = NULL;
 
-BatchElements batchElements = {0,0,{{0},{0},{0}}};
+//BatchElements batchElements = {0,0,{{0},{0},{0}}};
+BatchElements batchElements[MAX_BRUSH_VBOS] = { 0 };
 
 void R_RenderDynamicLightmaps (msurface_t *fa);
 
@@ -335,7 +336,7 @@ void AppendGLPoly (glpoly_t *p)
 #if BATCH_BRUSH
 	TEMP_INDEX_BUFFER
 	for(i=0;i<(p->numverts-2)*3;i++){
-		batchElements.element[batchElements.bufferIndex][batchElements.index++] = buffer[i] + p->vertexOffset;
+		batchElements[p->vboIndex].element[batchElements[p->vboIndex].bufferIndex][batchElements[p->vboIndex].index++] = buffer[i] + p->vertexOffset;
 	}
 #endif
 }
@@ -425,10 +426,14 @@ DrawGLPoly
 #if BATCH_BRUSH
 void DrawGLPoly ()
 {
-	if(batchElements.index == 0)return;
-	RenderBrushDataElements(batchElements.element[batchElements.bufferIndex], batchElements.index);
-	batchElements.bufferIndex = (batchElements.bufferIndex + 1) % MAX_ELEMENT_BUFFERS;
-	batchElements.index = 0;
+	unsigned int i = 0;
+	for (i = 0; i < MAX_BRUSH_VBOS; i++){
+		if (batchElements[i].index == 0)continue;
+		SetBrushBuffer(i);
+		RenderBrushDataElements(batchElements[i].element[batchElements[i].bufferIndex], batchElements[i].index);
+		batchElements[i].bufferIndex = (batchElements[i].bufferIndex + 1) % MAX_ELEMENT_BUFFERS;
+		batchElements[i].index = 0;
+	}
 }
 #else
 void DrawGLPoly (glpoly_t *p)
@@ -840,10 +845,6 @@ void R_DrawWaterSurfaces (void)
 	}
 
 	if (r_wateralpha.value < 1.0) {
-		//glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-
-		//glColor4f (1,1,1,1);
-		//glDisable (GL_BLEND);
 		AddVertex4D (VTX_COLOUR, 1, 1, 1, 1.0f);	
 		DisableBlending();
 	}
@@ -1475,7 +1476,7 @@ void GL_BuildLightmaps (void)
 	model_t	*m;
 	extern qboolean isPermedia;
 	int numVertices = 0;
-	int vertexOffset = 0;
+	int oldVertexOffset = 0,vertexOffset = 0;
 
 	memset (allocated, 0, sizeof(allocated));
 
@@ -1599,11 +1600,12 @@ void GL_BuildLightmaps (void)
 	// allocate buffer
 	CreateBrushBuffers(numVertices);
 	vertexOffset = 0;
+	oldVertexOffset = 0;
 
 	//dump the triangle data to a buffer
 	glBrushData * pBrushData = (glBrushData*)malloc( sizeof(glBrushData) * numVertices );
 	int offset = 0;
-	
+
 	for (j=1 ; j<MAX_MODELS ; j++)
 	{
 		m = cl.model_precache[j];
@@ -1642,6 +1644,7 @@ void GL_BuildLightmaps (void)
 			else
 			#endif
 			{
+				BrushVBOData data;
 				for (t=0 ; t<m->surfaces[i].polys->numverts ; t++, v+= VERTEXSIZE)
 				{
 					pBrushData[offset].pos[0] = v[0];	//position
@@ -1653,14 +1656,18 @@ void GL_BuildLightmaps (void)
 
 					offset++;
 				}
-				m->surfaces[i].polys->vertexOffset = vertexOffset;
 				vertexOffset += m->surfaces[i].polys->numverts;
+
+				// upload data
+				data = AppendBrushData(m->surfaces[i].polys->numverts, pBrushData + oldVertexOffset);
+				m->surfaces[i].polys->vboIndex		= data.vbo;
+				m->surfaces[i].polys->vertexOffset	= data.offset;
+
+				oldVertexOffset += vertexOffset;
+				vertexOffset = 0;
 			}
 		}
 	}
-
-	// upload data
-	AddBrushData( 0, vertexOffset, pBrushData );
 	//free temp buffer
 	free(pBrushData);
 

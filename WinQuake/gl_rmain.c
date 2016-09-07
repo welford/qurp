@@ -816,6 +816,8 @@ void R_DrawViewModel (void)
 	if (!r_drawentities.value)
 		return;
 
+	return;
+
 	if (cl.items & IT_INVISIBILITY)
 		return;
 

@@ -146,7 +146,7 @@ typedef struct _VertexAttribute
 	unsigned int	divisor; //for instancing	
 }VertexAttribute;
 
-
+#define MAX_BRUSH_VBOS 32
 #define MAX_ELEMENTS  4096
 #define MAX_ELEMENT_BUFFERS  3
 typedef struct _BatchElements
@@ -221,8 +221,14 @@ extern void RenderAlias(const int vbo_offset, const int posenum, const int numTr
 extern void EndAliasBatch();
 
 extern void CreateBrushBuffers(int numVerts);
-extern void AddBrushData(int vertexOffset, int numVerts, void * pData);
+typedef struct _BrushVBOData{
+	int vbo;
+	int offset;
+}BrushVBOData;
+
+extern BrushVBOData AppendBrushData(int numVerts, void * pData);
 extern void StartBrushBatch(float depthmin, float depthmax);
+extern void SetBrushBuffer(int idx);
 extern void SetupWarpBatch();
 extern void SetupSkyBatch();
 extern void SetupColourPass();

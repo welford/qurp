@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define	QUAKE_GAME			// as opposed to utilities
 
 #define ALIAS_VBO			1
-#define LIGHT_MAP_ATLAS		0
+#define LIGHT_MAP_ATLAS		1
 #define	VERSION				1.09
 #define	GLQUAKE_VERSION		2.1
 #define	D3DQUAKE_VERSION	0.01
@@ -100,16 +100,16 @@ void	VID_UnlockBuffer (void);
 
 #define	ON_EPSILON		0.1			// point on plane side epsilon
 
-#define	MAX_MSGLEN		8000		// max length of a reliable message
-#define	MAX_DATAGRAM	1024		// max length of unreliable message
+#define	MAX_MSGLEN		64000		// max length of a reliable message
+#define	MAX_DATAGRAM	32000		// max length of unreliable message
 
 //
 // per-level limits
 //
-#define	MAX_EDICTS		600			// FIXME: ouch! ouch! ouch!
+#define	MAX_EDICTS		32000		// FIXME: ouch! ouch! ouch!
 #define	MAX_LIGHTSTYLES	64
-#define	MAX_MODELS		256			// these are sent over the net as bytes
-#define	MAX_SOUNDS		256			// so they cannot be blindly increased
+#define	MAX_MODELS		2048		// these are sent over the net as bytes
+#define	MAX_SOUNDS		2048			// so they cannot be blindly increased
 
 #define	SAVEGAME_COMMENT_LENGTH	39
 
