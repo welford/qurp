@@ -123,6 +123,10 @@ typedef struct {
 	float normalRange;
 	float shadeIndex;
 	float shadeLight;
+	float ambientLight;
+	float realtime;
+	float gamma;
+	float r_origin_shade[3];
 }UBOTransforms;
 
 typedef struct {
@@ -168,7 +172,7 @@ static unsigned int current_shader_idx = 0;
 
 typedef struct _VtxData{
 	VertexAttributeState vertex_state;  
-	int transform_uniform[5];
+	int transform_uniform[7];
 
 	//unsigned int vao_handle;
 	unsigned int vbo_handle;
@@ -182,13 +186,13 @@ typedef struct _VtxData{
 	unsigned int has_colour;
 	unsigned int has_texture;
 
-	int normalMin, normalRange, shadeIndex, shadeLight;
-
+	int normalMin, normalRange, shadeIndex, shadeLight, ambientLight, warpRealtime, skyRealtime, r_origin_shade;
+	int gammaBrush, gammaAlias, gammaSky, gammaWarp, gammaTexture;
 	float_type *	p_pre_gl_buffer;
 }VtxData;
 
-static VtxData vtx = {	VAS_CLR,0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0};
-static VtxData vtx_fallback = {	VAS_CLR,0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0};
+static VtxData vtx = {	VAS_CLR,0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0, 0};
+static VtxData vtx_fallback = {	VAS_CLR,0,	0,	0,	0,	0,	0,	0,	0,	0,	0,	0, 0};
 
 typedef struct _VtxOffsets{
 	int clr;
@@ -239,6 +243,8 @@ SShaderProgram colour_shader;
 SShaderProgram light_map_shader;
 SShaderProgram alias_shader;
 SShaderProgram brush_shader;
+SShaderProgram warp_shader;
+SShaderProgram sky_shader;
 
 void TransferAndDraw(void);
 
@@ -503,7 +509,7 @@ static void CreateLightTexture(){
 	}
 	
 	glGenTextures(1, &light_texture);	
-	glActiveTexture(GL_TEXTURE0 + TEX_SLOT_LIGHT);
+	glActiveTexture(GL_TEXTURE0 + TEX_SLOT_LIGHT_RENDER);
 	glBindTexture(GL_TEXTURE_2D, light_texture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WIDTH, HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, pTexture);
 
@@ -523,7 +529,9 @@ static void SetupShaders(void){
 	SShader vtxClrShdr, frgClrShdr;
 	SShader vtxLightShdr, frgLightShdr;
 	SShader vtxBrushShdr, frgBrushShdr;
-	const char *pDVertStr[3] = {0,0,0}, *pDFragStr[3] = {0,0,0};
+	SShader frgWarpShdr;
+	SShader vtxSkyShdr, frgSkyShdr;
+	const char *pDVertStr[3] = { 0, 0, 0 }, *pDFragStr[3] = { 0, 0, 0 };
 
 	//shader (TEXTURED)	
 	pDVertStr[0] = header_vertex;
@@ -572,6 +580,50 @@ static void SetupShaders(void){
 	LinkShaderProgram(&brush_shader);
 	Start(&brush_shader);
 	SetTextureUnitByName(&brush_shader,"tex0", TEX_SLOT_CLR);
+	SetTextureUnitByName(&brush_shader, "texLightMap", TEX_SLOT_LIGHT_RENDER);
+	Stop();
+
+	//shader (WARP)	
+	pDFragStr[0] = header_fragment;
+	pDFragStr[1] = header_shared;
+	pDFragStr[2] = warp_clr_frag;
+
+	CreateShader(&frgWarpShdr, FRAG, pDFragStr, 3);
+
+	CreateShaderProgram(&warp_shader);
+	AddShaderToProgram(&warp_shader, &vtxBrushShdr);
+	AddShaderToProgram(&warp_shader, &frgWarpShdr);
+	SetAttributeLocation(&warp_shader, POSITION_LOCATION, "inVertex");
+	SetAttributeLocation(&warp_shader, UV_LOCATION0, "inUV");
+	SetAttributeLocation(&warp_shader, UV_LOCATION1, "inUVLightmap");
+	LinkShaderProgram(&warp_shader);
+	Start(&warp_shader);
+	SetTextureUnitByName(&warp_shader, "tex0", TEX_SLOT_CLR);
+	Stop();
+
+	//shader (SKY)	
+	pDVertStr[0] = header_vertex;
+	pDVertStr[1] = header_shared;
+	pDVertStr[2] = sky_vertex;
+
+	CreateShader(&vtxSkyShdr, VERT, pDVertStr, 3);
+
+	pDFragStr[0] = header_fragment;
+	pDFragStr[1] = header_shared;
+	pDFragStr[2] = sky_frag;
+
+	CreateShader(&frgSkyShdr, FRAG, pDFragStr, 3);
+
+	CreateShaderProgram(&sky_shader);
+	AddShaderToProgram(&sky_shader, &vtxSkyShdr);
+	AddShaderToProgram(&sky_shader, &frgSkyShdr);
+	SetAttributeLocation(&sky_shader, POSITION_LOCATION, "inVertex");
+	SetAttributeLocation(&sky_shader, UV_LOCATION0, "inUV");
+	SetAttributeLocation(&sky_shader, UV_LOCATION1, "inUVLightmap");
+	LinkShaderProgram(&sky_shader);
+	Start(&sky_shader);
+	SetTextureUnitByName(&sky_shader, "sky", TEX_SLOT_SKY);
+	SetTextureUnitByName(&sky_shader, "skyAlpha", TEX_SLOT_SKY_ALPHA);
 	Stop();
 
 	//shader (LIGHTMAP)
@@ -593,7 +645,7 @@ static void SetupShaders(void){
 	SetAttributeLocation(&light_map_shader, UV_LOCATION1, "inUVLightmap");
 	LinkShaderProgram(&light_map_shader);
 	Start(&light_map_shader);
-	SetTextureUnitByName(&light_map_shader, "texLightMap", TEX_SLOT_LIGHT);	
+	SetTextureUnitByName(&light_map_shader, "texLightMap", TEX_SLOT_LIGHT_RENDER);	
 	Stop();
 
 	//shader (COLOUR)	
@@ -661,11 +713,24 @@ static void SetupUBOs(){
 	vtx.transform_uniform[2] = glGetUniformLocation(light_map_shader.handle, "trans.mvp");
 	vtx.transform_uniform[3] = glGetUniformLocation(alias_shader.handle, "trans.mvp");
 	vtx.transform_uniform[4] = glGetUniformLocation(brush_shader.handle, "trans.mvp");
+	vtx.transform_uniform[5] = glGetUniformLocation(warp_shader.handle, "trans.mvp");
+	vtx.transform_uniform[5] = glGetUniformLocation(sky_shader.handle, "trans.mvp");
 
 	vtx.normalMin = glGetUniformLocation(alias_shader.handle, "trans.normalMin");
 	vtx.normalRange = glGetUniformLocation(alias_shader.handle, "trans.normalRange");
 	vtx.shadeIndex = glGetUniformLocation(alias_shader.handle, "trans.shadeIndex");
 	vtx.shadeLight = glGetUniformLocation(alias_shader.handle, "trans.shadeLight");
+	vtx.ambientLight = glGetUniformLocation(alias_shader.handle, "trans.ambientLight");
+
+	vtx.warpRealtime = glGetUniformLocation(warp_shader.handle, "trans.realtime");
+	vtx.skyRealtime = glGetUniformLocation(sky_shader.handle, "trans.realtime");
+	vtx.r_origin_shade = glGetUniformLocation(sky_shader.handle, "trans.r_origin_shade");
+
+	vtx.gammaBrush = glGetUniformLocation(brush_shader.handle, "trans.gamma");
+	vtx.gammaAlias = glGetUniformLocation(alias_shader.handle, "trans.gamma");
+	vtx.gammaSky = glGetUniformLocation(sky_shader.handle, "trans.gamma");
+	vtx.gammaWarp = glGetUniformLocation(warp_shader.handle, "trans.gamma");
+	vtx.gammaTexture = glGetUniformLocation(texture_shader.handle, "trans.gamma");
 }
 
 void UpdateTransformUBOs(){	
@@ -1122,6 +1187,7 @@ static void SetGLRenderState(void){
 	}
 	else{
 		Start(&texture_shader);
+		SetFloatByLocation(vtx.gammaTexture, &transforms.gamma);
 		if(current_shader_idx!= 0)
 			transform_dirty = 1;
 		current_shader_idx = 0;
@@ -1330,6 +1396,7 @@ void StartAliasBatch(float depthmin, float depthmax)
 	current_shader_idx = 3;
 	//
 	Start(&alias_shader);
+	SetFloatByLocation(vtx.gammaAlias, &transforms.gamma);
 	glDepthRangef(depthmin, depthmax);
 
 	//
@@ -1351,11 +1418,13 @@ void RenderAlias(const int vbo_offset,  const int posenum, const int numTris, in
 {
 	transforms.shadeIndex = ((float)shadeDotIndex / 15.0f);
 	transforms.shadeLight = shadeLight;
+	transforms.ambientLight = ambientLight;
 
 	SetFloatByLocation(vtx.normalMin,	&transforms.normalMin);
 	SetFloatByLocation(vtx.normalRange, &transforms.normalRange);
 	SetFloatByLocation(vtx.shadeIndex,	&transforms.shadeIndex);
-	SetFloatByLocation(vtx.shadeLight,	&transforms.shadeLight);
+	SetFloatByLocation(vtx.shadeLight, &transforms.shadeLight);
+	SetFloatByLocation(vtx.ambientLight, &transforms.ambientLight);
 
 	if (transform_dirty)
 		UpdateTransformUBOs();
@@ -1402,10 +1471,12 @@ void AddBrushData(int vertexOffset, int numVerts, void * pData)
 #endif
 }
 
+extern int lightmap_active_index;
 void StartBrushBatch(float depthmin, float depthmax)
 {
 #if BATCH_BRUSH
 	int i = 0;
+	static int loc = -1;
 	force_render_state_change = 1;
 	FlushDraw();
 
@@ -1421,7 +1492,17 @@ void StartBrushBatch(float depthmin, float depthmax)
 	current_shader_idx = 4;
 
 	Start(&brush_shader);
+	SetFloatByLocation(vtx.gammaBrush, &transforms.gamma);
 	UpdateTransformUBOs();
+
+#if LIGHT_MAP_ATLAS
+	if (loc == -1){ loc = glGetUniformLocation(brush_shader.handle, "texLightMap"); }
+
+	if (lightmap_active_index)
+		glUniform1i(loc, TEX_SLOT_LIGHT_UPDATE);
+	else
+		glUniform1i(loc, TEX_SLOT_LIGHT_RENDER);
+#endif
 
 	glBindBuffer(GL_ARRAY_BUFFER, brush_vbo);
 
@@ -1441,11 +1522,20 @@ void StartBrushBatch(float depthmin, float depthmax)
 
 void SetupWarpBatch(){
 #if BATCH_BRUSH
+	Start(&warp_shader);
+	SetFloatByLocation(vtx.warpRealtime, &transforms.realtime);
+	SetFloatByLocation(vtx.gammaWarp, &transforms.gamma);
+	UpdateTransformUBOs();
 #endif
 }
 
 void SetupSkyBatch(){
 #if BATCH_BRUSH
+	Start(&sky_shader);
+	SetFloatByLocation(vtx.skyRealtime, &transforms.realtime);
+	SetFloatByLocation(vtx.gammaSky, &transforms.gamma);
+	SetVec3ByLocation(vtx.r_origin_shade, transforms.r_origin_shade);
+	UpdateTransformUBOs();
 #endif
 }
 
@@ -1461,21 +1551,21 @@ void SetupColourPass()
 void SetRenderOrigin(float x, float y, float z)
 {
 	//todo
-	//transforms.r_origin[0] = x;
-	//transforms.r_origin[1] = y;
-	//transforms.r_origin[2] = z;
+	transforms.r_origin_shade[0] = x;
+	transforms.r_origin_shade[1] = y;
+	transforms.r_origin_shade[2] = z;
 }
 
 void SetRealTime(float time)
 {
 	//todo
-	//transforms.realtime = time;
+	transforms.realtime = time;
 }
 
 void SetGamma(float gamma)
 {
 	//todo
-	//transforms.gamma = gamma;
+	transforms.gamma = gamma;
 }
 
 void SetupLightMapPass()
@@ -1539,6 +1629,8 @@ void ShutdownModernGLPatch(){
 	DeleteShaderProgram(&light_map_shader);
 	DeleteShaderProgram(&alias_shader);
 	DeleteShaderProgram(&brush_shader);
+	DeleteShaderProgram(&warp_shader);
+	DeleteShaderProgram(&sky_shader);
 	DestroyStack();
 }
 

@@ -38,7 +38,7 @@ int			lightmap_bytes;		// 1, 2, or 4
 #define		BLOCK_HEIGHT	128
 
 int			lightmap_textures_gl[2] = { 0 };// double buffered, one atlassed texture
-int			lightmap_active_index = {0};
+int			lightmap_active_index = 0;
 int			lightmapsDataOffets[MAX_LIGHTMAPS];
 int			lightmapsGLSOffets[MAX_LIGHTMAPS];
 int			lightmapsGLTOffets[MAX_LIGHTMAPS];
@@ -69,7 +69,7 @@ int			allocated[MAX_LIGHTMAPS][BLOCK_WIDTH];
 
 // the lightmap texture data needs to be kept in
 // main memory so texsubimage can update properly
-byte		lightmapsData[4*MAX_LIGHTMAPS*BLOCK_WIDTH*BLOCK_HEIGHT];
+byte		lightmapsData[1*MAX_LIGHTMAPS*BLOCK_WIDTH*BLOCK_HEIGHT];
 msurface_t  *skychain = NULL;
 msurface_t  *waterchain = NULL;
 
@@ -478,9 +478,15 @@ void R_UpdateLightmaps (void)
 		return;
 
 #if LIGHT_MAP_ATLAS
-	GL_BindNoFlush(lightmap_textures_gl[lightmap_active_index], TEX_SLOT_LIGHT_UPDATE);	//UPDATE target
-	GL_BindNoFlush(lightmap_textures_gl[!lightmap_active_index], TEX_SLOT_LIGHT_RENDER);		//RENDER target
+	if (lightmap_active_index)
+		glActiveTexture(GL_TEXTURE0 + TEX_SLOT_LIGHT_RENDER);
+	else
+		glActiveTexture(GL_TEXTURE0 + TEX_SLOT_LIGHT_UPDATE);
+
+	//GL_BindNoFlush(lightmap_textures_gl[!lightmap_active_index], TEX_SLOT_LIGHT_RENDER);	//RENDER target
+	//GL_BindNoFlush(lightmap_textures_gl[lightmap_active_index], TEX_SLOT_LIGHT_UPDATE);		//UPDATE target order is important
 #endif
+
 	for (i=0 ; i<MAX_LIGHTMAPS ; i++)
 	{
 		if (lightmap_modified[i])
@@ -899,8 +905,8 @@ void DrawTextureChains(int phase) //temporary 0 = normal, 1 = water, 2 = sky
 			for ( ; s ; s=s->texturechain)
 			{
 				R_RenderBrushPoly(s);
-				DrawGLPoly();
 			}
+			DrawGLPoly();
 		}
 
 		t->texturechain = NULL;
@@ -1529,12 +1535,12 @@ void GL_BuildLightmaps (void)
 	switch (gl_lightmap_format)
 	{
 	case GL_RGBA:
-		lightmap_bytes = 4;
-		break;
+	//	lightmap_bytes = 4;
+	//	break;
 	case GL_RG:
 	//case GL_LUMINANCE_ALPHA:
-		lightmap_bytes = 2;
-		break;
+	//	lightmap_bytes = 2;
+	//	break;
 	default:
 	//case GL_ALPHA:	
 	case GL_RED:	
@@ -1672,7 +1678,7 @@ void GL_BuildLightmaps (void)
 	lightmap_active_index = 0;
 	for (i = 0; i < 2; i++)
 	{
-		float borderColour[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+		//float borderColour[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 		GL_BindNoFlush(lightmap_textures_gl[i], TEX_SLOT_LIGHT_UPDATE);
 		//lightmapsData + i*BLOCK_WIDTH*BLOCK_HEIGHT*lightmap_bytes
 		glTexImage2D(GL_TEXTURE_2D, 0, texDataType[lightmap_bytes],
@@ -1681,9 +1687,9 @@ void GL_BuildLightmaps (void)
 		//lightmaps should never be nearest i think
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColour);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+		//glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColour);
 	}
 #endif
 
@@ -1727,5 +1733,9 @@ void GL_BuildLightmaps (void)
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 #endif
 	}
+#if LIGHT_MAP_ATLAS
+	GL_BindNoFlush(lightmap_textures_gl[0], TEX_SLOT_LIGHT_RENDER);
+	GL_BindNoFlush(lightmap_textures_gl[1], TEX_SLOT_LIGHT_UPDATE);
+#endif
 }
 

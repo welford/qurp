@@ -221,13 +221,13 @@ RenderState next_render_state = {
 static int force_render_state_change = 0;
 static UBOTransforms transforms;
 static UBOLights lights;
-static const int GRANULARITY	 = 16384*4*4; //probably too smalll
+static const int GRANULARITY =	8192 * 4 * 4; //probably too smalll
 static const int transform_stack_size = 10;
 
 static int alias_vbo = -1;				//
 static int alias_vao = -1;				//
 static int alias_vert_offset = 0;			//
-static const int ALIAS_BUFFER_SIZE  = (1024 * 1024 * 12);
+static const int ALIAS_BUFFER_SIZE  = (1024 * 1024 * 8);
 
 static int brush_vbo = -1;				//
 static int brush_vao = -1;				//
@@ -810,7 +810,7 @@ void StartupModernGLPatch(const int width, const int height){
 
 	//CreateDebugTextures();
 	CreateANormTextures();
-	CreateLightTextures();
+	//CreateLightTextures();
 }
 
 static unsigned int num_draw_calls = 0;
@@ -1514,6 +1514,7 @@ void AddBrushData(int vertexOffset, int numVerts, void * pData)
 #endif
 }
 
+extern int lightmap_active_index;
 void StartBrushBatch(float depthmin, float depthmax)
 {
 #if BATCH_BRUSH
@@ -1531,6 +1532,14 @@ void StartBrushBatch(float depthmin, float depthmax)
 	Start(&brush_shader);
 	UpdateTransformUBOs();
 	glBindVertexArray(brush_vao);
+#if LIGHT_MAP_ATLAS
+	static int loc = -1;
+	if(loc == -1){loc = glGetUniformLocation(brush_shader.handle, "texLightMap");}
+	if (lightmap_active_index)
+		glUniform1i(loc, TEX_SLOT_LIGHT_UPDATE);
+	else
+		glUniform1i(loc, TEX_SLOT_LIGHT_RENDER);
+#endif
 #endif
 }
 

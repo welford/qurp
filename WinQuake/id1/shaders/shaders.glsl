@@ -116,10 +116,10 @@ out vec4 fragColour;
 
 void main()
 {
-	//vec4 base = texture(tex0, uv);
-	//float fullbright = (1.0 - base.a);
-	//fragColour = pow(base * clamp(texture(texLightmap, uvLightmap).r*2.0+fullbright,0.0,2.0), vec4(trans.gamma));
-	fragColour = pow(texture(tex0, uv), vec4(trans.gamma));
+	vec4 base = texture(tex0, uv);
+	float fullbright = (1.0 - base.a);
+	fragColour = pow(base * clamp(texture(texLightmap, uvLightmap).r*2.0+fullbright,0.0,2.0), vec4(trans.gamma));
+	//fragColour = pow(texture(tex0, uv), vec4(trans.gamma));
 }
 
 -- WarpFragment

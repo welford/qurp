@@ -147,7 +147,7 @@ typedef struct msurface_s
 	int			dlightbits;
 
 	int			lightmaptexturenum;
-#if LIGHT_MAP_ATLAS || 1
+#if LIGHT_MAP_ATLAS
 	byte		sOffset; //could easilybe an int
 	byte		tOffset;
 #endif

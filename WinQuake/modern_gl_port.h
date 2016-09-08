@@ -62,12 +62,11 @@ typedef struct
 //#define JOINT_WEIGHT_LOCATION	3
 //#define JOINT_INDEX_LOCATION	4
 
-#define LINEAR_TEXTURES 0
-#define BATCH_BRUSH 1
+#define LINEAR_TEXTURES			0
+#define BATCH_BRUSH				1
 
 #define TEX_SLOT_CLR			0
 #define TEX_SLOT_ANORM			1
-#define TEX_SLOT_LIGHT			2 //temporary so that the gles version works until we get atlasing working on that too
 #define TEX_SLOT_LIGHT_RENDER	2
 #define TEX_SLOT_LIGHT_UPDATE	3
 #define TEX_SLOT_SKY			4
