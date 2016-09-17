@@ -809,7 +809,7 @@ void R_DrawWaterSurfaces (void)
 	int			i;
 	msurface_t	*s;
 	texture_t	*t;
-
+	return;
 	if (r_wateralpha.value == 1.0 )
 		return;
 
@@ -990,8 +990,9 @@ void R_DrawBrushModel (entity_t *e)
 e->angles[0] = -e->angles[0];	// stupid quake bug
 	R_RotateForEntity (e);
 e->angles[0] = -e->angles[0];	// stupid quake bug
-
+#if !LIGHT_MAP_ATLAS
 	SetupColourPass();
+#endif
 #if BATCH_BRUSH
 	UpdateTransformUBOs();
 #endif
@@ -1175,6 +1176,22 @@ void R_DrawWorld (void)
 	R_RecursiveWorldNode (cl.worldmodel->nodes);
 	StartBrushBatch(gldepthmin, gldepthmax);
 	DrawTextureChains(0);
+
+#if LIGHT_MAP_ATLAS
+	for (i = 0; i<cl_numvisedicts; i++)
+	{
+		currententity = cl_visedicts[i];
+		switch (currententity->model->type)
+		{
+		case mod_brush:
+			R_DrawBrushModel(currententity);
+			break;
+		default:
+			break;
+		}
+	}
+#endif
+
 	SetupWarpBatch();
 	DrawTextureChains(1);
 	SetupSkyBatch();
@@ -1184,7 +1201,6 @@ void R_DrawWorld (void)
 	R_BlendLightmaps();
 #endif
 	EndBrushBatch();
-
 }
 
 
@@ -1475,6 +1491,17 @@ Builds the lightmap texture
 with all the surfaces from all brush models
 ==================
 */
+
+void GL_DestroyLightmaps (void)
+{
+#if LIGHT_MAP_ATLAS
+	glDeleteTextures(2, lightmap_textures_gl);
+#else
+	glDeleteTextures(MAX_LIGHTMAPS, lightmap_textures_gl[0]);
+	glDeleteTextures(MAX_LIGHTMAPS, lightmap_textures_gl[1]);
+#endif
+}
+
 void GL_BuildLightmaps (void)
 {
 	int		i, j;

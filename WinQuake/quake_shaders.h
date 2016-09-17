@@ -54,6 +54,7 @@ varying vec2 uv;\n\
 void main()\n\
 {	\n\
 	gl_FragColor = pow(texture2D(tex0, uv) * colour,vec4(trans.gamma));\n\
+	//gl_FragColor = texture2D(tex0, uv) * colour * trans.gamma;\n\
 }\n\
 \n";
 
@@ -77,7 +78,8 @@ void main()\n\
 {\n\
 	vec4 base = texture2D(tex0, uv);\n\
 	float fullbright = (1.0 - base.a);\n\
-	gl_FragColor = pow(base.rgba * clamp(texture2D(texLightMap, uvLightmap).aaaa*2.0+fullbright, 0.0, 2.0),vec4(trans.gamma));\
+	gl_FragColor = pow(base.rgba * clamp(texture2D(texLightMap, uvLightmap).aaaa*2.0+fullbright, 0.0, 2.0),vec4(trans.gamma));\n\
+	//gl_FragColor = base.rgba * clamp(texture2D(texLightMap, uvLightmap).aaaa*2.0+fullbright, 0.0, 2.0) * trans.gamma;\n\
 }\n\
 \n";
 #else
@@ -88,6 +90,7 @@ varying vec2 uvLightmap;\n\
 void main()\n\
 {\n\
 	gl_FragColor = pow(texture2D(tex0, uv),vec4(trans.gamma));\n\
+	//gl_FragColor = texture2D(tex0, uv) * trans.gamma;\n\
 }\n\
 \n";
 #endif
@@ -102,6 +105,7 @@ void main()\n\
 	warpUV.x = uv.x + sin((uv.y + trans.realtime)) * (1.0 / 5.0);\n\
 	warpUV.y = uv.y + cos((uv.t + trans.realtime)) * (1.0 / 5.0);\n\
 	gl_FragColor = pow(texture2D(tex0, warpUV),vec4(trans.gamma));\n\
+	//gl_FragColor = texture2D(tex0, warpUV) * trans.gamma;\n\
 }\n\
 \n";
 
@@ -134,6 +138,7 @@ void main()\n\
 {\n\
 	vec4 alpha = texture2D(skyAlpha, uvfast);\n\
 	gl_FragColor = pow((texture2D(sky, uvslow) * (1.0 - alpha.a)) + (alpha * alpha.a),vec4(trans.gamma));\n\
+	//gl_FragColor = (texture2D(sky, uvslow) * (1.0 - alpha.a)) + (alpha * alpha.a) * trans.gamma;\n\
 }\n\
 \n";
 static const char* clr_vertex = "\
@@ -194,5 +199,6 @@ void main()\n\
 	vec4 base = texture2D(tex0, uv);\n\
 	float fullbright = (1.0 - base.a);\n\
 	gl_FragColor = pow(base * clamp(shade+fullbright,0.0,4.0),vec4(trans.gamma));\n\
+	//gl_FragColor = base * clamp(shade+fullbright,0.0,4.0) * trans.gamma;\n\
 }\n\
 \n";

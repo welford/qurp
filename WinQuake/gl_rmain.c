@@ -742,7 +742,22 @@ void R_DrawEntitiesOnList (void)
 	//n_alias_draw = 0;
 
 	// draw sprites seperately, because of alpha blending
-#
+#if !LIGHT_MAP_ATLAS
+	StartBrushBatch(gldepthmin, gldepthmax);
+	for (i = 0; i<cl_numvisedicts; i++)
+	{
+		currententity = cl_visedicts[i];
+		switch (currententity->model->type)
+		{
+		case mod_brush:
+			R_DrawBrushModel(currententity);
+			break;
+		default:
+			break;
+		}
+	}
+	EndBrushBatch();
+#endif
 	//alias first as they will eventuall all be in the 
 	//same VBO
 	StartAliasBatch(gldepthmin, gldepthmax);
@@ -759,21 +774,6 @@ void R_DrawEntitiesOnList (void)
 		}
 	}
 	EndAliasBatch();
-
-	StartBrushBatch(gldepthmin, gldepthmax);
-	for (i = 0; i<cl_numvisedicts; i++)
-	{
-		currententity = cl_visedicts[i];
-		switch (currententity->model->type)
-		{
-		case mod_brush:
-			R_DrawBrushModel(currententity);
-			break;
-		default:
-			break;
-		}
-	}
-	EndBrushBatch();
 
 	for (i=0 ; i<cl_numvisedicts ; i++)
 	{
@@ -1150,16 +1150,20 @@ void R_RenderScene (void)
 	R_MarkLeaves ();	// done here so we know if we're in water
 	//
 	R_DrawWorld ();		// adds static entities to the list
+
 	//
-	S_ExtraUpdate ();	// don't let sound get messed up if going slow
+	//S_ExtraUpdate ();	// don't let sound get messed up if going slow
+
 	//
 	R_DrawEntitiesOnList ();
 	//
 	R_RenderDlights ();
 	//
-	R_DrawParticles ();	
+	R_DrawParticles ();
 
+	//
 	R_UpdateLightmaps();
+
 
 #ifdef GLTEST
 	Test_Draw ();
@@ -1265,7 +1269,7 @@ void R_Mirror (void)
 	glDepthFunc (GL_LEQUAL);
 
 	R_RenderScene ();
-	R_DrawWaterSurfaces ();
+	//R_DrawWaterSurfaces ();
 	
 	FlushDraw();
 

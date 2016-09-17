@@ -646,7 +646,6 @@ void R_DrawParticles (void)
 	SetVertexMode(VAS_VTX_CLR8_TEX);
 	EnableTexture();
 	EnableBlending();
-	//DisableBlending();
 	BeginDrawing(RNDR_TRIANGLES);
 
 	for (p=active_particles ; p ; p=p->next)
@@ -671,7 +670,7 @@ void R_DrawParticles (void)
 			scale = 1;
 		else
 			scale = 1 + scale * 0.004;
-		scale *= 3;
+		scale *= 2.5f;
 		//glColor3ubv ((byte *)&d_8to24table[(int)p->color]);
 		p_clr = (byte *)&d_8to24table[(int)p->color];		
 
@@ -745,8 +744,7 @@ void R_DrawParticles (void)
 			break;
 		}
 	}
-
-	EndDrawing();	
+	EndDrawing();
 	DisableBlending();
 #else
 

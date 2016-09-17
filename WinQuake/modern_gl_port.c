@@ -221,7 +221,7 @@ RenderState next_render_state = {
 static int force_render_state_change = 0;
 static UBOTransforms transforms;
 static UBOLights lights;
-static const int GRANULARITY =	8192 * 4 * 4; //probably too smalll
+static const int GRANULARITY =	16384 * 4 * 4; //probably too smalll
 static const int transform_stack_size = 10;
 
 static int alias_vbo = -1;				//
@@ -379,7 +379,8 @@ static void SetAttributeFormat( const VertexAttribute* pAttr, unsigned int numAt
 
 void SetVertexMode(const VertexAttributeState state){
 	int i=0;
-	if(vtx.vertex_state != state){
+	if(vtx.vertex_state != state || state == VAS_VTX_CLR8_TEX){
+		if(state == VAS_VTX_CLR8_TEX){force_render_state_change = 1;}
 		//update the state
 		SetAttributeFormat(vas[state].p_a_vtx_attr, vas[state].num_attr, 0);
 		vtx.vertex_state = state;
@@ -1611,6 +1612,7 @@ void EndBrushBatch()
 #endif
 }
 
+extern void GL_DestroyLightmaps(void);
 void ShutdownModernGLPatch(){
 	if(vtx.vao_handle){
 
@@ -1625,6 +1627,11 @@ void ShutdownModernGLPatch(){
 	}
 	//vtx.p_buffer_loc = 0;
 
+	glDeleteBuffers(1, &alias_vbo);
+	glDeleteBuffers(1, &brush_vbo);
+
+	glDeleteTextures(1, &normal_texture);	
+
 	DeleteShaderProgram(&texture_shader);
 	DeleteShaderProgram(&colour_shader);
 	DeleteShaderProgram(&light_map_shader);
@@ -1632,6 +1639,8 @@ void ShutdownModernGLPatch(){
 	DeleteShaderProgram(&alias_shader);	
 	glswShutdown();
 	DestroyStack();
+
+	GL_DestroyLightmaps();
 }
 
 #endif // GLQUAKE

@@ -1614,6 +1614,7 @@ void EndBrushBatch()
 #endif
 }
 
+extern void GL_DestroyLightmaps(void);
 void ShutdownModernGLPatch(){
 	if(1){//vtx.vao_handle){
 		//glDeleteVertexArrays(1, &vtx.vao_handle);		
@@ -1624,6 +1625,11 @@ void ShutdownModernGLPatch(){
 		vtx.p_pre_gl_buffer = 0;
 	}
 
+	glDeleteBuffers(1, &alias_vbo);
+	glDeleteBuffers(1, &brush_vbo);
+
+	glDeleteTextures(1, &normal_texture);	
+
 	DeleteShaderProgram(&texture_shader);
 	DeleteShaderProgram(&colour_shader);
 	DeleteShaderProgram(&light_map_shader);
@@ -1632,6 +1638,8 @@ void ShutdownModernGLPatch(){
 	DeleteShaderProgram(&warp_shader);
 	DeleteShaderProgram(&sky_shader);
 	DestroyStack();
+
+	GL_DestroyLightmaps();
 }
 
 #endif
