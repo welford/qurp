@@ -741,22 +741,6 @@ void R_DrawEntitiesOnList (void)
 
 	//n_alias_draw = 0;
 
-	// draw sprites seperately, because of alpha blending
-	StartBrushBatch(gldepthmin, gldepthmax);
-	for (i = 0; i<cl_numvisedicts; i++)
-	{
-		currententity = cl_visedicts[i];
-		switch (currententity->model->type)
-		{
-		case mod_brush:
-			R_DrawBrushModel(currententity);
-			break;
-		default:
-			break;
-		}
-	}
-	EndBrushBatch();
-
 	//alias first as they will eventuall all be in the 
 	//same VBO
 	StartAliasBatch(gldepthmin, gldepthmax);
