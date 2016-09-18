@@ -67,12 +67,13 @@ typedef struct
 
 #define TEX_SLOT_CLR			0
 #define TEX_SLOT_ANORM			1
-#define TEX_SLOT_LIGHT_RENDER	2
-#define TEX_SLOT_LIGHT_UPDATE	3
-#define TEX_SLOT_SKY			4
-#define TEX_SLOT_SKY_ALPHA		5
+#define TEX_SLOT_LIGHT_0		2
+#define TEX_SLOT_LIGHT_1		3
+#define TEX_SLOT_LIGHT_2		4
+#define TEX_SLOT_SKY			6
+#define TEX_SLOT_SKY_ALPHA		7
 
-#define SUBDIVIDE_WARP_POLYS 0
+#define SUBDIVIDE_WARP_POLYS 1
 
 #if BATCH_BRUSH
 #define TEMP_INDEX_BUFFER unsigned short buffer[3*19] = {\

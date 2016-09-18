@@ -821,7 +821,7 @@ void Mod_LoadFaces (lump_t *l)
 				out->texturemins[i] = -8192;
 			}
 #if SUBDIVIDE_WARP_POLYS
-			GL_SubdivideSurface (out);	// cut up polygon for warps
+			//GL_SubdivideSurface (out);	// cut up polygon for warps
 #endif
 			continue;
 		}

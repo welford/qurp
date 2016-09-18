@@ -509,7 +509,7 @@ static void CreateLightTexture(){
 	}
 	
 	glGenTextures(1, &light_texture);	
-	glActiveTexture(GL_TEXTURE0 + TEX_SLOT_LIGHT_RENDER);
+	glActiveTexture(GL_TEXTURE0 + TEX_SLOT_LIGHT_0);
 	glBindTexture(GL_TEXTURE_2D, light_texture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WIDTH, HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, pTexture);
 
@@ -580,7 +580,7 @@ static void SetupShaders(void){
 	LinkShaderProgram(&brush_shader);
 	Start(&brush_shader);
 	SetTextureUnitByName(&brush_shader,"tex0", TEX_SLOT_CLR);
-	SetTextureUnitByName(&brush_shader, "texLightMap", TEX_SLOT_LIGHT_RENDER);
+	SetTextureUnitByName(&brush_shader, "texLightMap", TEX_SLOT_LIGHT_0);
 	Stop();
 
 	//shader (WARP)	
@@ -645,7 +645,7 @@ static void SetupShaders(void){
 	SetAttributeLocation(&light_map_shader, UV_LOCATION1, "inUVLightmap");
 	LinkShaderProgram(&light_map_shader);
 	Start(&light_map_shader);
-	SetTextureUnitByName(&light_map_shader, "texLightMap", TEX_SLOT_LIGHT_RENDER);	
+	SetTextureUnitByName(&light_map_shader, "texLightMap", TEX_SLOT_LIGHT_0);	
 	Stop();
 
 	//shader (COLOUR)	
@@ -1495,13 +1495,15 @@ void StartBrushBatch(float depthmin, float depthmax)
 	SetFloatByLocation(vtx.gammaBrush, &transforms.gamma);
 	UpdateTransformUBOs();
 
-#if LIGHT_MAP_ATLAS
+#if LIGHT_MAP_ATLAS || 1
 	if (loc == -1){ loc = glGetUniformLocation(brush_shader.handle, "texLightMap"); }
 
-	if (lightmap_active_index)
-		glUniform1i(loc, TEX_SLOT_LIGHT_UPDATE);
+	if (lightmap_active_index == 0)
+		glUniform1i(loc, TEX_SLOT_LIGHT_1);
+	else if (lightmap_active_index == 1)
+		glUniform1i(loc, TEX_SLOT_LIGHT_2);
 	else
-		glUniform1i(loc, TEX_SLOT_LIGHT_RENDER);
+		glUniform1i(loc, TEX_SLOT_LIGHT_0);
 #endif
 
 	glBindBuffer(GL_ARRAY_BUFFER, brush_vbo);

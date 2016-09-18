@@ -526,7 +526,7 @@ static void CreateLightTextures(){
 	
 	glGenTextures(1, &light_texture);	
 	//debug_texture = 13;
-	glActiveTexture(GL_TEXTURE0 + TEX_SLOT_LIGHT_RENDER);
+	glActiveTexture(GL_TEXTURE0 + TEX_SLOT_LIGHT_0);
 	glBindTexture(GL_TEXTURE_2D, light_texture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WIDTH, HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, pTexture);
 
@@ -637,7 +637,7 @@ static void SetupShaders(void){
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(TEX_SLOT_ANORM));
 
 	glswAddDirectiveToken("Fragment", HASH_DEFINE_VALUE(TEX_SLOT_CLR));	
-	glswAddDirectiveToken("Fragment", HASH_DEFINE_VALUE(TEX_SLOT_LIGHT_RENDER));
+	glswAddDirectiveToken("Fragment", HASH_DEFINE_VALUE(TEX_SLOT_LIGHT_0));
 	glswAddDirectiveToken("Fragment", HASH_DEFINE_VALUE(TEX_SLOT_SKY));
 	glswAddDirectiveToken("Fragment", HASH_DEFINE_VALUE(TEX_SLOT_SKY_ALPHA));
 
@@ -1533,13 +1533,15 @@ void StartBrushBatch(float depthmin, float depthmax)
 	Start(&brush_shader);
 	UpdateTransformUBOs();
 	glBindVertexArray(brush_vao);
-#if LIGHT_MAP_ATLAS
+#if LIGHT_MAP_ATLAS || 1
 	static int loc = -1;
 	if(loc == -1){loc = glGetUniformLocation(brush_shader.handle, "texLightMap");}
-	if (lightmap_active_index)
-		glUniform1i(loc, TEX_SLOT_LIGHT_UPDATE);
+	if (lightmap_active_index == 0)
+		glUniform1i(loc, TEX_SLOT_LIGHT_1);
+	else if (lightmap_active_index == 1)
+		glUniform1i(loc, TEX_SLOT_LIGHT_2);
 	else
-		glUniform1i(loc, TEX_SLOT_LIGHT_RENDER);
+		glUniform1i(loc, TEX_SLOT_LIGHT_0);
 #endif
 #endif
 }
