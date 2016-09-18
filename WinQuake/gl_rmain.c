@@ -742,7 +742,6 @@ void R_DrawEntitiesOnList (void)
 	//n_alias_draw = 0;
 
 	// draw sprites seperately, because of alpha blending
-#if !LIGHT_MAP_ATLAS
 	StartBrushBatch(gldepthmin, gldepthmax);
 	for (i = 0; i<cl_numvisedicts; i++)
 	{
@@ -757,7 +756,7 @@ void R_DrawEntitiesOnList (void)
 		}
 	}
 	EndBrushBatch();
-#endif
+
 	//alias first as they will eventuall all be in the 
 	//same VBO
 	StartAliasBatch(gldepthmin, gldepthmax);

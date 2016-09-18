@@ -69,7 +69,6 @@ void main()\n\
 }\n\
 \n";
 
-#if LIGHT_MAP_ATLAS
 static const char* brush_clr_frag = "\n\
 varying vec2 uv;\n\
 varying vec2 uvLightmap;\n\
@@ -82,18 +81,6 @@ void main()\n\
 	//gl_FragColor = base.rgba * clamp(texture2D(texLightMap, uvLightmap).aaaa*2.0+fullbright, 0.0, 2.0) * trans.gamma;\n\
 }\n\
 \n";
-#else
-static const char* brush_clr_frag = "\n\
-varying vec2 uv;\n\
-varying vec2 uvLightmap;\n\
-\n\
-void main()\n\
-{\n\
-	gl_FragColor = pow(texture2D(tex0, uv),vec4(trans.gamma));\n\
-	//gl_FragColor = texture2D(tex0, uv) * trans.gamma;\n\
-}\n\
-\n";
-#endif
 
 static const char* warp_clr_frag = "\n\
 varying vec2 uv;\n\

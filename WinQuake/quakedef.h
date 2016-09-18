@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define	QUAKE_GAME			// as opposed to utilities
 
 #define ALIAS_VBO			1
-#define LIGHT_MAP_ATLAS		1
 #define	VERSION				1.09
 #define	GLQUAKE_VERSION		2.1
 #define	D3DQUAKE_VERSION	0.01

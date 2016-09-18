@@ -1528,7 +1528,6 @@ void StartBrushBatch(float depthmin, float depthmax)
 	Start(&brush_shader);
 	UpdateTransformUBOs();
 	glBindVertexArray(brush_vao);
-#if LIGHT_MAP_ATLAS || 1
 	static int loc = -1;
 	if(loc == -1){loc = glGetUniformLocation(brush_shader.handle, "texLightMap");}
 	if (lightmap_active_index == 0)
@@ -1537,7 +1536,6 @@ void StartBrushBatch(float depthmin, float depthmax)
 		glUniform1i(loc, TEX_SLOT_LIGHT_2);
 	else
 		glUniform1i(loc, TEX_SLOT_LIGHT_0);
-#endif
 }
 
 void SetupWarpBatch()
