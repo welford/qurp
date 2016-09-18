@@ -63,7 +63,6 @@ typedef struct
 //#define JOINT_INDEX_LOCATION	4
 
 #define LINEAR_TEXTURES			0
-#define BATCH_BRUSH				1
 
 #define TEX_SLOT_CLR			0
 #define TEX_SLOT_ANORM			1
@@ -75,7 +74,6 @@ typedef struct
 
 #define SUBDIVIDE_WARP_POLYS 1
 
-#if BATCH_BRUSH
 #define TEMP_INDEX_BUFFER unsigned short buffer[3*19] = {\
 0, 1, 2,\
 0, 2, 3,\
@@ -97,7 +95,6 @@ typedef struct
 0,18,19,\
 0,19,20,\
 }, i=0;
-#endif
 
 typedef enum {
 	VAS_CLR = 0,	//vtx + clr (single colour)

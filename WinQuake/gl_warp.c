@@ -201,58 +201,7 @@ void EmitWaterPolys (msurface_t *fa)
 	float		first_s, first_t;
 	int ntriangles;
 
-#if BATCH_BRUSH
-#if SUBDIVIDE_WARP_POLYS
-	for (p=fa->polys ; p ; p=p->next){
-		AppendGLPoly(p);
-	}
-#else
 	AppendGLPoly(fa->polys);
-#endif
-#else
-	SetVertexMode(VAS_CLR_TEX);
-	EnableTexture();
-	BeginDrawing(RNDR_TRIANGLES);
-	AddVertex4D (VTX_COLOUR, 1, 1, 1, r_wateralpha.value);	
-
-	for (p=fa->polys ; p ; p=p->next)
-	{
-		ntriangles = (p->numverts-2);
-		first_vtx = p->verts[0];	
-		v = p->verts[0];	
-		v += VERTEXSIZE;				
-		
-		for (i=0 ; i<ntriangles ; i++, v+= VERTEXSIZE){			
-			os = first_vtx[3];	
-			ot = first_vtx[4];
-			s = os + turbsin[(int)((ot*0.125+realtime) * TURBSCALE) & 255];
-			s *= (1.0/64);
-			t = ot + turbsin[(int)((os*0.125+realtime) * TURBSCALE) & 255];
-			t *= (1.0/64);
-			AddVertex2D (VTX_TEXTURE, s, t);
-			AddVertex3D (VTX_POSITION, first_vtx[0], first_vtx[1], first_vtx[2]);
-
-			os = v[3];	
-			ot = v[4];
-			s = os + turbsin[(int)((ot*0.125+realtime) * TURBSCALE) & 255];
-			s *= (1.0/64);
-			t = ot + turbsin[(int)((os*0.125+realtime) * TURBSCALE) & 255];
-			t *= (1.0/64);
-			AddVertex2D (VTX_TEXTURE, s, t);
-			AddVertex3D (VTX_POSITION, v[0], v[1], v[2]);
-
-			os = v[10];	
-			ot = v[11];
-			s = os + turbsin[(int)((ot*0.125+realtime) * TURBSCALE) & 255];
-			s *= (1.0/64);
-			t = ot + turbsin[(int)((os*0.125+realtime) * TURBSCALE) & 255];
-			t *= (1.0/64);
-			AddVertex2D (VTX_TEXTURE, s, t);
-			AddVertex3D (VTX_POSITION, v[7], v[8], v[9]);
-		}
-	}
-	EndDrawing();
-#endif
 }
 
 
@@ -271,7 +220,6 @@ void EmitSkyPolys (msurface_t *fa)
 	float	s, t;
 	vec3_t	dir;
 	float	length;
-#if BATCH_BRUSH
 	#if SUBDIVIDE_WARP_POLYS
 	for (p=fa->polys ; p ; p=p->next){
 		AppendGLPoly(p);
@@ -279,89 +227,6 @@ void EmitSkyPolys (msurface_t *fa)
 	#else
 	AppendGLPoly(fa->polys);
 	#endif
-#else
-	for (p=fa->polys ; p ; p=p->next)
-	{
-		int ntriangles = (p->numverts-2);
-		first_vtx = p->verts[0];	
-		v = p->verts[0];	
-		v += VERTEXSIZE;
-
-		SetVertexMode(VAS_CLR_TEX);
-		EnableTexture();
-		BeginDrawing(RNDR_TRIANGLES);
-		AddVertex4D (VTX_COLOUR, 1, 1, 1, 1);	
-
-		for (i=0 ; i<ntriangles ; i++, v+= VERTEXSIZE){
-		//for (i=0,v=p->verts[0] ; i<p->numverts ; i++, v+=VERTEXSIZE){
-			// - - - - - - - - - - - - - - - - - - - - - - - - -
-
-			VectorSubtract (first_vtx, r_origin, dir);
-			dir[2] *= 3;	// flatten the sphere
-			length = dir[0]*dir[0] + dir[1]*dir[1] + dir[2]*dir[2];
-			length = sqrt (length);
-			length = 6*63/length;
-
-			dir[0] *= length;	dir[1] *= length;
-			s = (speedscale + dir[0]) * (1.0/128);		t = (speedscale + dir[1]) * (1.0/128);
-
-			AddVertex2D (VTX_TEXTURE, s, t);
-			AddVertex3D (VTX_POSITION, first_vtx[0], first_vtx[1], first_vtx[2]);
-
-			// - - - - - - - - - - - - - - - - - - - - - - - - -
-			VectorSubtract (v, r_origin, dir);
-			dir[2] *= 3;	// flatten the sphere
-			length = dir[0]*dir[0] + dir[1]*dir[1] + dir[2]*dir[2];
-			length = sqrt (length);
-			length = 6*63/length;
-
-			dir[0] *= length;	dir[1] *= length;
-			s = (speedscale + dir[0]) * (1.0/128);		t = (speedscale + dir[1]) * (1.0/128);
-
-			AddVertex2D (VTX_TEXTURE, s, t);
-			AddVertex3D (VTX_POSITION, v[0], v[1], v[2]);
-
-			// - - - - - - - - - - - - - - - - - - - - - - - - -
-
-			VectorSubtract ((v+VERTEXSIZE), r_origin, dir);
-			dir[2] *= 3;	// flatten the sphere
-			length = dir[0]*dir[0] + dir[1]*dir[1] + dir[2]*dir[2];
-			length = sqrt (length);
-			length = 6*63/length;
-
-			dir[0] *= length;	dir[1] *= length;
-			s = (speedscale + dir[0]) * (1.0/128);		t = (speedscale + dir[1]) * (1.0/128);
-
-			AddVertex2D (VTX_TEXTURE, s, t);
-			AddVertex3D (VTX_POSITION, (v+VERTEXSIZE)[0], (v+VERTEXSIZE)[1], (v+VERTEXSIZE)[2]);
-		}
-		EndDrawing();
-		
-
-		/*glBegin (GL_POLYGON);
-		
-		for (i=0,v=p->verts[0] ; i<p->numverts ; i++, v+=VERTEXSIZE)
-		{
-			VectorSubtract (v, r_origin, dir);
-			dir[2] *= 3;	// flatten the sphere
-
-			length = dir[0]*dir[0] + dir[1]*dir[1] + dir[2]*dir[2];
-			length = sqrt (length);
-			length = 6*63/length;
-
-			dir[0] *= length;
-			dir[1] *= length;
-
-			s = (speedscale + dir[0]) * (1.0/128);
-			t = (speedscale + dir[1]) * (1.0/128);
-
-			//glTexCoord2f (s, t);
-			//glVertex3fv (v);
-		}
-		glEnd ();
-		*/
-	}
-#endif
 }
 
 /*

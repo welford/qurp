@@ -332,12 +332,10 @@ AppendGLPoly
 void AppendGLPoly (glpoly_t *p)
 {
 	if(p->vertexOffset < 0)return;
-#if BATCH_BRUSH
 	TEMP_INDEX_BUFFER
 	for(i=0;i<(p->numverts-2)*3;i++){
 		batchElements.element[batchElements.bufferIndex][batchElements.index++] = buffer[i] + p->vertexOffset;
 	}
-#endif
 }
 
 /*
@@ -349,72 +347,12 @@ Warp the vertex coordinates
 */
 void DrawGLWaterPoly (glpoly_t *p)
 {
-#if BATCH_BRUSH
 	AppendGLPoly(p);
-#else
-	int		i;
-	float	*v, *first_vtx;	
-	float	s, t, os, ot;
-	vec3_t	nv;
-	int ntriangles = (p->numverts-2);
-
-	GL_DisableMultitexture();
-
-	first_vtx = p->verts[0];	
-	v = p->verts[0];	
-	v += VERTEXSIZE;
-
-	SetVertexMode(VAS_CLR_TEX);
-	BeginDrawing(RNDR_TRIANGLES);
-	AddVertex4D (VTX_COLOUR, 1, 1, 1, 1);	
-	for (i=0 ; i<ntriangles ; i++, v+= VERTEXSIZE){
-		AddVertex2D (VTX_TEXTURE, first_vtx[3], first_vtx[4]);
-		AddVertex3D (VTX_POSITION, first_vtx[0], first_vtx[1], first_vtx[2]);		
-
-		AddVertex2D (VTX_TEXTURE, v[3], v[4]);
-		AddVertex3D (VTX_POSITION, v[0], v[1], v[2]);
-		
-		AddVertex2D (VTX_TEXTURE, v[10], v[11]);
-		AddVertex3D (VTX_POSITION, v[7], v[8], v[9]);
-		
-	}
-	EndDrawing();
-#endif
 }
 
 void DrawGLWaterPolyLightmap (glpoly_t *p)
 {
-#if BATCH_BRUSH
 	AppendGLPoly(p);
-#else
-	int		i;
-	float	*v, *first_vtx;	
-	float	s, t, os, ot;
-	vec3_t	nv;
-	int ntriangles = (p->numverts-2);
-
-	GL_DisableMultitexture();
-
-	first_vtx = p->verts[0];	
-	v = p->verts[0];	
-	v += VERTEXSIZE;
-
-	SetVertexMode(VAS_CLR_TEX);
-	EnableTexture();
-	BeginDrawing(RNDR_TRIANGLES);
-	AddVertex4D (VTX_COLOUR, 1, 1, 1, 1);	
-	for (i=0 ; i<ntriangles ; i++, v+= VERTEXSIZE){
-		AddVertex2D (VTX_TEXTURE, first_vtx[5], first_vtx[6]);
-		AddVertex3D (VTX_POSITION, first_vtx[0], first_vtx[1], first_vtx[2]);
-		
-		AddVertex2D (VTX_TEXTURE, v[5], v[6]);
-		AddVertex3D (VTX_POSITION, v[0], v[1], v[2]);
-		
-		AddVertex2D (VTX_TEXTURE, v[12], v[13]);
-		AddVertex3D (VTX_POSITION, v[7], v[8], v[9]);		
-	}
-	EndDrawing();	
-#endif
 }
 
 /*
@@ -422,7 +360,6 @@ void DrawGLWaterPolyLightmap (glpoly_t *p)
 DrawGLPoly
 ================
 */
-#if BATCH_BRUSH
 void DrawGLPoly ()
 {
 	if(batchElements.index == 0)return;
@@ -430,37 +367,6 @@ void DrawGLPoly ()
 	batchElements.bufferIndex = (batchElements.bufferIndex + 1) % MAX_ELEMENT_BUFFERS;
 	batchElements.index = 0;
 }
-#else
-void DrawGLPoly (glpoly_t *p)
-{
-
-	int		i;
-	float	*v, *first_vtx;	
-	int ntriangles = (p->numverts-2);
-
-	if (p->numverts == 0)
-		return;
-
-	first_vtx = p->verts[0];	
-	v = p->verts[0];	
-	v += VERTEXSIZE;
-
-	SetVertexMode(VAS_CLR_TEX);
-	BeginDrawing(RNDR_TRIANGLES);
-	AddVertex4D (VTX_COLOUR, 1, 1, 1, 1);	
-	for (i=0 ; i<ntriangles ; i++, v+= VERTEXSIZE){
-		AddVertex2D (VTX_TEXTURE, first_vtx[3], first_vtx[4]);
-		AddVertex3D (VTX_POSITION, first_vtx[0], first_vtx[1], first_vtx[2]);		
-
-		AddVertex2D (VTX_TEXTURE, v[3], v[4]);
-		AddVertex3D (VTX_POSITION, v[0], v[1], v[2]);		
-
-		AddVertex2D (VTX_TEXTURE, v[10], v[11]);
-		AddVertex3D (VTX_POSITION, v[7], v[8], v[9]);		
-	}
-	EndDrawing();
-}
-#endif
 
 /*
 ================
@@ -589,28 +495,7 @@ void R_BlendLightmaps (void)
 				DrawGLWaterPolyLightmap (p);
 			else
 			{
-				#if BATCH_BRUSH
 				AppendGLPoly(p);
-				#else
-					int ntriangles = (p->numverts-2);
-					first_vtx = p->verts[0];	
-					v = p->verts[0];	
-					v += VERTEXSIZE;
-					SetVertexMode(VAS_CLR_TEX);
-					BeginDrawing(RNDR_TRIANGLES);
-					AddVertex4D (VTX_COLOUR, 1.0, 1.0, 1.0, 1);	
-					for (j=0 ; j<ntriangles ; j++, v+= VERTEXSIZE){
-						AddVertex2D (VTX_TEXTURE, first_vtx[5], first_vtx[6]);
-						AddVertex3D (VTX_POSITION, first_vtx[0], first_vtx[1], first_vtx[2]);
-
-						AddVertex2D (VTX_TEXTURE, v[5], v[6]);
-						AddVertex3D (VTX_POSITION, v[0], v[1], v[2]);
-						
-						AddVertex2D (VTX_TEXTURE, v[12], v[13]);
-						AddVertex3D (VTX_POSITION, v[7], v[8], v[9]);
-					}
-					EndDrawing();				
-				#endif
 			}
 		}
 		DrawGLPoly();
@@ -998,9 +883,7 @@ e->angles[0] = -e->angles[0];	// stupid quake bug
 #if !LIGHT_MAP_ATLAS
 	SetupColourPass();
 #endif
-#if BATCH_BRUSH
 	UpdateTransformUBOs();
-#endif
 	//
 	// draw texture
 	//

@@ -1467,7 +1467,6 @@ void EndAliasBatch()
 
 void CreateBrushBuffers(int numVerts)
 {
-#if BATCH_BRUSH
 	unsigned int currentVBO = GetCurrentBuffer(GL_ARRAY_BUFFER_BINDING);
 	unsigned int currentVAO = GetCurrentBuffer(GL_VERTEX_ARRAY_BINDING);
 
@@ -1502,23 +1501,19 @@ void CreateBrushBuffers(int numVerts)
 
 	glBindVertexArray( currentVAO );
 	glBindBuffer(GL_ARRAY_BUFFER, currentVBO);
-#endif
 }
 
 void AddBrushData(int vertexOffset, int numVerts, void * pData)
 {
-#if BATCH_BRUSH
 	unsigned int currentVBO = GetCurrentBuffer(GL_ARRAY_BUFFER_BINDING);
 	glBindBuffer(GL_ARRAY_BUFFER, brush_vbo);
 	glBufferSubData(GL_ARRAY_BUFFER, sizeof(glBrushData)*vertexOffset, sizeof(glBrushData)*numVerts, pData);
 	glBindBuffer(GL_ARRAY_BUFFER, currentVBO);
-#endif
 }
 
 extern int lightmap_active_index;
 void StartBrushBatch(float depthmin, float depthmax)
 {
-#if BATCH_BRUSH
 	force_render_state_change = 1;
 	FlushDraw();
 
@@ -1543,61 +1538,48 @@ void StartBrushBatch(float depthmin, float depthmax)
 	else
 		glUniform1i(loc, TEX_SLOT_LIGHT_0);
 #endif
-#endif
 }
 
 void SetupWarpBatch()
 {
-#if BATCH_BRUSH
 	Start(&warp_shader);
-#endif
 }
 
 void SetupSkyBatch()
 {
-#if BATCH_BRUSH
 	Start(&sky_shader);
-#endif
 }
 
 void SetupColourPass()
 {
-#if BATCH_BRUSH
 	glDisable(GL_BLEND);
 	glDepthMask(1);
 	Start(&brush_shader);
-#endif
 }
 
 void SetupLightMapPass()
 {
-#if BATCH_BRUSH
 	force_render_state_change = 1;
 	glEnable(GL_BLEND);
 	glBlendFunc( GL_ZERO, GL_ONE_MINUS_SRC_COLOR );
 	glDepthMask(0);
 	Start(&light_map_shader);
-#endif
 }
 
 void RenderBrushData(int vertexOffset, int numTris)
 {
-#if BATCH_BRUSH
 	unsigned int currentVBO = GetCurrentBuffer(GL_ARRAY_BUFFER_BINDING);
 	unsigned int currentVAO = GetCurrentBuffer(GL_VERTEX_ARRAY_BINDING);
 
 	glDrawArrays(GL_TRIANGLES, vertexOffset, (numTris*3));
-#endif
 }
 
 void RenderBrushDataElements(unsigned short *pIndices, int numElements)
 {
-#if BATCH_BRUSH
 	unsigned int currentVBO = GetCurrentBuffer(GL_ARRAY_BUFFER_BINDING);
 	unsigned int currentVAO = GetCurrentBuffer(GL_VERTEX_ARRAY_BINDING);
 
 	glDrawElements(GL_TRIANGLES, numElements, GL_UNSIGNED_SHORT, pIndices);
-#endif
 }
 
 void EndBrushBatch()
@@ -1609,9 +1591,7 @@ void EndBrushBatch()
 	SetLightmapMode(0);
 	SetDepthMask(1);
 
-#if BATCH_BRUSH
 	glBindVertexArray( vtx.vao_handle );
-#endif
 }
 
 extern void GL_DestroyLightmaps(void);

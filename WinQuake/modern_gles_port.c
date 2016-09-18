@@ -1443,7 +1443,6 @@ void EndAliasBatch()
 
 void CreateBrushBuffers(int numVerts)
 {
-#if BATCH_BRUSH
 	unsigned int currentVBO = GetCurrentBuffer(GL_ARRAY_BUFFER_BINDING);
 
 	if(brush_vbo >= 0)
@@ -1458,23 +1457,19 @@ void CreateBrushBuffers(int numVerts)
 	glBufferData(GL_ARRAY_BUFFER, numVerts * sizeof(glBrushData), 0, GL_STATIC_DRAW);
 
 	glBindBuffer(GL_ARRAY_BUFFER, currentVBO);
-#endif
 }
 
 void AddBrushData(int vertexOffset, int numVerts, void * pData)
 {
-#if BATCH_BRUSH
 	unsigned int currentVBO = GetCurrentBuffer(GL_ARRAY_BUFFER_BINDING);
 	glBindBuffer(GL_ARRAY_BUFFER, brush_vbo);
 	glBufferSubData(GL_ARRAY_BUFFER, sizeof(glBrushData)*vertexOffset, sizeof(glBrushData)*numVerts, pData);
 	glBindBuffer(GL_ARRAY_BUFFER, currentVBO);
-#endif
 }
 
 extern int lightmap_active_index;
 void StartBrushBatch(float depthmin, float depthmax)
 {
-#if BATCH_BRUSH
 	int i = 0;
 	static int loc = -1;
 	force_render_state_change = 1;
@@ -1519,35 +1514,28 @@ void StartBrushBatch(float depthmin, float depthmax)
 
 	glEnableVertexAttribArray(UV_LOCATION1);
 	glVertexAttribPointer(UV_LOCATION1,			2,	QURP_FLOAT, GL_FALSE, sizeof(glBrushData),	(char *)(0 + sizeof(float_type)*5));
-#endif
 }
 
 void SetupWarpBatch(){
-#if BATCH_BRUSH
 	Start(&warp_shader);
 	SetFloatByLocation(vtx.warpRealtime, &transforms.realtime);
 	SetFloatByLocation(vtx.gammaWarp, &transforms.gamma);
 	UpdateTransformUBOs();
-#endif
 }
 
 void SetupSkyBatch(){
-#if BATCH_BRUSH
 	Start(&sky_shader);
 	SetFloatByLocation(vtx.skyRealtime, &transforms.realtime);
 	SetFloatByLocation(vtx.gammaSky, &transforms.gamma);
 	SetVec3ByLocation(vtx.r_origin_shade, transforms.r_origin_shade);
 	UpdateTransformUBOs();
-#endif
 }
 
 void SetupColourPass()
 {
-#if BATCH_BRUSH
 	glDisable(GL_BLEND);
 	glDepthMask(1);
 	Start(&brush_shader);
-#endif
 }
 
 void SetRenderOrigin(float x, float y, float z)
@@ -1572,7 +1560,6 @@ void SetGamma(float gamma)
 
 void SetupLightMapPass()
 {
-#if BATCH_BRUSH
 	current_shader_idx = 2;
 	force_render_state_change = 1;
 	glEnable(GL_BLEND);
@@ -1581,26 +1568,20 @@ void SetupLightMapPass()
 	glDepthMask(0);
 	Start(&light_map_shader);
 	UpdateTransformUBOs();
-#endif
 }
 
 void RenderBrushData(int vertexOffset, int numTris)
 {
-#if BATCH_BRUSH	
 	glDrawArrays(GL_TRIANGLES, vertexOffset, (numTris*3));
-#endif
 }
 
 void RenderBrushDataElements(unsigned short *pIndices, int numElements)
 {
-#if BATCH_BRUSH
 	glDrawElements(GL_TRIANGLES, numElements, GL_UNSIGNED_SHORT, pIndices);
-#endif
 }
 
 void EndBrushBatch()
 {
-#if BATCH_BRUSH
 	int i;
 	force_render_state_change = 1;
 	glDisable(GL_BLEND);
@@ -1613,7 +1594,6 @@ void EndBrushBatch()
 	vtx.vertex_state = -1;
 	transform_dirty = 1;
 	for (i = 0; i<10; i++)glDisableVertexAttribArray(i);
-#endif
 }
 
 extern void GL_DestroyLightmaps(void);
