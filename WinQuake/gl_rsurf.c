@@ -394,7 +394,7 @@ void R_UpdateLightmaps (void)
 			glTexSubImage2D(GL_TEXTURE_2D, 0, lightmapsGLSOffets[i], lightmapsGLTOffets[i] + theRect->t,
 							BLOCK_WIDTH, theRect->h, gl_lightmap_format, GL_UNSIGNED_BYTE,
 							lightmapsData + (i* BLOCK_HEIGHT + theRect->t) *BLOCK_WIDTH*lightmap_bytes);
-			lightmap_was_modified[i] = 3;
+			lightmap_was_modified[i] = 2;
 
 			lightmap_rectchange[i].l = BLOCK_WIDTH;
 			lightmap_rectchange[i].t = BLOCK_HEIGHT;
@@ -953,6 +953,8 @@ void R_DrawWorld (void)
 	StartBrushBatch(gldepthmin, gldepthmax);
 	DrawTextureChains(0);
 
+	glEnable(GL_POLYGON_OFFSET_FILL);
+	glPolygonOffset(0.75f, 0.75f);
 	for (i = 0; i<cl_numvisedicts; i++)
 	{
 		currententity = cl_visedicts[i];
@@ -966,6 +968,8 @@ void R_DrawWorld (void)
 		}
 	}
 	UpdateTransformUBOs();
+	glPolygonOffset(0, 0);
+	glDisable(GL_POLYGON_OFFSET_FILL);
 
 	SetupWarpBatch();
 	DrawTextureChains(1);
