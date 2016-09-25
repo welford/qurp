@@ -69,6 +69,7 @@ typedef struct
 #define TEX_SLOT_LIGHT_0		2
 #define TEX_SLOT_LIGHT_1		3
 #define TEX_SLOT_LIGHT_2		4
+#define TEX_SLOT_LIGHT_3		5
 #define TEX_SLOT_SKY			6
 #define TEX_SLOT_SKY_ALPHA		7
 

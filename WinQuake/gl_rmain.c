@@ -1133,10 +1133,6 @@ void R_RenderScene (void)
 	R_MarkLeaves ();	// done here so we know if we're in water
 	//
 	R_DrawWorld ();		// adds static entities to the list
-
-	//
-	//S_ExtraUpdate ();	// don't let sound get messed up if going slow
-
 	//
 	R_DrawEntitiesOnList ();
 	//

@@ -1493,11 +1493,13 @@ void StartBrushBatch(float depthmin, float depthmax)
 	if (loc == -1){ loc = glGetUniformLocation(brush_shader.handle, "texLightMap"); }
 
 	if (lightmap_active_index == 0)
-		glUniform1i(loc, TEX_SLOT_LIGHT_1);
-	else if (lightmap_active_index == 1)
 		glUniform1i(loc, TEX_SLOT_LIGHT_2);
-	else
+	else if (lightmap_active_index == 1)
+		glUniform1i(loc, TEX_SLOT_LIGHT_3);
+	else if (lightmap_active_index == 2)
 		glUniform1i(loc, TEX_SLOT_LIGHT_0);
+	else
+		glUniform1i(loc, TEX_SLOT_LIGHT_1);
 
 	glBindBuffer(GL_ARRAY_BUFFER, brush_vbo);
 

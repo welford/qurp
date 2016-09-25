@@ -36,7 +36,7 @@ int			lightmap_bytes;		// 1, 2, or 4
 #define		BLOCK_WIDTH		128
 #define		BLOCK_HEIGHT	128
 
-int			lightmap_textures_gl[3] = { 0, 0, 0 };// triple buffered, one atlassed texture
+int			lightmap_textures_gl[4] = { 0, 0, 0, 0 };// triple buffered, one atlassed texture
 int			lightmap_active_index = 0;
 int			lightmapsDataOffets[MAX_LIGHTMAPS];
 int			lightmapsGLSOffets[MAX_LIGHTMAPS];
@@ -368,46 +368,43 @@ void R_UpdateLightmaps (void)
 	{	glActiveTexture(GL_TEXTURE0 + TEX_SLOT_LIGHT_0);}
 	else if (lightmap_active_index == 1)
 	{	glActiveTexture(GL_TEXTURE0 + TEX_SLOT_LIGHT_1);}
-	else
+	else if (lightmap_active_index == 2)
 	{	glActiveTexture(GL_TEXTURE0 + TEX_SLOT_LIGHT_2);}
+	else
+	{	glActiveTexture(GL_TEXTURE0 + TEX_SLOT_LIGHT_3);}
 
 
 	for (i=0 ; i<MAX_LIGHTMAPS ; i++)
 	{
-		if (lightmap_modified[i])
+		if (lightmap_modified[i] || lightmap_was_modified[i] >= 0)
 		{
+			if(lightmap_modified[i])
+				lightmap_was_modified[i] = 14 ;
 			lightmap_modified[i] = false;
 
-			if(lightmap_rectchange_cache[i].h == 0){
-				lightmap_rectchange_cache[i] = lightmap_rectchange[i];
-			}
-			else
-			{
+			//if(lightmap_rectchange_cache[i].h == 0){
+			//	lightmap_rectchange_cache[i] = lightmap_rectchange[i];
+			//}
+			//else
+			//{
 				if(lightmap_rectchange_cache[i].t > lightmap_rectchange[i].t)
 					lightmap_rectchange_cache[i].t = lightmap_rectchange[i].t;
 				if(lightmap_rectchange_cache[i].h < lightmap_rectchange[i].h)
 					lightmap_rectchange_cache[i].h = lightmap_rectchange[i].h;
-			}
+			//}
 
 			theRect = &lightmap_rectchange_cache[i];
 
 			glTexSubImage2D(GL_TEXTURE_2D, 0, lightmapsGLSOffets[i], lightmapsGLTOffets[i] + theRect->t,
 							BLOCK_WIDTH, theRect->h, gl_lightmap_format, GL_UNSIGNED_BYTE,
 							lightmapsData + (i* BLOCK_HEIGHT + theRect->t) *BLOCK_WIDTH*lightmap_bytes);
-			lightmap_was_modified[i] = 2;
+			
 
 			lightmap_rectchange[i].l = BLOCK_WIDTH;
 			lightmap_rectchange[i].t = BLOCK_HEIGHT;
 			lightmap_rectchange[i].h = 0;
 			lightmap_rectchange[i].w = 0;
-		}
-		else if(lightmap_was_modified[i] > 0) //final update fix for double buffering
-		{
-			lightmap_was_modified[i]--;
-			theRect = &lightmap_rectchange_cache[i];
-			glTexSubImage2D(GL_TEXTURE_2D, 0, lightmapsGLSOffets[i], lightmapsGLTOffets[i] + theRect->t,
-							BLOCK_WIDTH, theRect->h, gl_lightmap_format, GL_UNSIGNED_BYTE,
-							lightmapsData + (i* BLOCK_HEIGHT + theRect->t) *BLOCK_WIDTH*lightmap_bytes);
+
 			if(lightmap_was_modified[i]<= 0){
 				lightmap_was_modified[i] = 0;
 				lightmap_rectchange_cache[i].l = BLOCK_WIDTH;
@@ -415,10 +412,28 @@ void R_UpdateLightmaps (void)
 				lightmap_rectchange_cache[i].h = 0;
 				lightmap_rectchange_cache[i].w = 0;
 			}
+			lightmap_was_modified[i]--;
+
 		}
+		//else if(lightmap_was_modified[i] >= 0) //final update fix for double buffering
+		//{
+		//	lightmap_was_modified[i]--;
+		//	theRect = &lightmap_rectchange_cache[i];
+		//	glTexSubImage2D(GL_TEXTURE_2D, 0, lightmapsGLSOffets[i], lightmapsGLTOffets[i] + theRect->t,
+		//					BLOCK_WIDTH, theRect->h, gl_lightmap_format, GL_UNSIGNED_BYTE,
+		//					lightmapsData + (i* BLOCK_HEIGHT + theRect->t) *BLOCK_WIDTH*lightmap_bytes);
+		//	//if(lightmap_was_modified[i]<= 0){
+		//	//	lightmap_was_modified[i] = 0;
+		//	//	lightmap_rectchange_cache[i].l = BLOCK_WIDTH;
+		//	//	lightmap_rectchange_cache[i].t = BLOCK_HEIGHT;
+		//	//	lightmap_rectchange_cache[i].h = 0;
+		//	//	lightmap_rectchange_cache[i].w = 0;
+		//	//}
+		//}
 	}
+
 	lightmap_active_index++;
-	if(lightmap_active_index > 2)lightmap_active_index = 0;
+	if(lightmap_active_index > 3)lightmap_active_index = 0;
 }
 
 /*
@@ -1261,7 +1276,7 @@ with all the surfaces from all brush models
 
 void GL_DestroyLightmaps (void)
 {
-	glDeleteTextures(3, lightmap_textures_gl);
+	glDeleteTextures(4, lightmap_textures_gl);
 }
 
 void GL_BuildLightmaps (void)
@@ -1279,7 +1294,7 @@ void GL_BuildLightmaps (void)
 	static int lightmap_init = false;
 	if (!lightmap_init)
 	{
-		glGenTextures(3, lightmap_textures_gl);
+		glGenTextures(4, lightmap_textures_gl);
 		lightmap_init = true;
 	}
 
@@ -1457,7 +1472,7 @@ void GL_BuildLightmaps (void)
 	//
 
 	lightmap_active_index = 0;
-	for (i = 0; i < 3; i++)
+	for (i = 0; i < 4; i++)
 	{
 		//float borderColour[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 		GL_BindNoFlush(lightmap_textures_gl[i], TEX_SLOT_LIGHT_1);
@@ -1493,9 +1508,14 @@ void GL_BuildLightmaps (void)
 		glTexSubImage2D(GL_TEXTURE_2D, 0, lightmapsGLSOffets[i], lightmapsGLTOffets[i],
 						BLOCK_WIDTH, BLOCK_HEIGHT, gl_lightmap_format, GL_UNSIGNED_BYTE,
 						lightmapsData + (i* BLOCK_HEIGHT) *BLOCK_WIDTH*lightmap_bytes);
+		GL_BindNoFlush(lightmap_textures_gl[3], TEX_SLOT_LIGHT_3);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, lightmapsGLSOffets[i], lightmapsGLTOffets[i],
+						BLOCK_WIDTH, BLOCK_HEIGHT, gl_lightmap_format, GL_UNSIGNED_BYTE,
+						lightmapsData + (i* BLOCK_HEIGHT) *BLOCK_WIDTH*lightmap_bytes);
 	}
 	GL_BindNoFlush(lightmap_textures_gl[0], TEX_SLOT_LIGHT_0);
 	GL_BindNoFlush(lightmap_textures_gl[1], TEX_SLOT_LIGHT_1);
 	GL_BindNoFlush(lightmap_textures_gl[2], TEX_SLOT_LIGHT_2);
+	GL_BindNoFlush(lightmap_textures_gl[3], TEX_SLOT_LIGHT_3);
 }
 
