@@ -850,7 +850,6 @@ R_PolyBlend
 int R_PolyBlend (void)
 {
 	Matrix44 mtxX,mtxZ;
-
 	if (!gl_polyblend.value)
 		return 0;
 	if (!v_blend[3])
@@ -874,8 +873,10 @@ int R_PolyBlend (void)
 
 	BeginDrawing(RNDR_TRIANGLE_STRIP);
 	AddVertex4D (VTX_COLOUR, v_blend[0], v_blend[1], v_blend[2], v_blend[3]);	 
-	
 	int width = -(vid.width), height = vid.height;
+	if(glheight > 720){
+		height -= sb_lines;
+	}
 	
 	AddVertex3D (VTX_POSITION, 10, 0,		height);
 	AddVertex3D (VTX_POSITION, 10, width,	height);	
@@ -889,7 +890,13 @@ int R_PolyBlend (void)
 	DisableBlending();
 	EnableTexture();
 	EnableDepth();
-	return 1;
+	if(glheight > 720){
+		return 0;
+	}
+	else
+	{
+		return 1;
+	}
 }
 
 

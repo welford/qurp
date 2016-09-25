@@ -308,10 +308,9 @@ void main (int argc, char **argv)
 		sec_counter += time;
 		//frame_counter++;
 		if(sec_counter > 1.0f){
-			printf("fps time: %f\n", sec_counter);
+			//printf("fps time: %f\n", sec_counter);
 			sec_counter = 0.0f;
-			printf("fps : %d\n", host_framecount - frame_counter);
-
+			//printf("fps : %d\n", host_framecount - frame_counter);
 			dcc = 0;
 			dcs = 0;
 			frame_counter = host_framecount;
