@@ -246,7 +246,7 @@ static const int transform_stack_size = 10;
 
 static int alias_vbo = -1;				//
 static int alias_vert_offset = 0;			//
-static const int ALIAS_BUFFER_SIZE  = (1024 * 1024 * 12);
+static const int ALIAS_BUFFER_SIZE  = (2048 * 1024 * 12);
 
 static int brush_vbo = -1;				//
 static int brush_vbo_size = -1;			//
@@ -572,42 +572,42 @@ GLuint depthRenderbuffer;
 
 static void SetupFBO(const int width, const int height){
 #if USE_FBO
-	glGenTextures(2, fbo_colour_texture);	
-	glBindTexture(GL_TEXTURE_2D, fbo_colour_texture[0]);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 512, 512, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	
-	glBindTexture(GL_TEXTURE_2D, fbo_colour_texture[1]);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 512, 512, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	
-	glBindTexture(GL_TEXTURE_2D, fbo_colour_texture[0]);
-	
-	glGenRenderbuffers(1, &depthRenderbuffer);
-	glBindRenderbuffer(GL_RENDERBUFFER, depthRenderbuffer);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, 512, 512);
-	
-	glBindTexture(GL_TEXTURE_2D, 0);
-	
-	glGenFramebuffers(2, fbo_handle);
-	glBindFramebuffer(GL_FRAMEBUFFER, fbo_handle[0]);
-	glFramebufferTexture2D(GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_colour_texture[0], 0);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderbuffer);
-	
-	glBindFramebuffer(GL_FRAMEBUFFER, fbo_handle[1]);
-	glFramebufferTexture2D(GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_colour_texture[1], 0);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderbuffer);
-	
-	
-	checkfbo();	
-	
-	glBindFramebuffer(GL_FRAMEBUFFER, fbo_handle[0]);
+	//glGenTextures(2, fbo_colour_texture);	
+	//glBindTexture(GL_TEXTURE_2D, fbo_colour_texture[0]);
+	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 512, 512, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	//
+	//glBindTexture(GL_TEXTURE_2D, fbo_colour_texture[1]);
+	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 512, 512, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	//
+	//glBindTexture(GL_TEXTURE_2D, fbo_colour_texture[0]);
+	//
+	//glGenRenderbuffers(1, &depthRenderbuffer);
+	//glBindRenderbuffer(GL_RENDERBUFFER, depthRenderbuffer);
+	//glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, 512, 512);
+	//
+	//glBindTexture(GL_TEXTURE_2D, 0);
+	//
+	//glGenFramebuffers(2, fbo_handle);
+	//glBindFramebuffer(GL_FRAMEBUFFER, fbo_handle[0]);
+	//glFramebufferTexture2D(GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_colour_texture[0], 0);
+	//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderbuffer);
+	//
+	//glBindFramebuffer(GL_FRAMEBUFFER, fbo_handle[1]);
+	//glFramebufferTexture2D(GL_FRAMEBUFFER , GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_colour_texture[1], 0);
+	//glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderbuffer);
+	//
+	//
+	//checkfbo();	
+	//
+	//glBindFramebuffer(GL_FRAMEBUFFER, fbo_handle[0]);
 #endif
 }
 
@@ -1446,51 +1446,51 @@ void BlitFBO(const int w, const inth )
 {
 	static int fbo_idx = 0;
 #if USE_FBO
-	Matrix44 mtxX,mtxZ;
-	
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	
-	GL_DisableMultitexture();
-	DisableAlphaTest();
-	EnableBlending();
-	DisableDepth();
-	
-	Identity();
-	matRotateX44(DEG_TO_RAD(-90), &mtxX);
-	matRotateZ44(DEG_TO_RAD(90), &mtxZ);
-	TransformMatrix(mtxX.a);
-	TransformMatrix(mtxZ.a);	
-	
-	GL_Bind (fbo_colour_texture[fbo_idx]);
-	
-	SetVertexMode(VAS_CLR_TEX);
-	
-	BeginDrawing(RNDR_TRIANGLE_STRIP);
-	AddVertex4D (VTX_COLOUR, 1, 1, 1, 1);
-	int width = -(vid.width), height = vid.height;
-	AddVertex2D (VTX_TEXTURE, 0.0f, 0.0f);
-	AddVertex3D (VTX_POSITION, 10, 0,		height);
-	
-	//AddVertex2D (VTX_TEXTURE, 0.16666666666666666666666666666667f,  0.0f);
-	AddVertex2D (VTX_TEXTURE, 0.625f,  0.0f);
-	AddVertex3D (VTX_POSITION, 10, width,	height);	
-	
-	//AddVertex2D (VTX_TEXTURE, 0.0f,  0.22222222222222222222222222222222f);
-	AddVertex2D (VTX_TEXTURE, 0.0f,  0.46875);
-	AddVertex3D (VTX_POSITION, 10, 0,		0);
-	
-	//AddVertex2D (VTX_TEXTURE, 0.16666666666666666666666666666667f,  0.22222222222222222222222222222222f);
-	AddVertex2D (VTX_TEXTURE, 0.625f,  0.46875);
-	AddVertex3D (VTX_POSITION, 10, width,	0);
-	
-	EndDrawing();
-	FlushDraw();
-	GL_Bind (0);
-	
-	EnableDepth();
-	fbo_idx = fbo_idx+1;
-	if(fbo_idx > 1)fbo_idx = 0;
-	glBindFramebuffer(GL_FRAMEBUFFER, fbo_handle[fbo_idx]);
+	//Matrix44 mtxX,mtxZ;
+	//
+	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	//
+	//GL_DisableMultitexture();
+	//DisableAlphaTest();
+	//EnableBlending();
+	//DisableDepth();
+	//
+	//Identity();
+	//matRotateX44(DEG_TO_RAD(-90), &mtxX);
+	//matRotateZ44(DEG_TO_RAD(90), &mtxZ);
+	//TransformMatrix(mtxX.a);
+	//TransformMatrix(mtxZ.a);	
+	//
+	//GL_Bind (fbo_colour_texture[fbo_idx]);
+	//
+	//SetVertexMode(VAS_CLR_TEX);
+	//
+	//BeginDrawing(RNDR_TRIANGLE_STRIP);
+	//AddVertex4D (VTX_COLOUR, 1, 1, 1, 1);
+	//int width = -(vid.width), height = vid.height;
+	//AddVertex2D (VTX_TEXTURE, 0.0f, 0.0f);
+	//AddVertex3D (VTX_POSITION, 10, 0,		height);
+	//
+	////AddVertex2D (VTX_TEXTURE, 0.16666666666666666666666666666667f,  0.0f);
+	//AddVertex2D (VTX_TEXTURE, 0.625f,  0.0f);
+	//AddVertex3D (VTX_POSITION, 10, width,	height);	
+	//
+	////AddVertex2D (VTX_TEXTURE, 0.0f,  0.22222222222222222222222222222222f);
+	//AddVertex2D (VTX_TEXTURE, 0.0f,  0.46875);
+	//AddVertex3D (VTX_POSITION, 10, 0,		0);
+	//
+	////AddVertex2D (VTX_TEXTURE, 0.16666666666666666666666666666667f,  0.22222222222222222222222222222222f);
+	//AddVertex2D (VTX_TEXTURE, 0.625f,  0.46875);
+	//AddVertex3D (VTX_POSITION, 10, width,	0);
+	//
+	//EndDrawing();
+	//FlushDraw();
+	//GL_Bind (0);
+	//
+	//EnableDepth();
+	//fbo_idx = fbo_idx+1;
+	//if(fbo_idx > 1)fbo_idx = 0;
+	//glBindFramebuffer(GL_FRAMEBUFFER, fbo_handle[fbo_idx]);
 
 #endif
 }

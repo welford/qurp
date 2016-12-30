@@ -232,7 +232,7 @@ static const int transform_stack_size = 10;
 static int alias_vbo = -1;				//
 static int alias_vao = -1;				//
 static int alias_vert_offset = 0;		//
-static const int ALIAS_BUFFER_SIZE  = (1024 * 1024 * 8);
+static const int ALIAS_BUFFER_SIZE  = (2048 * 1024 * 8);
 
 static int brush_vbo = -1;				//
 static int brush_vao = -1;				//
