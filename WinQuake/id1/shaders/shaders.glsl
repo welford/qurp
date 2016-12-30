@@ -57,6 +57,7 @@ layout(std140) uniform Transforms
 	float		ambientLight;
 	float		realtime;
 	float		gamma;
+	float		waterwarp;
 }trans;
 
 
@@ -96,6 +97,29 @@ void main()
 	fragColour = pow(texture(tex0, uv),vec4(trans.gamma)) * colour;
 }
 
+-- ScreenVertex
+out vec4 colour;
+out vec2 uv;
+void main()
+{
+	colour = inColour;	
+	uv = inUV;
+	gl_Position = trans.mvp * inVertex;
+}
+
+-- ScreenFragment
+
+in vec4 colour;
+in vec2 uv;
+
+out vec4 fragColour;
+
+void main()
+{
+	fragColour = pow(texture(tex0, uv),vec4(trans.gamma));// * colour;	
+}
+
+
 -- BrushVertex
 
 out vec2 uv;
@@ -104,7 +128,10 @@ void main()
 {
 	uv = inUV;
 	uvLightmap = inUV1;
-	gl_Position = trans.mvp * inVertex;
+	vec4 position = trans.mvp * inVertex;
+	position.x = position.x  + (sin(trans.realtime * 1.5) * trans.waterwarp * 3.0);
+	position.y = position.y + (cos(trans.realtime * 1.5) * trans.waterwarp * 3.0);
+	gl_Position = position;
 }
 
 -- BrushFragment
@@ -119,7 +146,7 @@ void main()
 	vec4 base = texture(tex0, uv);
 	float fullbright = (1.0 - base.a);
 	fragColour = pow(base * clamp(texture(texLightmap, uvLightmap).r*2.0+fullbright,0.0,2.0), vec4(trans.gamma));
-	//fragColour = pow(texture(tex0, uv), vec4(trans.gamma));
+	//fragColour = base * clamp(texture(texLightmap, uvLightmap).r*2.0+fullbright,0.0,2.0);
 }
 
 -- WarpFragment
@@ -135,6 +162,7 @@ void main()
 	warpUV.x = uv.x + sin( (uv.y + trans.realtime)) * (1.0/5.0);
 	warpUV.y = uv.y + cos( (uv.t + trans.realtime)) * (1.0/5.0);
 	fragColour = pow(texture(tex0, warpUV),vec4(trans.gamma));
+	//fragColour = texture(tex0, warpUV);
 }
 
 -- SkyVertex
@@ -165,6 +193,7 @@ void main()
 {
 	vec4 alpha = texture(skyAlpha, uvfast);
 	fragColour = pow(mix(texture(sky, uvslow), alpha, alpha.a),vec4(trans.gamma));
+	//fragColour = mix(texture(sky, uvslow), alpha, alpha.a);
 }
 
 -- SimpleVertexAlias
@@ -180,7 +209,11 @@ void main()
 
 	uv = inUV;
 
-	gl_Position = trans.mvp * inVertex;
+	vec4 position = trans.mvp * inVertex;
+	position.x = position.x  + (cos(position.x + trans.realtime) * trans.waterwarp * 0.2);
+	position.y = position.y  + (sin(position.y + trans.realtime) * trans.waterwarp * 0.2);
+	gl_Position = position;
+	//gl_Position = trans.mvp * inVertex;
 }
 
 -- SimpleFragmentAlias
@@ -195,6 +228,7 @@ void main()
 	vec4 base = texture(tex0, uv);
 	float fullbright = (1.0 - base.a);
 	fragColour = pow(base*clamp(shade+fullbright,0.0,4.0),vec4(trans.gamma));
+	//fragColour = base*clamp(shade+fullbright,0.0,4.0);
 }
 
 -- SimpleVertexColoured
@@ -231,4 +265,5 @@ out vec4 fragColour;
 void main()
 {
 	fragColour = pow(texture(texLightmap, uv).rrra,vec4(trans.gamma)); //applying gamme twice?
+	//fragColour = texture(texLightmap, uv).rrra; //applying gamme twice?
 }

@@ -857,20 +857,20 @@ int R_PolyBlend (void)
 
 	FlushDraw();
 	GL_DisableMultitexture();
-
+	
 	DisableAlphaTest();
 	EnableBlending();
 	DisableDepth();
 	DisableTexture();
-
+	
 	Identity();
 	matRotateX44(DEG_TO_RAD(-90), &mtxX);
 	matRotateZ44(DEG_TO_RAD(90), &mtxZ);
 	TransformMatrix(mtxX.a);
 	TransformMatrix(mtxZ.a);	
-
+	
 	SetVertexMode(VAS_CLR);
-
+	
 	BeginDrawing(RNDR_TRIANGLE_STRIP);
 	AddVertex4D (VTX_COLOUR, v_blend[0], v_blend[1], v_blend[2], v_blend[3]);	 
 	int width = -(vid.width), height = vid.height;
@@ -882,10 +882,10 @@ int R_PolyBlend (void)
 	AddVertex3D (VTX_POSITION, 10, width,	height);	
 	AddVertex3D (VTX_POSITION, 10, 0,		0);
 	AddVertex3D (VTX_POSITION, 10, width,	0);
-
+	
 	EndDrawing();
 	FlushDraw();
-
+	
 	EnableAlphaTest();
 	DisableBlending();
 	EnableTexture();
@@ -1129,8 +1129,20 @@ R_RenderScene
 r_refdef must be set before the first call
 ================
 */
+int renderWaterWarp = 0;
+extern void SetWaterWarp(float water);//wai?
 void R_RenderScene (void)
 {
+	if(renderWaterWarp)
+	{
+		SetWaterWarp(1.0f);
+		renderWaterWarp = 0;
+	}
+	else
+	{
+		SetWaterWarp(0.0f);
+	}
+
 	R_SetupFrame ();
 	
 	R_SetFrustum ();

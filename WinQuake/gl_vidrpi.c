@@ -304,7 +304,7 @@ void GL_EndRendering (void)
 
 void GL_BlitFBO()
 {
-
+	BlitFBO(scr_width, scr_height);
 }
 
 

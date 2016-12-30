@@ -535,8 +535,8 @@ void SwapBuffers(CPlatform* pPlatform)
 	STATE* pState = (STATE*)pPlatform->m_pData;
 	eglSwapBuffers(pState->display, pState->surface);	
 
-	const GLenum discards[] = { GL_DEPTH_EXT, GL_STENCIL_EXT };
-	glDiscardFramebufferEXT(GL_FRAMEBUFFER, 2, discards);
+	//const GLenum discards[] = { GL_DEPTH_EXT, GL_STENCIL_EXT };
+	//glDiscardFramebufferEXT(GL_FRAMEBUFFER, 2, discards);
 }
 
 void Close(CPlatform* pPlatform)

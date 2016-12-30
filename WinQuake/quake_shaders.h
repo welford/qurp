@@ -31,6 +31,7 @@ struct Transforms\n\
 	float		realtime;\n\
 	float		gamma;\n\
 	vec3		r_origin_shade;\n\
+	float		waterwarp;\n\
 };\n\
 uniform  Transforms trans;\n\
 uniform sampler2D anorm;\n\
@@ -65,7 +66,10 @@ void main()\n\
 {\n\
 	uv = inUV;\n\
 	uvLightmap = inUVLightmap;\n\
-	gl_Position = trans.mvp * inVertex;\n\
+	vec4 position = trans.mvp * inVertex;\n\
+	position.x = position.x  + (sin(trans.realtime * 1.5) * trans.waterwarp); \n\
+	position.y = position.y + (cos(trans.realtime * 1.5) * trans.waterwarp); \n\
+	gl_Position = position;\n\
 }\n\
 \n";
 
@@ -173,7 +177,10 @@ void main()\n\
 	\n\
 	shade = (scaledTexAnorm * trans.shadeLight) + trans.ambientLight;\n\
 	uv = inUV;\n\
-	gl_Position = trans.mvp * inVertex;\n\
+	vec4 position = trans.mvp * inVertex;\n\
+	position.x = position.x  + (cos(position.x + trans.realtime) * trans.waterwarp); \n\
+	position.y = position.y  + (sin(position.y + trans.realtime) * trans.waterwarp); \n\
+	gl_Position = position;\n\
 }\n\
 \n";
 

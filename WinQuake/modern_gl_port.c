@@ -124,6 +124,7 @@ typedef struct {
 	float ambientLight;
 	float realtime;
 	float gamma;
+	float waterwarp;
 }UBOTransforms;
 
 typedef struct {
@@ -221,17 +222,25 @@ RenderState next_render_state = {
 static int force_render_state_change = 0;
 static UBOTransforms transforms;
 static UBOLights lights;
-static const int GRANULARITY =	16384 * 4 * 4; //probably too smalll
+static const int GRANULARITY =	16384 * 4 * 4;  //my INTEL opengl implementation does not like
+												//this being small. It seem that the memcpy used once we have called TransferAndDraw 
+												//in TransferAndDrawFromLastSafePoint is not good. I'm guessing the 
+												//implementation is using the buffer and we are trashing the contents 
+												//make this at least 16384 * 4 * 4 or double buffer it
 static const int transform_stack_size = 10;
 
 static int alias_vbo = -1;				//
 static int alias_vao = -1;				//
-static int alias_vert_offset = 0;			//
+static int alias_vert_offset = 0;		//
 static const int ALIAS_BUFFER_SIZE  = (1024 * 1024 * 8);
 
 static int brush_vbo = -1;				//
 static int brush_vao = -1;				//
 static int brush_vbo_size = -1;			//
+
+static int screen_vbo = -1;				//
+static int screen_vao = -1;				//
+static int screen_vbo_size = -1;		//
 
 static SShaderProgram texture_shader;
 static SShaderProgram colour_shader;
@@ -240,6 +249,7 @@ static SShaderProgram alias_shader;
 static SShaderProgram brush_shader;
 static SShaderProgram warp_shader;
 static SShaderProgram sky_shader;
+static SShaderProgram screen_shader;
 
 //we render to an internal buffer, then blit it to screen
 #define USE_FBO 1
@@ -670,6 +680,7 @@ static void SetupShaders(void){
 	LinkShaderProgram(&warp_shader);
 	transforms.realtime = 0.0f;
 	transforms.gamma = 1.0f;
+	transforms.waterwarp = 1.0f;
 
 	//shader (SKY)
 	got = glswGetShadersAlt("shaders.Version+shaders.Header.Vertex+shaders.Shared+shaders.SkyVertex", pDVertStr, sizeof(pDVertStr) / sizeof(pDVertStr[0]));
@@ -710,6 +721,16 @@ static void SetupShaders(void){
 	AddShaderToProgram(&light_map_shader, &vtxLightShdr);
 	AddShaderToProgram(&light_map_shader, &frgLightShdr);
 	LinkShaderProgram(&light_map_shader);	
+
+	//shader (SCREEN)
+	got = glswGetShadersAlt("shaders.Version+shaders.Header.Vertex+shaders.Shared+shaders.ScreenVertex", pDVertStr, sizeof(pDVertStr)/sizeof(pDVertStr[0]));	
+	CreateShader(&vtxTxShdr, VERT, pDVertStr, got);
+	got = glswGetShadersAlt("shaders.Version+shaders.Header.Fragment+shaders.Shared+shaders.ScreenFragment", pDFragStr, sizeof(pDFragStr)/sizeof(pDFragStr[0]));
+	CreateShader(&frgTxShdr, FRAG, pDFragStr, got);
+	CreateShaderProgram(&screen_shader);
+	AddShaderToProgram(&screen_shader,&vtxTxShdr);
+	AddShaderToProgram(&screen_shader,&frgTxShdr);
+	LinkShaderProgram(&screen_shader);	
 
 	//this will delete them after we have deleted the program associated with them
 	DeleteShader(&vtxTxShdr);
@@ -768,9 +789,61 @@ void SetRealTime(float time)
 	transforms.realtime = time;
 }
 
+void SetWaterWarp(float water)
+{
+	transforms.waterwarp = water;
+}
+
 void SetGamma(float gamma)
 {
 	transforms.gamma = gamma;
+}
+
+static void CreateScreenBuffers()
+{
+	unsigned int currentVBO = GetCurrentBuffer(GL_ARRAY_BUFFER_BINDING);
+	unsigned int currentVAO = GetCurrentBuffer(GL_VERTEX_ARRAY_BINDING);
+
+	if(screen_vbo >= 0)
+	{
+		glDeleteBuffers(1, &screen_vbo);
+		glDeleteVertexArrays(1, &screen_vao);
+	}
+
+	glGenVertexArrays(1, &screen_vao);
+	glGenBuffers(1, &screen_vbo);
+
+	//send data to GPU
+	glBindBuffer(GL_ARRAY_BUFFER, screen_vbo);
+	//six vertices, 2 position, 2 textures
+	const int vtxSize = 2 * 2 * sizeof(float);
+	glBufferData(GL_ARRAY_BUFFER, 6 * vtxSize, 0, GL_STATIC_DRAW);
+
+	//describe data for when we draw
+	glBindVertexArray( screen_vao );
+
+	glEnableVertexAttribArray(POSITION_LOCATION);
+	glBindBuffer(GL_ARRAY_BUFFER, screen_vbo);
+	glVertexAttribPointer(POSITION_LOCATION, 2, QURP_FLOAT, GL_FALSE, vtxSize, (char *)(0));
+
+	glEnableVertexAttribArray(UV_LOCATION0);
+	glBindBuffer(GL_ARRAY_BUFFER, screen_vbo);
+	glVertexAttribPointer(UV_LOCATION0, 2, QURP_FLOAT, GL_FALSE, vtxSize, (char *)(0 + sizeof(float)*2));
+
+	const float data [] = {
+		//first triangle
+		-1.0f, -1.0f, 0.0f, 0.0f,
+		-1.0f,  1.0f, 0.0f, 1.0f,
+		1.0f,  1.0f, 1.0f, 1.0f,
+		//second triangle
+		-1.0f, -1.0f, 0.0f, 0.0f,
+		1.0f,  1.0f, 1.0f, 1.0f,
+		1.0f, -1.0f, 1.0f, 0.0f,
+	};
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(data), data);
+
+	glBindVertexArray( currentVAO );
+	glBindBuffer(GL_ARRAY_BUFFER, currentVBO);
 }
 
 void StartupModernGLPatch(const int width, const int height){
@@ -812,6 +885,8 @@ void StartupModernGLPatch(const int width, const int height){
 	//CreateDebugTextures();
 	CreateANormTextures();
 	//CreateLightTextures();
+
+	CreateScreenBuffers();
 }
 
 static unsigned int num_draw_calls = 0;
@@ -1361,23 +1436,53 @@ void TransformMatrix(const float mtx[16]){
 
 void BlitFBO(const int windowWidth, const int windowHeight)
 {
+	GLenum fba[1] = {GL_COLOR_ATTACHMENT0};
 
 #if USE_FBO
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo_handle);
 	glDrawBuffer(GL_BACK);
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
-
+	
 	glBlitFramebuffer(0,0,renderWidth,renderHeight, 0,0,windowWidth,windowHeight,GL_COLOR_BUFFER_BIT, GL_NEAREST);
-	//glBlitFramebuffer(0,0,renderWidth,renderHeight, 0,0,640,480,GL_COLOR_BUFFER_BIT, GL_NEAREST);
-
+	
 	glReadBuffer(GL_FRONT);
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo_handle);
-	GLenum fba[1] = {GL_COLOR_ATTACHMENT0};
 	glDrawBuffers(1, fba);
-#endif
 
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+	//glViewport(0,0,windowWidth,windowHeight);
+	//glDisable(GL_BLEND);
+	//glDisable (GL_DEPTH_TEST);
+	//GL_BindNoFlush(fbo_colour_texture, TEX_SLOT_CLR);
+	//glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	//glDrawBuffer(GL_BACK);
+	//glBindVertexArray( screen_vao );
+	//
+	//Matrix44 mv, proj;
+	//mv = transforms.mv;
+	//proj = transforms.proj;
+	//
+	//matSetIdentity44(&transforms.mv);
+	//matSetIdentity44(&transforms.proj);
+	//
+	//Start(&screen_shader);
+	//UpdateTransformUBOs();
+	//glDrawArrays(GL_TRIANGLES, 0, 6);
+	//glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo_handle);
+	//glDrawBuffers(1, fba);
+	//
+	//transforms.mv = mv;
+	//transforms.proj = proj;
+	//glEnable(GL_BLEND);
+	//glEnable (GL_DEPTH_TEST);
+	//glBindVertexArray( vtx.vao_handle );
+
+#endif
 }
 
 void CreatAliasBuffers(int* pVboOffset, int numVerts, void * pData)
@@ -1619,6 +1724,7 @@ void ShutdownModernGLPatch(){
 	DeleteShaderProgram(&light_map_shader);
 	DeleteShaderProgram(&brush_shader);
 	DeleteShaderProgram(&alias_shader);	
+	DeleteShaderProgram(&screen_shader);
 	glswShutdown();
 	DestroyStack();
 

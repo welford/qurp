@@ -235,6 +235,8 @@ extern void SpecialDebugState();
 extern void UpdateTransformUBOs();
 extern void SetRenderOrigin(float x, float y, float z);
 extern void SetRealTime(float time);
+extern void SetWaterWarp(float water);
+
 extern void SetGamma(float gamma);
 
 #endif// _MODERN_GL_PORT_H_

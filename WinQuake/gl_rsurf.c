@@ -448,7 +448,7 @@ void R_RenderBrushPoly (msurface_t *fa)
 	int			maps;
 	glRect_t    *theRect;
 	int smax, tmax;
-
+	extern int renderWaterWarp;
 
 	c_brush_polys++;
 
@@ -466,6 +466,7 @@ void R_RenderBrushPoly (msurface_t *fa)
 
 
 	if (fa->flags & SURF_UNDERWATER){
+		renderWaterWarp = 1;
  		AppendGLPoly (fa->polys);
 	}
 	else{
@@ -969,7 +970,7 @@ void R_DrawWorld (void)
 	DrawTextureChains(0);
 
 	glEnable(GL_POLYGON_OFFSET_FILL);
-	glPolygonOffset(0.75f, 0.75f);
+	glPolygonOffset(0.15f, 0.15f);
 	for (i = 0; i<cl_numvisedicts; i++)
 	{
 		currententity = cl_visedicts[i];
