@@ -4,10 +4,9 @@ A barebones port of Quake 1 from id Software for Raspberry Pi. Made with the int
 
 This port is based on the original source code, found here : https://github.com/id-Software/Quake . All the legal stuff can be found in the original readme files.
 
-# Raspberry Pi Edition
+## Raspberry Pi Edition
 
-Downloading & Prerequisites
-------------------------
+### Downloading & Prerequisites
 
 1. Get git ``Sudo apt-get install git-core``
 
@@ -28,8 +27,8 @@ For some reason using the 2nd option meant that I couldn't commit changed back t
 6. **You will need at least 128 MB allocated to the GPU. Run ``sudo raspi-config`` then in Advanced Options -> Memory Split set the desired value.**
 
 
-Compiling & Building
-------------------------
+### Compiling & Building
+
 
 Navigate to [installed directory]/Winquake and run either
 ```bash
@@ -42,8 +41,7 @@ or
 
 Which will build the game into  [installed directory]/WinQuake/debugarm/bin or  [installed directory]/WinQuake/releasearm/bin respectively
 
-Running The Game
-------------------------
+### Running The Game
 
 You will need to place a copy of the original games files under Winquake/id1. It doesn't *yet* work with the shareware version.
 
@@ -62,15 +60,15 @@ or
 ```
 depending on which version you have built
 
-# PC Edition
+## PC Edition
 
 This also compiles/builds/runs on a windows PC using VS2015. Windows support is mostly for ease of development purposes.   
 
-# Contributors
+## Contributors
 
 https://github.com/welford/qurp/graphs/contributors
 
-# Issues
+## Issues
 
 - Input Issues
 
