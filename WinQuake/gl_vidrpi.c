@@ -33,11 +33,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //#include "GL/fxmesa.h"
 #include "modern_gl_port.h"
 
-#define WARP_WIDTH              320
-#define WARP_HEIGHT             200
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
 
-int default_width = 320, default_height = 240;
-//int default_width = 640, default_height = 320;
+#define WARP_WIDTH				320
+#define WARP_HEIGHT				200
+
+#define DEFAULT_WIDTH			320
+#define DEFAULT_HEIGHT			240
+
+#define DEFAULT_WIDTH_STR		STR(DEFAULT_WIDTH)
+#define DEFAULT_HEIGHT_STR		STR(DEFAULT_HEIGHT)
+
+int default_width = DEFAULT_WIDTH, default_height = DEFAULT_HEIGHT;
+
 
 //static fxMesaContext fc = NULL;
 
@@ -310,43 +319,6 @@ void GL_BlitFBO()
 
 #define NUM_RESOLUTIONS 16
 
-static int resolutions[NUM_RESOLUTIONS][3]={ 
-	/*
-	320,200,  GR_RESOLUTION_320x200,
-	320,240,  GR_RESOLUTION_320x240,
-	400,256,  GR_RESOLUTION_400x256,
-	400,300,  GR_RESOLUTION_400x300,
-	512,384,  GR_RESOLUTION_512x384,
-	640,200,  GR_RESOLUTION_640x200,
-	640,350,  GR_RESOLUTION_640x350,
-	640,400,  GR_RESOLUTION_640x400,
-	640,480,  GR_RESOLUTION_640x480,
-	800,600,  GR_RESOLUTION_800x600,
-	960,720,  GR_RESOLUTION_960x720,
-	856,480,  GR_RESOLUTION_856x480,
-	512,256,  GR_RESOLUTION_512x256,
-	1024,768, GR_RESOLUTION_1024x768,
-	1280,1024,GR_RESOLUTION_1280x1024,
-	1600,1200,GR_RESOLUTION_1600x1200
-	*/
-};
-
-int findres(int *width, int *height)
-{
-	int i;
-
-	for(i=0;i<NUM_RESOLUTIONS;i++)
-		if((*width<=resolutions[i][0]) && (*height<=resolutions[i][1])) {
-			*width = resolutions[i][0];
-			*height = resolutions[i][1];
-			return resolutions[i][2];
-		}
-        
-	*width = default_width;
-	*height = default_height;
-	return 0;//GR_RESOLUTION_640x480;
-}
-
 qboolean VID_Is8bit(void)
 {
 	return is8bit;
@@ -440,6 +412,9 @@ static void Check_Gamma (unsigned char *pal)
 	
 }
 
+cvar_t vid_width = {"vid_width", DEFAULT_WIDTH_STR, true};
+cvar_t vid_height = {"vid_height", DEFAULT_HEIGHT_STR, true};
+
 void VID_Init(unsigned char *palette)
 {
 	//*
@@ -460,14 +435,16 @@ void VID_Init(unsigned char *palette)
 // interpret command-line params
 
 // set vid parameters
-	/*
-	attribs[0] = FXMESA_DOUBLEBUFFER;
-	attribs[1] = FXMESA_ALPHA_SIZE;
-	attribs[2] = 1;
-	attribs[3] = FXMESA_DEPTH_SIZE;
-	attribs[4] = 1;
-	attribs[5] = FXMESA_NONE;
-	*/
+
+	//qurp hack to get vide width/height from config file.S
+	Cvar_RegisterVariable (&vid_width);
+	Cvar_RegisterVariable (&vid_height);
+	Cmd_ExecuteString ("exec config.cfg", src_command);
+	Cbuf_Execute ();
+	//end hack
+
+	width = vid_width.value;
+	height = vid_height.value;
 
 	if ((i = COM_CheckParm("-width")) != 0)
 		width = atoi(com_argv[i+1]);
@@ -492,6 +469,11 @@ void VID_Init(unsigned char *palette)
 	if (vid.conheight < 200)
 		vid.conheight = 200;
 
+	printf("READ IN MODE\n", vid.width);
+	printf("%d\n", vid_width.value);
+	printf("%d\n", vid_height.value);
+
+
 	if ((i = COM_CheckParm("-rgba32d24")) != 0)	
 		Create(&platform, "", 2, 1, width, height, 8, 8, 8, 0, 24, 0, 0);	
 	else if ((i = COM_CheckParm("-rgb24d16")) != 0)	
@@ -499,11 +481,6 @@ void VID_Init(unsigned char *palette)
 	else 
 		Create(&platform, "", 2, 1, width, height, 0, 0, 0, 0, 8, 0, 0);	
 	
-	//fc = fxMesaCreateContext(0, findres(&width, &height), GR_REFRESH_75Hz, 
-	//	attribs);
-	//if (!fc)
-	//	Sys_Error("Unable to create 3DFX context.\n");
-
 	InitSig(); // trap evil signals
 
 	scr_width = width;

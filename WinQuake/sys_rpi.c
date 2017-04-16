@@ -186,8 +186,8 @@ void Sys_Quit (void)
 {
 	printf("\nSys_Quit\n");
 
-	// FIXME should we call Host_Shutdown() here instead?
-	S_Shutdown();		// Shutdown SDL cleanly
+	Host_Shutdown();
+	//S_Shutdown();		// Shutdown SDL cleanly
 	exit (0);
 }
 
