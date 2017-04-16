@@ -1,5 +1,4 @@
 # QURP : Quake Raspberry Pi Edition.
-=======================================
 
 A barebones port of Quake 1 from id Software for Raspberry Pi. Made with the intention of keeping the look and feel of Quake 1 but with better performance on Raspberry Pi.   
 
