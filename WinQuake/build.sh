@@ -27,7 +27,7 @@ echo "- - - - - - - - - - - - - - - "
 make -j4 -f make.rpi $1 ARCH=arm \
 	CC=""$CROSS_COMPILE"gcc" USE_SVN=0 USE_CURL=0 USE_OPENAL=0 \
 	CFLAGS="-march=armv6 -mfpu=vfp -mfloat-abi=hard $INCLUDES" \
-	LDFLAGS="-pthread -lm -L"$ARM_LIBS" -lvchostif -lvcfiled_check -lbcm_host -lkhrn_static -lvchiq_arm -lopenmaxil -L/opt/vc/lib/ -lEGL -lGLESv2 -lvcos -lrt -lSDL -ludev"
+	LDFLAGS="-pthread -lm -L"$ARM_LIBS" -lvchostif -lvcfiled_check -lbcm_host -lkhrn_static -lvchiq_arm -lopenmaxil -L/opt/vc/lib/ -lbrcmEGL -lbrcmGLESv2 -lvcos -lrt -lSDL -ludev"
 	
 exit 0
 
