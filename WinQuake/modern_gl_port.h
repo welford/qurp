@@ -3,8 +3,7 @@
 
 #ifdef _WIN32
 static const int glMajor = 4, glMinor = 2;
-#include <GL/glew.h>
-#include <GL/glu.h>
+#include "./gl.h"
 
 #define float_type float
 #define float_size sizeof(float)

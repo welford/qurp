@@ -1065,39 +1065,8 @@ void R_SetupGL (void)
 //	yfov = 2*atan((float)r_refdef.vrect.height/r_refdef.vrect.width)*180/M_PI;
     MYgluPerspective (r_refdef.fov_y,  screenaspect,  4,  4096);
 
-	if (mirror)
-	{
-		if (mirror_plane->normal[2])
-			glScalef (1, -1, 1);
-		else
-			glScalef (-1, 1, 1);
-		//glCullFace(GL_BACK);
-		CullBack();
-	}
-	else{
-		CullFront();
-
-		//glCullFace(GL_FRONT);
-	}
-	
-	
-	/*
-	glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity ();
-    glRotatef (-90,  1, 0, 0);
-    glRotatef (90,  0, 0, 1);
-	
-	//rotate camera 
-    glRotatef (-r_refdef.viewangles[2],  1, 0, 0);
-    glRotatef (-r_refdef.viewangles[0],  0, 1, 0);
-    glRotatef (-r_refdef.viewangles[1],  0, 0, 1);	
-
-	//translate out by camera distance
-    glTranslatef (-r_refdef.vieworg[0],  -r_refdef.vieworg[1],  -r_refdef.vieworg[2]);
-
-	glGetFloatv (GL_MODELVIEW_MATRIX, r_world_matrix);
-	*/
-		
+	CullFront();
+			
 	matRotateX44(DEG_TO_RAD(-r_refdef.viewangles[2]), &mtxX);
 	matRotateY44(DEG_TO_RAD(-r_refdef.viewangles[0]), &mtxY);
 	matRotateZ44(DEG_TO_RAD(-r_refdef.viewangles[1]), &mtxZ);

@@ -1,9 +1,5 @@
 #ifdef _WIN32
-#pragma unmanaged
-#endif
-
-#ifdef _WIN32
-#include <GL/glew.h>
+#include "./gl.h"
 #else
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
@@ -273,7 +269,7 @@ int GetUniformBlockBinding(const SShaderProgram* const pProgram, const int loc)
 
 int GetUniformBlockSize(const SShaderProgram* const pProgram,const int loc)
 {
-	return GetUniformBlockInfo(pProgram, loc, SIZE, 0);	
+	return GetUniformBlockInfo(pProgram, loc, SIZE_, 0);	
 }
 
 int GetUniformBlockInfo(const SShaderProgram* const pProgram, const int loc, const BlockParam param, int* pData)

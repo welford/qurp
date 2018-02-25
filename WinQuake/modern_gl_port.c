@@ -3,8 +3,7 @@
 #ifdef GLQUAKE
 
 #include "transforms.h"
-#include <GL/glew.h>
-#include <GL/glew.h>
+#include "./gl.h"
 #include "glsw.h"
 #include "shader_gl.h"
 #include "vector.h"
@@ -508,8 +507,8 @@ static void CreateANormTextures(){
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glActiveTexture(GL_TEXTURE0 + TEX_SLOT_CLR);
 	free(pTexture);
 }
@@ -643,7 +642,7 @@ static void SetupShaders(void){
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(NORMAL_LOCATION));	
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(UV_LOCATION0));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(UV_LOCATION1));
-	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(TEXT_LOCATION));
+	//glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(TEXT_LOCATION));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(TEX_SLOT_ANORM));
 
 	glswAddDirectiveToken("Fragment", HASH_DEFINE_VALUE(TEX_SLOT_CLR));	
@@ -1249,11 +1248,6 @@ static void SetGLRenderState(void){
 	else
 		glDisable (GL_DEPTH_TEST);
 
-	if(current_render_state.enable_alpha_test)
-		glEnable (GL_ALPHA_TEST);
-	else
-		glDisable (GL_ALPHA_TEST);
-
 	glDepthMask(current_render_state.depth_mask);
 	glDepthRange(current_render_state.depth_min, current_render_state.depth_max);
 
@@ -1278,10 +1272,6 @@ static void SetGLRenderState(void){
 		glEnable(GL_TEXTURE_2D);
 		Start(&texture_shader);
 	}
-/*	if(current_render_state.enable_texture)
-		glEnable (GL_TEXTURE_2D);
-	else
-		glDisable (GL_TEXTURE_2D); */
 }
 
 static void ResetVtxData(void){
@@ -1494,7 +1484,7 @@ void CreatAliasBuffers(int* pVboOffset, int numVerts, void * pData)
 	{
 		printf("out of alias memory....this will be an issue just now but not in the future\n");
 	}
-	printf("Memory Used %d\n", sizeof(glAliasData)*alias_vert_offset + sizeof(glAliasData)*numVerts);
+	//printf("Memory Used %d\n", sizeof(glAliasData)*alias_vert_offset + sizeof(glAliasData)*numVerts);
 
 	if(alias_vbo < 0)
 	{

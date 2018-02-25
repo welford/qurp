@@ -23,8 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "winquake.h"
 #include "resource.h"
 #include <commctrl.h>
-#include <GL/glew.h>
-#include <GL/wglew.h>
+#include "./gl.h"
 #include <windows.h>
 #include "modern_gl_port.h"
 
@@ -131,16 +130,6 @@ char *VID_GetModeDescription (int mode);
 void ClearAllStates (void);
 void VID_UpdateWindowStatus (void);
 void GL_Init (HGLRC* pRC );
-/*
-//defined in GLEW
-PROC glArrayElementEXT;
-PROC glColorPointerEXT;
-PROC glTexCoordPointerEXT;
-PROC glVertexPointerEXT;
-*/
-
-
-
 
 //typedef void (APIENTRY *lp3DFXFUNC) (int, int, int, int, int, const void*);
 //lp3DFXFUNC glColorTableEXT;
@@ -258,11 +247,12 @@ qboolean VID_SetWindowedMode (int modenum)
 		DIBHeight = modelist[modenum].height;
 	}
 
-	WindowStyle = WS_OVERLAPPED | WS_BORDER | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
+	//WindowStyle = WS_OVERLAPPED | WS_BORDER | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
+	WindowStyle = WS_OVERLAPPED ;
 	ExWindowStyle = 0;
 
 	rect = WindowRect;
-	AdjustWindowRectEx(&rect, WindowStyle, FALSE, 0);
+	//AdjustWindowRectEx(&rect, WindowStyle, FALSE, 0);
 
 	window_width = rect.right - rect.left;
     window_height = rect.bottom - rect.top;
@@ -278,6 +268,8 @@ qboolean VID_SetWindowedMode (int modenum)
 		Sys_Error ("Could not initialize GL (wglCreateContext failed).\n\nMake sure you in are 65535 color mode, and try running -window.");
     if (!wglMakeCurrent( maindc, tempRC ))
 		Sys_Error ("wglMakeCurrent failed");
+
+	InitialiseWGLFunctionPointers();
 	
 	pixel_format = GetBetterFormat(maindc, multisamples, clr_bits, alpha_bits, depth_bits, stencil_bits);
 	if(pixel_format >= 0)
@@ -392,11 +384,16 @@ qboolean VID_SetFullDIBMode (int modenum)
 	maindc = GetDC(hwnd_dialog);
 	DefineAndSetPixelFormat(&pfd, maindc, clr_bits, alpha_bits, depth_bits, stencil_bits);
 	tempRC = wglCreateContext( maindc );
-	
+
 	if (!tempRC)
 		Sys_Error ("Could not initialize GL (wglCreateContext failed).\n\nMake sure you in are 65535 color mode, and try running -window.");
     if (!wglMakeCurrent( maindc, tempRC ))
 		Sys_Error ("wglMakeCurrent failed");
+
+	/*if (!wglChoosePixelFormatARB)
+		wglChoosePixelFormatARB = (PFNWGLCHOOSEPIXELFORMATARBPROC)wglGetProcAddress("wglChoosePixelFormatARB");*/
+
+	InitialiseWGLFunctionPointers();
 	
 	pixel_format = GetBetterFormat(maindc, multisamples, clr_bits, alpha_bits, depth_bits, stencil_bits);
 	if(pixel_format >= 0)
@@ -574,78 +571,6 @@ void VID_UpdateWindowStatus (void)
 
 //====================================
 
-BINDTEXFUNCPTR bindTexFunc;
-
-#define TEXTURE_EXT_STRING "GL_EXT_texture_object"
-
-
-void CheckTextureExtensions (void)
-{
-	char		*tmp;
-	qboolean	texture_ext;
-	HINSTANCE	hInstGL;
-
-	texture_ext = FALSE;
-	/* check for texture extension */
-	tmp = (unsigned char *)glGetString(GL_EXTENSIONS);
-	while (tmp && *tmp)
-	{
-		if (strncmp((const char*)tmp, TEXTURE_EXT_STRING, strlen(TEXTURE_EXT_STRING)) == 0)
-			texture_ext = TRUE;
-		tmp++;
-	}
-
-	if (!texture_ext || COM_CheckParm ("-gl11") )
-	{
-		hInstGL = LoadLibrary("opengl32.dll");
-		
-		if (hInstGL == NULL)
-			Sys_Error ("Couldn't load opengl32.dll\n");
-
-		bindTexFunc = (void *)GetProcAddress(hInstGL,"glBindTexture");
-
-		if (!bindTexFunc)
-			Sys_Error ("No texture objects!");
-		return;
-	}
-
-/* load library and get procedure adresses for texture extension API */
-	if ((bindTexFunc = (BINDTEXFUNCPTR)
-		wglGetProcAddress((LPCSTR) "glBindTextureEXT")) == NULL)
-	{
-		Sys_Error ("GetProcAddress for BindTextureEXT failed");
-		return;
-	}
-}
-
-void CheckArrayExtensions (void)
-{
-	char		*tmp;
-
-	/* check for texture extension */
-	tmp = (unsigned char *)glGetString(GL_EXTENSIONS);
-	while (*tmp)
-	{
-		if (strncmp((const char*)tmp, "GL_EXT_vertex_array", strlen("GL_EXT_vertex_array")) == 0)
-		{
-			/*
-			if (
-((glArrayElementEXT = wglGetProcAddress("glArrayElementEXT")) == NULL) ||
-((glColorPointerEXT = wglGetProcAddress("glColorPointerEXT")) == NULL) ||
-((glTexCoordPointerEXT = wglGetProcAddress("glTexCoordPointerEXT")) == NULL) ||
-((glVertexPointerEXT = wglGetProcAddress("glVertexPointerEXT")) == NULL) )
-			{
-				Sys_Error ("GetProcAddress for vertex extension failed");
-				return;
-			}
-			return;
-			*/
-		}
-		tmp++;
-	}
-
-	Sys_Error ("Vertex array extension not present");
-}
 
 //int		texture_mode = GL_NEAREST;
 //int		texture_mode = GL_NEAREST_MIPMAP_NEAREST;
@@ -653,39 +578,6 @@ void CheckArrayExtensions (void)
 int		texture_mode = GL_LINEAR;
 //int		texture_mode = GL_LINEAR_MIPMAP_NEAREST;
 //int		texture_mode = GL_LINEAR_MIPMAP_LINEAR;
-
-#ifdef _WIN32
-void CheckMultiTextureExtensions(void) 
-{
-	if(!gl_extensions)
-	{
-		qglMTexCoord2fSGIS = glMultiTexCoord2fARB;
-		qglSelectTextureSGIS = glActiveTextureARB;
-		gl_mtexable = false;
-
-		return;
-	}
-	if (strstr(gl_extensions, "GL_ARB_multitexture") && !COM_CheckParm("-nomtex")) 
-	{
-		Con_Printf("Multitexture extensions found.\n");
-		qglMTexCoord2fSGIS = (void *) wglGetProcAddress("glMultiTexCoord2fARB");
-		qglSelectTextureSGIS = (void *) wglGetProcAddress("glActiveTextureARB");
-		gl_mtexable = false;
-	}
-	if (strstr(gl_extensions, "GL_SGIS_multitexture ")) 
-	{
-		Con_Printf ("GL_SGIS_multitexture enabled\n\n");
-		qglMTexCoord2fSGIS		= (void *) wglGetProcAddress("glMTexCoord2fSGIS");
-		qglSelectTextureSGIS	= (void *) wglGetProcAddress("glSelectTextureSGIS");
-		gl_mtexable = true;			
-	}
-}
-#else
-void CheckMultiTextureExtensions(void) 
-{
-		gl_mtexable = true;
-}
-#endif
 
 /*
 ===============
@@ -708,12 +600,6 @@ HGLRC CreateOpenGLContext(HDC hdc, unsigned int mjr, unsigned int mnr)
 	pGLQuery = (char*)(glGetString(GL_VERSION));
 	printf("Original GL_VERSION : %s\n", pGLQuery);	
 
-	//if InitGLFunctions didn't give us the funtion below, get it from the context
-	if(!wglCreateContextAttribsARB)//PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB = NULL;
-		wglCreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC) wglGetProcAddress("wglCreateContextAttribsARB");
-	//try and make the context we want 
-	//http://www.opengl.org/registry/specs/ARB/wgl_create_context.txt  2nd parameter is for sharing...hmmm
-    
 	hrc = wglCreateContextAttribsARB(hdc, 0, contextAttribs);    
 
 	return hrc;
@@ -728,19 +614,17 @@ void GL_Init (HGLRC* rc)
 {
 	char * pGLQuery = 0;
 	HGLRC newRC;
-	//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	GLenum err = glewInit();
-	if (GLEW_OK != err)
-	{
-	  /* Problem: glewInit failed, something is seriously wrong. */
-	  //fprintf(stderr, "Error: %s\n", glewGetErrorString(err)); 
-	}
 	
+	//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	//JAMES EDIT
+	InitialiseOpenGLFunctionPointers(); //no problem in calling this twice, once before and after we set our desired context.
+
 	newRC = CreateOpenGLContext(maindc, glMajor, glMinor);
 	//update the HGLRC
 	wglMakeCurrent(0, 0);    
 	wglMakeCurrent(maindc, newRC);
+	InitialiseOpenGLFunctionPointers();
+
 	pGLQuery = (char*)(glGetString(GL_VERSION));
 	printf("Change to Version GL_VERSION : %s\n", pGLQuery);
 	pGLQuery = (char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
@@ -763,14 +647,11 @@ void GL_Init (HGLRC* rc)
 	//END
 	//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    if (strnicmp(gl_renderer,"PowerVR",7)==0)
-         fullsbardraw = true;
+	if (strnicmp(gl_renderer,"PowerVR",7)==0)
+		fullsbardraw = true;
 
-    if (strnicmp(gl_renderer,"Permedia",8)==0)
-         isPermedia = true;
-
-	CheckTextureExtensions ();
-	CheckMultiTextureExtensions ();
+	if (strnicmp(gl_renderer,"Permedia",8)==0)
+		isPermedia = true;
 
 	glClearColor (1,0,0,0);
 	//glCullFace(GL_FRONT);
@@ -778,10 +659,10 @@ void GL_Init (HGLRC* rc)
 	glEnable(GL_TEXTURE_2D);
 
 	EnableAlphaTest();
-	glAlphaFunc(GL_GREATER, 0.666);
+	//glAlphaFunc(GL_GREATER, 0.666);
 
 	glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
-	glShadeModel (GL_FLAT);
+	//glShadeModel (GL_FLAT);
 
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -790,20 +671,10 @@ void GL_Init (HGLRC* rc)
 
 	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-//	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	//glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+	//glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
 	//wglSwapIntervalEXT(1);
-
-#if 0
-	CheckArrayExtensions ();
-
-	glEnable (GL_VERTEX_ARRAY_EXT);
-	glEnable (GL_TEXTURE_COORD_ARRAY_EXT);
-	glVertexPointerEXT (3, GL_FLOAT, 0, 0, &glv.x);
-	glTexCoordPointerEXT (2, GL_FLOAT, 0, 0, &glv.s);
-	glColorPointerEXT (3, GL_FLOAT, 0, 0, &glv.r);
-#endif
 }
 
 /*
@@ -1704,24 +1575,20 @@ void VID_Init8bitPalette()
 	char thePalette[256*3];
 	char *oldPalette, *newPalette;
 
-	//glColorTableEXT = (void *)wglGetProcAddress("glColorTableEXT");
-    //if (!glColorTableEXT || strstr(gl_extensions, "GL_EXT_shared_texture_palette") ||
-	//	COM_CheckParm("-no8bit"))
-	
-		return;
+	return;
 
-	Con_SafePrintf("8-bit GL extensions enabled.\n");
-    glEnable( GL_SHARED_TEXTURE_PALETTE_EXT );
-	oldPalette = (char *) d_8to24table; //d_8to24table3dfx;
-	newPalette = thePalette;
-	for (i=0;i<256;i++) {
-		*newPalette++ = *oldPalette++;
-		*newPalette++ = *oldPalette++;
-		*newPalette++ = *oldPalette++;
-		oldPalette++;
-	}
-	glColorTable(GL_SHARED_TEXTURE_PALETTE_EXT, GL_RGB, 256, GL_RGB, GL_UNSIGNED_BYTE,
-		(void *) thePalette);
+	//Con_SafePrintf("8-bit GL extensions enabled.\n");
+ //   glEnable( GL_SHARED_TEXTURE_PALETTE_EXT );
+	//oldPalette = (char *) d_8to24table; //d_8to24table3dfx;
+	//newPalette = thePalette;
+	//for (i=0;i<256;i++) {
+	//	*newPalette++ = *oldPalette++;
+	//	*newPalette++ = *oldPalette++;
+	//	*newPalette++ = *oldPalette++;
+	//	oldPalette++;
+	//}
+	/*glColorTable(GL_SHARED_TEXTURE_PALETTE_EXT, GL_RGB, 256, GL_RGB, GL_UNSIGNED_BYTE,
+		(void *) thePalette);*/
 	is8bit = TRUE;
 }
 
@@ -1814,34 +1681,26 @@ int GetBetterFormat(HDC hdc, unsigned int ms, int clrBits, int alphaBits, int dp
 		pixelAttribs[SAMPLE_BUFFER_VALUE_IDX] = GL_TRUE;
 
 
-	if(!wglChoosePixelFormatARB)
-		wglChoosePixelFormatARB = (PFNWGLCHOOSEPIXELFORMATARBPROC) wglGetProcAddress("wglChoosePixelFormatARB");
-
-    if (!wglChoosePixelFormatARB)
+	// Try fewer and fewer samples per pixel till we find one that is supported:
+	if(*sampleCount>0)
 	{
-		printf("Couldn't find wglChoosePixelFormatARB\n");
-		return -1;
+		while (pixelFormat <=0 && *sampleCount >= 0)
+		{
+			wglChoosePixelFormatARB(hdc, pixelAttribs, 0, 1, &pixelFormat, &numFormats);
+			(*sampleCount)--;
+			if (*sampleCount < 0 && pixelFormat <=0){
+				printf("Couldn't find a suitable MSAA format\n");			
+			}
+		}
+		if (pixelFormat != -1){
+			printf("MSAA samples : %d\n", *sampleCount);//*binds tighter than +1					
+		}
 	}
 	else
 	{
-        // Try fewer and fewer samples per pixel till we find one that is supported:
-		if(*sampleCount>0)
-		{
-			while (pixelFormat <=0 && *sampleCount >= 0)
-			{
-				wglChoosePixelFormatARB(hdc, pixelAttribs, 0, 1, &pixelFormat, &numFormats);
-				(*sampleCount)--;
-				if (*sampleCount < 0 && pixelFormat <=0){
-					printf("Couldn't find a suitable MSAA format\n");			
-				}
-			}
-			if (pixelFormat != -1){
-				printf("MSAA samples : %d\n", *sampleCount);//*binds tighter than +1					
-			}
-		}
-		else
-			wglChoosePixelFormatARB(hdc, pixelAttribs, 0, 1, &pixelFormat, &numFormats);
+		wglChoosePixelFormatARB(hdc, pixelAttribs, 0, 1, &pixelFormat, &numFormats);
 	}
+
 	if(pixelFormat < 0){
 		printf("Couldn't find a suitable Pixel format\n");			
 	}

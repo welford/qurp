@@ -302,7 +302,9 @@ qboolean V_CheckGamma (void)
 	
 	BuildGammaTable (v_gamma.value);
 	vid.recalc_refdef = 1;				// force a surface cache flush
+#ifdef	GLQUAKE
 	SetGamma(1.4f - (1.0f - (v_gamma.value - 0.5f)*2.0f)*0.5f);
+#endif //GLQUAKE
 	return true;
 }
 

@@ -4,8 +4,6 @@
 #include <signal.h>
 
 #ifdef _WIN32
-#include <GL/glew.h>
-#include <GL/glew.h>
 #include <glsw.h>
 #include <shader_gl.h>
 #include <vector++\vector\vector.h>

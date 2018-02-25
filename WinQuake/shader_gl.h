@@ -49,13 +49,13 @@ Shader
 */
 typedef enum
 {
-	BOOL,
+	BOOL_,
 	TEXTURE,
-	INT,
+	INT_1,
 	INT_2,
 	INT_3,
 	INT_4,
-	FLOAT,
+	FLOAT_1,
 	FLOAT_2,
 	FLOAT_3,
 	FLOAT_4,
@@ -88,7 +88,7 @@ typedef enum
 typedef enum
 {
 	BINDING=0,
-	SIZE,
+	SIZE_,
 	NAME_LENGTH,
 	BLK_ACTIVE_UNIFORMS,
 	BLK_ACTIVE_UNIFORMS_INDICES,

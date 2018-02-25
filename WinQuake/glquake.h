@@ -28,7 +28,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 #ifdef _WIN32
-#include <GL/glew.h>
 #else
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
@@ -39,22 +38,22 @@ void GL_EndRendering (void);
 void GL_BlitFBO();
 
 
-#ifdef _WIN32
-// Function prototypes for the Texture Object Extension routines
-typedef GLboolean (APIENTRY *ARETEXRESFUNCPTR)(GLsizei, const GLuint *,
-                    const GLboolean *);
-typedef void (APIENTRY *BINDTEXFUNCPTR)(GLenum, GLuint);
-typedef void (APIENTRY *DELTEXFUNCPTR)(GLsizei, const GLuint *);
-typedef void (APIENTRY *GENTEXFUNCPTR)(GLsizei, GLuint *);
-typedef GLboolean (APIENTRY *ISTEXFUNCPTR)(GLuint);
-typedef void (APIENTRY *PRIORTEXFUNCPTR)(GLsizei, const GLuint *,
-                    const GLclampf *);
-typedef void (APIENTRY *TEXSUBIMAGEPTR)(int, int, int, int, int, int, int, int, void *);
-
-extern	BINDTEXFUNCPTR bindTexFunc;
-extern	DELTEXFUNCPTR delTexFunc;
-extern	TEXSUBIMAGEPTR TexSubImage2DFunc;
-#endif
+//#ifdef _WIN32
+//// Function prototypes for the Texture Object Extension routines
+//typedef GLboolean (APIENTRY *ARETEXRESFUNCPTR)(GLsizei, const GLuint *,
+//                    const GLboolean *);
+//typedef void (APIENTRY *BINDTEXFUNCPTR)(GLenum, GLuint);
+//typedef void (APIENTRY *DELTEXFUNCPTR)(GLsizei, const GLuint *);
+//typedef void (APIENTRY *GENTEXFUNCPTR)(GLsizei, GLuint *);
+//typedef GLboolean (APIENTRY *ISTEXFUNCPTR)(GLuint);
+//typedef void (APIENTRY *PRIORTEXFUNCPTR)(GLsizei, const GLuint *,
+//                    const GLclampf *);
+//typedef void (APIENTRY *TEXSUBIMAGEPTR)(int, int, int, int, int, int, int, int, void *);
+//
+//extern	BINDTEXFUNCPTR bindTexFunc;
+//extern	DELTEXFUNCPTR delTexFunc;
+//extern	TEXSUBIMAGEPTR TexSubImage2DFunc;
+//#endif
 
 extern	int		texture_mode;
 
@@ -81,16 +80,6 @@ typedef struct
 extern glvert_t glv;
 
 extern	int glx, gly, glwidth, glheight;
-
-#ifdef _WIN32
-//defined in GLEW
-/*
-extern	PROC glArrayElementEXT;
-extern	PROC glColorPointerEXT;
-extern	PROC glTexturePointerEXT;
-extern	PROC glVertexPointerEXT;
-*/
-#endif
 
 // r_local.h -- private refresh defs
 

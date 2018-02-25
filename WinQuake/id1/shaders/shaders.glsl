@@ -11,9 +11,10 @@ layout(location = COLOUR_LOCATION)		in vec4 inColour;
 layout(location = NORMAL_LOCATION)		in vec3 inNormal;
 layout(location = UV_LOCATION0)			in vec2 inUV;
 layout(location = UV_LOCATION1)			in vec2 inUV1;
-layout(location = TEXT_LOCATION)		in int inCharacter;
 layout(location = SHADE_LOCATION)		in float inShadeIndex;
 layout(binding=TEX_SLOT_ANORM)			uniform sampler2D anorm;
+//we aren't using this anymore and it was causing problems
+//layout(location = TEXT_LOCATION)		in int inCharacter;
 
 -- Header.Fragment
 layout(binding=TEX_SLOT_CLR)			uniform sampler2D tex0;

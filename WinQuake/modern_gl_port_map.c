@@ -3,8 +3,6 @@
 #ifdef USE_MAP
 
 #include "transforms.h"
-#include <GL/glew.h>
-#include <GL/glew.h>
 #include <glsw.h>
 #include <shader_gl.h>
 #include <vector++\vector\vector.h>
@@ -384,7 +382,7 @@ static void SetupShaders(void){
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(NORMAL_LOCATION));	
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(UV_LOCATION0));
 	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(UV_LOCATION1));
-	glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(TEXT_LOCATION));
+	//glswAddDirectiveToken("Vertex", HASH_DEFINE_VALUE(TEXT_LOCATION));
 
 	//glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(SKINNING_TEXTURE_BINDING));
 	//glswAddDirectiveToken("Shared", HASH_DEFINE_VALUE(WEIGHTS_PER_VERTEX));	

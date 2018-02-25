@@ -285,9 +285,6 @@
     <ClCompile Include="modern_gl_port_map.c">
       <Filter>port</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\pc\utils\vector++\vector\quaterion.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="bstrlib.c">
       <Filter>port</Filter>
     </ClCompile>
@@ -305,6 +302,9 @@
     </ClCompile>
     <ClCompile Include="nonintel.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="gl.cpp">
+      <Filter>port</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -502,6 +502,15 @@
     </ClInclude>
     <ClInclude Include="quakeasm.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="wglext.h">
+      <Filter>port</Filter>
+    </ClInclude>
+    <ClInclude Include="gl.h">
+      <Filter>port</Filter>
+    </ClInclude>
+    <ClInclude Include="glcorearb.h">
+      <Filter>port</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

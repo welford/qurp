@@ -616,7 +616,7 @@ void R_DrawWaterSurfaces (void)
 	// go back to the world matrix
 	//
 
-	glLoadMatrixf (r_world_matrix);
+//	glLoadMatrixf (r_world_matrix);
 
 	if (r_wateralpha.value < 1.0) {
 		EnableBlending();
