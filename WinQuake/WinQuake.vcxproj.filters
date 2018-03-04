@@ -303,7 +303,7 @@
     <ClCompile Include="nonintel.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="gl.cpp">
+    <ClCompile Include="gl.c">
       <Filter>port</Filter>
     </ClCompile>
   </ItemGroup>

@@ -239,3 +239,6 @@ pip-log.txt
 .mr.developer.cfg
 *.ms2
 *.pal
+*.db
+*.db-shm
+*.db-wal
