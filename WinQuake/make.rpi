@@ -1,68 +1,67 @@
+############################################################################
+# Quake Makefile for Raspberry Pi
 #
-# Quake Makefile for Linux 2.0
-#
-# Aug '98 by Zoid <zoid@idsoftware.com>
-#
-# ELF only
-#
+# Notes
+#	debug_gl, release_gl, debug_sw set up the target (targets_gl/targets_sw) 
+#	we will use and the ${BUILDDIR} and ${CFLAGS} as these change depending on 
+#	the configuration
+#	
+#	
+#	
+#	
+#	
+#	
+############################################################################
 
 BASEVERSION=1.09
-VERSION=$(BASEVERSION)$(GLIBC)
-
-ifneq (,$(findstring libc6,$(shell if [ -e /lib/libc.so.6 ];then echo libc6;fi)))
-GLIBC=-glibc
-else
-GLIBC=
-endif
-
-NOARCH=noarch
-
+VERSION=$(BASEVERSION)
 MOUNT_DIR=$(shell pwd)
-MASTER_DIR=$(shell pwd)
 
-BUILD_DEBUG_DIR=debug$(ARCH)$(GLIBC)
-BUILD_RELEASE_DIR=release$(ARCH)$(GLIBC)
+BUILD_DEBUG_DIR=debug$(ARCH)
+BUILD_RELEASE_DIR=release$(ARCH)
 
-# EGCS=/usr/local/egcs-1.1.2/bin/gcc
-# CC=$(EGCS)
+## POTENTIAL COMPILER FLAGS ##
 
 BASE_CFLAGS=-Dstricmp=strcasecmp $(CFLAGS) -DUSE_HALF_FLOATS=1 -mfp16-format=alternative -march=armv6 -mfpu=vfp -mfloat-abi=hard
-
-RELEASE_CFLAGS=$(BASE_CFLAGS) -O3 -ffast-math -funroll-loops -fomit-frame-pointer -fexpensive-optimizations  -DRELEASE_BUILD=1
-
 DEBUG_CFLAGS=$(BASE_CFLAGS) -g -DRELEASE_BUILD=0
+RELEASE_CFLAGS=$(BASE_CFLAGS) -O3 -ffast-math -funroll-loops -fomit-frame-pointer -fexpensive-optimizations -DRELEASE_BUILD=1
+GL_FLAGS=-DGLQUAKE -DUSE_GLES
 
-LDFLAGS+=-lm
+## POTENTIAL LINKER FLAGS ##
 
-GLCFLAGS=-DGLQUAKE -DUSE_GLES
+# TODO, move them in here
+
+## POSSIBLE TARGETS ##
+
+TARGETS=$(BUILDDIR)/bin/glquake
+TARGETSSW=$(BUILDDIR)/bin/squake
+
+############################################################################
+# compilation macros
+# 	$@ <- the TARGET
+# 	$< <- the DEPENDENCY / PREREQUISITE
+############################################################################
 
 DO_CC=$(CC) $(CFLAGS) $(INCLUDES) -o $@ -c $<
-
-DO_GL_CC=$(CC) $(CFLAGS) $(GLCFLAGS) $(INCLUDES) -o $@ -c $<
 
 #############################################################################
 # SETUP AND BUILD
 #############################################################################
 
-TARGETS=$(BUILDDIR)/bin/glquake
-TARGETSSW=$(BUILDDIR)/bin/squake
-		
 debug_gl:
-	@-mkdir -p $(BUILD_DEBUG_DIR) \
-		$(BUILD_DEBUG_DIR)/bin \
-		$(BUILD_DEBUG_DIR)/glquake
+	@-mkdir -p  $(BUILD_DEBUG_DIR) \
+				$(BUILD_DEBUG_DIR)/bin
 	@echo "- - - - - - - - - - - - - - - - - - "
 	@echo "Debug GL Build : "
 	@echo "	targets : $(TARGETS)"
 	@echo "	build dir : $(BUILD_DEBUG_DIR)"
 	@echo "	mount dir : $(MOUNT_DIR)"
 	@echo "- - - - - - - - - - - - - - - - - - "
-	$(MAKE) -f make.rpi targets BUILDDIR=$(BUILD_DEBUG_DIR) CFLAGS="$(DEBUG_CFLAGS)"
+	$(MAKE) -f make.rpi targets_gl BUILDDIR=$(BUILD_DEBUG_DIR) CFLAGS="$(DEBUG_CFLAGS) ${GL_FLAGS}"
 
 debug_sw:
-	@-mkdir -p $(BUILD_DEBUG_DIR) \
-		$(BUILD_DEBUG_DIR)/bin \
-		$(BUILD_DEBUG_DIR)/squake
+	@-mkdir -p  $(BUILD_DEBUG_DIR) \
+				$(BUILD_DEBUG_DIR)/bin
 	@echo "- - - - - - - - - - - - - - - - - - "
 	@echo "Debug Software Build : "
 	@echo "	targets : $(TARGETSSW)"
@@ -72,636 +71,176 @@ debug_sw:
 	$(MAKE) -f make.rpi targets_sw BUILDDIR=$(BUILD_DEBUG_DIR) CFLAGS="$(DEBUG_CFLAGS)"
 
 release_gl:
-	@-mkdir -p $(BUILD_RELEASE_DIR) \
-		$(BUILD_RELEASE_DIR)/bin \
-		$(BUILD_RELEASE_DIR)/glquake
+	@-mkdir -p  $(BUILD_RELEASE_DIR) \
+				$(BUILD_RELEASE_DIR)/bin
 	@echo "- - - - - - - - - - - - - - - - - - "
 	@echo "Release GL Build : "
 	@echo "	targets : $(TARGETS)"
 	@echo "	build dir : $(BUILD_RELEASE_DIR)"
 	@echo "	mount dir : $(MOUNT_DIR)"
 	@echo "- - - - - - - - - - - - - - - - - - "
-	$(MAKE) -f make.rpi targets BUILDDIR=$(BUILD_RELEASE_DIR) CFLAGS="$(RELEASE_CFLAGS)"
+	$(MAKE) -f make.rpi targets_gl BUILDDIR=$(BUILD_RELEASE_DIR) CFLAGS="$(RELEASE_CFLAGS) ${GL_FLAGS}"
 
-targets: $(TARGETS)	
-
-targets_sw: $(TARGETSSW)	
+targets_gl: $(TARGETS)
+targets_sw: $(TARGETSSW)
 
 #############################################################################
-# SVGALIB Quake
+# ALL SOURCE FILES
+#	will use makefile magic to replace the leading = with the actual directory
 #############################################################################
-
-SQUAKE_OBJS = \
-	$(BUILDDIR)/squake/cl_demo.o \
-	$(BUILDDIR)/squake/cl_input.o \
-	$(BUILDDIR)/squake/cl_main.o \
-	$(BUILDDIR)/squake/cl_parse.o \
-	$(BUILDDIR)/squake/cl_tent.o \
-	$(BUILDDIR)/squake/chase.o \
-	$(BUILDDIR)/squake/cmd.o \
-	$(BUILDDIR)/squake/common.o \
-	$(BUILDDIR)/squake/console.o \
-	$(BUILDDIR)/squake/crc.o \
-	$(BUILDDIR)/squake/cvar.o \
-	$(BUILDDIR)/squake/draw.o \
-	$(BUILDDIR)/squake/d_edge.o \
-	$(BUILDDIR)/squake/d_fill.o \
-	$(BUILDDIR)/squake/d_init.o \
-	$(BUILDDIR)/squake/d_modech.o \
-	$(BUILDDIR)/squake/d_part.o \
-	$(BUILDDIR)/squake/d_polyse.o \
-	$(BUILDDIR)/squake/d_scan.o \
-	$(BUILDDIR)/squake/d_sky.o \
-	$(BUILDDIR)/squake/d_sprite.o \
-	$(BUILDDIR)/squake/d_surf.o \
-	$(BUILDDIR)/squake/d_vars.o \
-	$(BUILDDIR)/squake/d_zpoint.o \
-	$(BUILDDIR)/squake/host.o \
-	$(BUILDDIR)/squake/host_cmd.o \
-	$(BUILDDIR)/squake/keys.o \
-	$(BUILDDIR)/squake/menu.o \
-	$(BUILDDIR)/squake/mathlib.o \
-	$(BUILDDIR)/squake/model.o \
-	$(BUILDDIR)/squake/net_dgrm.o \
-	$(BUILDDIR)/squake/net_loop.o \
-	$(BUILDDIR)/squake/net_main.o \
-	$(BUILDDIR)/squake/net_vcr.o \
-	$(BUILDDIR)/squake/net_udp.o \
-	$(BUILDDIR)/squake/net_bsd.o \
-	$(BUILDDIR)/squake/nonintel.o \
-	$(BUILDDIR)/squake/pr_cmds.o \
-	$(BUILDDIR)/squake/pr_edict.o \
-	$(BUILDDIR)/squake/pr_exec.o \
-	$(BUILDDIR)/squake/r_aclip.o \
-	$(BUILDDIR)/squake/r_alias.o \
-	$(BUILDDIR)/squake/r_bsp.o \
-	$(BUILDDIR)/squake/r_light.o \
-	$(BUILDDIR)/squake/r_draw.o \
-	$(BUILDDIR)/squake/r_efrag.o \
-	$(BUILDDIR)/squake/r_edge.o \
-	$(BUILDDIR)/squake/r_misc.o \
-	$(BUILDDIR)/squake/r_main.o \
-	$(BUILDDIR)/squake/r_sky.o \
-	$(BUILDDIR)/squake/r_sprite.o \
-	$(BUILDDIR)/squake/r_surf.o \
-	$(BUILDDIR)/squake/r_part.o \
-	$(BUILDDIR)/squake/r_vars.o \
-	$(BUILDDIR)/squake/screen.o \
-	$(BUILDDIR)/squake/sbar.o \
-	$(BUILDDIR)/squake/sv_main.o \
-	$(BUILDDIR)/squake/sv_phys.o \
-	$(BUILDDIR)/squake/sv_move.o \
-	$(BUILDDIR)/squake/sv_user.o \
-	$(BUILDDIR)/squake/zone.o	\
-	$(BUILDDIR)/squake/view.o	\
-	$(BUILDDIR)/squake/wad.o \
-	$(BUILDDIR)/squake/world.o \
-	$(BUILDDIR)/squake/cd_linux.o \
-#	$(BUILDDIR)/squake/sys_linux.o \
-	$(BUILDDIR)/squake/vid_svgalib.o \
-	$(BUILDDIR)/squake/sys_rpi.o \
-#	$(BUILDDIR)/squake/gl_vidrpi.o \
-	$(BUILDDIR)/squake/snd_dma.o \
-	$(BUILDDIR)/squake/snd_mem.o \
-	$(BUILDDIR)/squake/snd_mix.o \
-	$(BUILDDIR)/squake/snd_linux.o \
-	$(BUILDDIR)/glquake/in_rpi.o \
-	\
-#	$(BUILDDIR)/squake/d_copy.o \
-#	$(BUILDDIR)/squake/d_draw.o \
-#	$(BUILDDIR)/squake/d_draw16.o \
-#	$(BUILDDIR)/squake/d_parta.o \
-#	$(BUILDDIR)/squake/d_polysa.o \
-#	$(BUILDDIR)/squake/d_scana.o \
-#	$(BUILDDIR)/squake/d_spr8.o \
-#	$(BUILDDIR)/squake/d_varsa.o \
-#	$(BUILDDIR)/squake/math.o \
-#	$(BUILDDIR)/squake/r_aliasa.o \
-#	$(BUILDDIR)/squake/r_drawa.o \
-#	$(BUILDDIR)/squake/r_edgea.o \
-#	$(BUILDDIR)/squake/r_varsa.o \
-#	$(BUILDDIR)/squake/surf16.o \
-#	$(BUILDDIR)/squake/surf8.o \
-#	$(BUILDDIR)/squake/worlda.o \
-#	$(BUILDDIR)/squake/r_aclipa.o \
-#	$(BUILDDIR)/squake/snd_mixa.o \
-#	$(BUILDDIR)/squake/sys_dosa.o
-
-$(BUILDDIR)/bin/squake : $(SQUAKE_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(SQUAKE_OBJS) $(SVGALDFLAGS) $(LDFLAGS)
-
-####
-
-$(BUILDDIR)/squake/cl_demo.o :  $(MOUNT_DIR)/cl_demo.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/cl_input.o : $(MOUNT_DIR)/cl_input.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/cl_main.o :  $(MOUNT_DIR)/cl_main.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/cl_parse.o : $(MOUNT_DIR)/cl_parse.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/cl_tent.o :  $(MOUNT_DIR)/cl_tent.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/chase.o :    $(MOUNT_DIR)/chase.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/cmd.o :      $(MOUNT_DIR)/cmd.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/common.o :   $(MOUNT_DIR)/common.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/console.o :  $(MOUNT_DIR)/console.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/crc.o :      $(MOUNT_DIR)/crc.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/cvar.o :     $(MOUNT_DIR)/cvar.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/draw.o :     $(MOUNT_DIR)/draw.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/d_edge.o :   $(MOUNT_DIR)/d_edge.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/d_fill.o :   $(MOUNT_DIR)/d_fill.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/d_init.o :   $(MOUNT_DIR)/d_init.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/d_modech.o : $(MOUNT_DIR)/d_modech.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/d_part.o :   $(MOUNT_DIR)/d_part.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/d_polyse.o : $(MOUNT_DIR)/d_polyse.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/d_scan.o :   $(MOUNT_DIR)/d_scan.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/d_sky.o :    $(MOUNT_DIR)/d_sky.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/d_sprite.o : $(MOUNT_DIR)/d_sprite.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/d_surf.o :   $(MOUNT_DIR)/d_surf.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/d_vars.o :   $(MOUNT_DIR)/d_vars.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/d_zpoint.o : $(MOUNT_DIR)/d_zpoint.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/host.o :     $(MOUNT_DIR)/host.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/host_cmd.o : $(MOUNT_DIR)/host_cmd.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/keys.o :     $(MOUNT_DIR)/keys.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/menu.o :     $(MOUNT_DIR)/menu.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/mathlib.o :  $(MOUNT_DIR)/mathlib.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/model.o :    $(MOUNT_DIR)/model.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/net_dgrm.o : $(MOUNT_DIR)/net_dgrm.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/net_loop.o : $(MOUNT_DIR)/net_loop.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/net_main.o : $(MOUNT_DIR)/net_main.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/net_vcr.o :  $(MOUNT_DIR)/net_vcr.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/net_udp.o :  $(MOUNT_DIR)/net_udp.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/net_bsd.o :  $(MOUNT_DIR)/net_bsd.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/nonintel.o : $(MOUNT_DIR)/nonintel.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/pr_cmds.o :  $(MOUNT_DIR)/pr_cmds.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/pr_edict.o : $(MOUNT_DIR)/pr_edict.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/pr_exec.o :  $(MOUNT_DIR)/pr_exec.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/r_aclip.o :  $(MOUNT_DIR)/r_aclip.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/r_alias.o :  $(MOUNT_DIR)/r_alias.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/r_bsp.o :    $(MOUNT_DIR)/r_bsp.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/r_light.o :  $(MOUNT_DIR)/r_light.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/r_draw.o :   $(MOUNT_DIR)/r_draw.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/r_efrag.o :  $(MOUNT_DIR)/r_efrag.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/r_edge.o :   $(MOUNT_DIR)/r_edge.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/r_misc.o :   $(MOUNT_DIR)/r_misc.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/r_main.o :   $(MOUNT_DIR)/r_main.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/r_sky.o :    $(MOUNT_DIR)/r_sky.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/r_sprite.o : $(MOUNT_DIR)/r_sprite.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/r_surf.o :   $(MOUNT_DIR)/r_surf.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/r_part.o :   $(MOUNT_DIR)/r_part.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/r_vars.o :   $(MOUNT_DIR)/r_vars.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/screen.o :   $(MOUNT_DIR)/screen.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/sbar.o :     $(MOUNT_DIR)/sbar.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/sv_main.o :  $(MOUNT_DIR)/sv_main.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/sv_phys.o :  $(MOUNT_DIR)/sv_phys.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/sv_move.o :  $(MOUNT_DIR)/sv_move.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/sv_user.o :  $(MOUNT_DIR)/sv_user.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/zone.o	:   $(MOUNT_DIR)/zone.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/view.o	:   $(MOUNT_DIR)/view.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/wad.o :      $(MOUNT_DIR)/wad.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/world.o :    $(MOUNT_DIR)/world.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/cd_linux.o : $(MOUNT_DIR)/cd_linux.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/gl_vidrpi.o :$(MOUNT_DIR)/gl_vidrpi.c
-	$(DO_GL_CC)
-
-$(BUILDDIR)/squake/sys_rpi.o :$(MOUNT_DIR)/sys_rpi.c
-	$(DO_GL_CC)
-
-$(BUILDDIR)/squake/in_rpi.o :$(MOUNT_DIR)/in_rpi.c
-	$(DO_GL_CC)
-
-$(BUILDDIR)/squake/vid_svgalib.o:$(MOUNT_DIR)/vid_svgalib.c
-	$(DO_O_CC)
-
-$(BUILDDIR)/squake/snd_dma.o :  $(MOUNT_DIR)/snd_dma.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/snd_mem.o :  $(MOUNT_DIR)/snd_mem.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/snd_mix.o :  $(MOUNT_DIR)/snd_mix.c
-	$(DO_CC)
-
-$(BUILDDIR)/squake/snd_linux.o :$(MOUNT_DIR)/snd_linux.c
-	$(DO_CC)
-
-#####
-
-$(BUILDDIR)/squake/d_copy.o :   $(MOUNT_DIR)/d_copy.s
-	$(DO_AS)
-
-$(BUILDDIR)/squake/d_draw.o :   $(MOUNT_DIR)/d_draw.s
-	$(DO_AS)
-
-$(BUILDDIR)/squake/d_draw16.o : $(MOUNT_DIR)/d_draw16.s
-	$(DO_AS)
-
-$(BUILDDIR)/squake/d_parta.o :  $(MOUNT_DIR)/d_parta.s
-	$(DO_AS)
-
-$(BUILDDIR)/squake/d_polysa.o : $(MOUNT_DIR)/d_polysa.s
-	$(DO_AS)
-
-$(BUILDDIR)/squake/d_scana.o :  $(MOUNT_DIR)/d_scana.s
-	$(DO_AS)
-
-$(BUILDDIR)/squake/d_spr8.o :   $(MOUNT_DIR)/d_spr8.s
-	$(DO_AS)
-
-$(BUILDDIR)/squake/d_varsa.o :  $(MOUNT_DIR)/d_varsa.s
-	$(DO_AS)
-
-$(BUILDDIR)/squake/math.o :     $(MOUNT_DIR)/math.s
-	$(DO_AS)
-
-$(BUILDDIR)/squake/r_aliasa.o : $(MOUNT_DIR)/r_aliasa.s
-	$(DO_AS)
-
-$(BUILDDIR)/squake/r_drawa.o :  $(MOUNT_DIR)/r_drawa.s
-	$(DO_AS)
-
-$(BUILDDIR)/squake/r_edgea.o :  $(MOUNT_DIR)/r_edgea.s
-	$(DO_AS)
-
-$(BUILDDIR)/squake/r_varsa.o :  $(MOUNT_DIR)/r_varsa.s
-	$(DO_AS)
-
-$(BUILDDIR)/squake/surf16.o :   $(MOUNT_DIR)/surf16.s
-	$(DO_AS)
-
-$(BUILDDIR)/squake/surf8.o :    $(MOUNT_DIR)/surf8.s
-	$(DO_AS)
-
-$(BUILDDIR)/squake/worlda.o :   $(MOUNT_DIR)/worlda.s
-	$(DO_AS)
-
-$(BUILDDIR)/squake/r_aclipa.o : $(MOUNT_DIR)/r_aclipa.s
-	$(DO_AS)
-
-$(BUILDDIR)/squake/snd_mixa.o : $(MOUNT_DIR)/snd_mixa.s
-	$(DO_AS)
-
-$(BUILDDIR)/squake/sys_dosa.o : $(MOUNT_DIR)/sys_dosa.s
-	$(DO_AS)
+CM_SOURCES= \
+			cl_demo.cpp \
+			cl_input.cpp \
+			cl_main.cpp \
+			cl_parse.cpp \
+			cl_tent.cpp \
+			chase.cpp \
+			cmd.cpp \
+			common.cpp \
+			console.cpp \
+			crc.cpp \
+			cvar.cpp \
+			host.cpp \
+			host_cmd.cpp \
+			keys.cpp \
+			menu.cpp \
+			mathlib.cpp \
+			net_dgrm.cpp \
+			net_loop.cpp \
+			net_main.cpp \
+			net_vcr.cpp \
+			net_udp.cpp \
+			net_bsd.cpp \
+			pr_cmds.cpp \
+			pr_edict.cpp \
+			pr_exec.cpp \
+			r_part.cpp \
+			sbar.cpp \
+			sv_main.cpp \
+			sv_phys.cpp \
+			sv_move.cpp \
+			sv_user.cpp \
+			zone.cpp	\
+			view.cpp	\
+			wad.cpp \
+			world.cpp \
+			cd_linux.cpp \
+			sys_rpi.cpp \
+			snd_rpi.cpp \
+			snd_dma.cpp \
+			snd_mem.cpp \
+			snd_mix.cpp \
+			in_rpi.cpp
+
+SW_SOURCES= \
+			vid_svgalib.cpp \
+			draw.cpp \
+			model.cpp \
+			r_efrag.cpp \
+			r_light.cpp \
+			r_main.cpp \
+			r_misc.cpp \
+			d_surf.cpp \
+			screen.cpp \
+			nonintel.cpp \
+			d_edge.cpp \
+			d_fill.cpp \
+			d_init.cpp \
+			d_modech.cpp \
+			d_part.cpp \
+			d_polyse.cpp \
+			d_scan.cpp \
+			d_sky.cpp \
+			d_sprite.cpp \
+			d_vars.cpp \
+			d_zpoint.cpp \
+			r_aclip.cpp \
+			r_alias.cpp \
+			r_bsp.cpp \
+			r_draw.cpp \
+			r_edge.cpp \
+			r_sky.cpp \
+			r_sprite.cpp \
+			r_surf.cpp \
+			r_vars.cpp \
+			snd_linux.cpp
+
+GL_SOURCES= \
+			gl_vidrpi.cpp\
+			gl_draw.cpp \
+			gl_mesh.cpp \
+			gl_model.cpp \
+			gl_refrag.cpp \
+			gl_rlight.cpp \
+			gl_rmain.cpp \
+			gl_rmisc.cpp \
+			gl_rsurf.cpp \
+			gl_screen.cpp \
+			gl_test.cpp \
+			gl_warp.cpp \
+			platform.pi.cpp\
+			modern_gles_port.cpp\
+			shader_gles.cpp \
+			vector.cpp \
+			matrix.cpp \
+			transforms.cpp
 
 #############################################################################
-# GLQuake
+# ALL OBJECT FILES
+#	using a string replacement tool and the above list
+#		https://www.gnu.org/software/make/manual/html_node/Text-Functions.html
+#
+#	URGH, we need to make sure the make files are picked up from the correct place
+#	this nonsense below adds $(MOUNT_DIR)/$(BUILDDIR)/ to all the files in 
+#	$(CM_OBJECTS) & $(GL_OBJECTS)
+#
 #############################################################################
-GLQUAKE_OBJS= \
-	$(BUILDDIR)/glquake/platform.pi.o\
-	$(BUILDDIR)/glquake/modern_gles_port.o\
-	$(BUILDDIR)/glquake/shader_gles.o \
-	$(BUILDDIR)/glquake/vector.o \
-	$(BUILDDIR)/glquake/matrix.o \
-	$(BUILDDIR)/glquake/transforms.o \
-	$(BUILDDIR)/glquake/sys_rpi.o \
-	$(BUILDDIR)/glquake/cl_demo.o \
-	$(BUILDDIR)/glquake/cl_input.o \
-	$(BUILDDIR)/glquake/cl_main.o \
-	$(BUILDDIR)/glquake/cl_parse.o \
-	$(BUILDDIR)/glquake/cl_tent.o \
-	$(BUILDDIR)/glquake/chase.o \
-	$(BUILDDIR)/glquake/cmd.o \
-	$(BUILDDIR)/glquake/common.o \
-	$(BUILDDIR)/glquake/console.o \
-	$(BUILDDIR)/glquake/crc.o \
-	$(BUILDDIR)/glquake/cvar.o \
-	\
-	$(BUILDDIR)/glquake/gl_draw.o \
-	$(BUILDDIR)/glquake/gl_mesh.o \
-	$(BUILDDIR)/glquake/gl_model.o \
-	$(BUILDDIR)/glquake/gl_refrag.o \
-	$(BUILDDIR)/glquake/gl_rlight.o \
-	$(BUILDDIR)/glquake/gl_rmain.o \
-	$(BUILDDIR)/glquake/gl_rmisc.o \
-	$(BUILDDIR)/glquake/gl_rsurf.o \
-	$(BUILDDIR)/glquake/gl_screen.o \
-	$(BUILDDIR)/glquake/gl_test.o \
-	$(BUILDDIR)/glquake/gl_warp.o \
-	\
-	$(BUILDDIR)/glquake/host.o \
-	$(BUILDDIR)/glquake/host_cmd.o \
-	$(BUILDDIR)/glquake/keys.o \
-	$(BUILDDIR)/glquake/menu.o \
-	$(BUILDDIR)/glquake/mathlib.o \
-	$(BUILDDIR)/glquake/net_dgrm.o \
-	$(BUILDDIR)/glquake/net_loop.o \
-	$(BUILDDIR)/glquake/net_main.o \
-	$(BUILDDIR)/glquake/net_vcr.o \
-	$(BUILDDIR)/glquake/net_udp.o \
-	$(BUILDDIR)/glquake/net_bsd.o \
-	$(BUILDDIR)/glquake/pr_cmds.o \
-	$(BUILDDIR)/glquake/pr_edict.o \
-	$(BUILDDIR)/glquake/pr_exec.o \
-	$(BUILDDIR)/glquake/r_part.o \
-	$(BUILDDIR)/glquake/sbar.o \
-	$(BUILDDIR)/glquake/sv_main.o \
-	$(BUILDDIR)/glquake/sv_phys.o \
-	$(BUILDDIR)/glquake/sv_move.o \
-	$(BUILDDIR)/glquake/sv_user.o \
-	$(BUILDDIR)/glquake/zone.o	\
-	$(BUILDDIR)/glquake/view.o	\
-	$(BUILDDIR)/glquake/wad.o \
-	$(BUILDDIR)/glquake/world.o \
-	$(BUILDDIR)/glquake/cd_linux.o \
-	$(BUILDDIR)/glquake/snd_rpi.o \
-	$(BUILDDIR)/glquake/snd_dma.o \
-	$(BUILDDIR)/glquake/snd_mem.o \
-	$(BUILDDIR)/glquake/snd_mix.o \
-	$(BUILDDIR)/glquake/in_rpi.o \
-	$(BUILDDIR)/glquake/gl_vidrpi.o\
-	\
-	#$(BUILDDIR)/glquake/math.o \
-	#$(BUILDDIR)/glquake/snd_linux.o \
-	#$(BUILDDIR)/glquake/snd_dma.o \
-	#$(BUILDDIR)/glquake/snd_mem.o \
-	#$(BUILDDIR)/glquake/snd_mix.o \
-	#$(BUILDDIR)/glquake/worlda.o \
-	#$(BUILDDIR)/glquake/snd_mixa.o \
-	#$(BUILDDIR)/glquake/sys_dosa.o
 
-	#$(BUILDDIR)/glquake/gl_vidlinux.o
+CM_OBJECTS=$(addprefix $(MOUNT_DIR)/$(BUILDDIR)/, $(CM_SOURCES:.cpp=.o))
+SW_OBJECTS=$(addprefix $(MOUNT_DIR)/$(BUILDDIR)/, $(SW_SOURCES:.cpp=.o))
+GL_OBJECTS=$(addprefix $(MOUNT_DIR)/$(BUILDDIR)/, $(GL_SOURCES:.cpp=.o))
 
-$(BUILDDIR)/bin/glquake : $(GLQUAKE_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(GLQUAKE_OBJS) $(LDFLAGS)
+#############################################################################
+# OBJECT to elf rule (target is the elf file, prerequisite/dependency is the objects list)
+#
+# 	# https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html
+#############################################################################
 
-$(BUILDDIR)/glquake/in_rpi.o : $(MOUNT_DIR)/in_rpi.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/cl_demo.o :      $(MOUNT_DIR)/cl_demo.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/cl_input.o :     $(MOUNT_DIR)/cl_input.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/cl_main.o :      $(MOUNT_DIR)/cl_main.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/cl_parse.o :     $(MOUNT_DIR)/cl_parse.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/cl_tent.o :      $(MOUNT_DIR)/cl_tent.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/chase.o :        $(MOUNT_DIR)/chase.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/cmd.o :          $(MOUNT_DIR)/cmd.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/common.o :       $(MOUNT_DIR)/common.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/console.o :      $(MOUNT_DIR)/console.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/crc.o :          $(MOUNT_DIR)/crc.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/cvar.o :         $(MOUNT_DIR)/cvar.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/vector.o :      $(MOUNT_DIR)/vector.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/matrix.o :      $(MOUNT_DIR)/matrix.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/gl_draw.o :      $(MOUNT_DIR)/gl_draw.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/gl_mesh.o :      $(MOUNT_DIR)/gl_mesh.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/gl_model.o :     $(MOUNT_DIR)/gl_model.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/gl_refrag.o :    $(MOUNT_DIR)/gl_refrag.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/gl_rlight.o :    $(MOUNT_DIR)/gl_rlight.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/gl_rmain.o :     $(MOUNT_DIR)/gl_rmain.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/gl_rmisc.o :     $(MOUNT_DIR)/gl_rmisc.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/gl_rsurf.o :     $(MOUNT_DIR)/gl_rsurf.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/gl_screen.o :    $(MOUNT_DIR)/gl_screen.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/gl_test.o :      $(MOUNT_DIR)/gl_test.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/gl_vidlinux.o :  $(MOUNT_DIR)/gl_vidlinux.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/gl_vidlinuxglx.o :  $(MOUNT_DIR)/gl_vidlinuxglx.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/gl_warp.o :      $(MOUNT_DIR)/gl_warp.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/host.o :         $(MOUNT_DIR)/host.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/host_cmd.o :     $(MOUNT_DIR)/host_cmd.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/keys.o :         $(MOUNT_DIR)/keys.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/menu.o :         $(MOUNT_DIR)/menu.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/mathlib.o :      $(MOUNT_DIR)/mathlib.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/net_dgrm.o :     $(MOUNT_DIR)/net_dgrm.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/net_loop.o :     $(MOUNT_DIR)/net_loop.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/net_main.o :     $(MOUNT_DIR)/net_main.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/net_vcr.o :      $(MOUNT_DIR)/net_vcr.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/net_udp.o :      $(MOUNT_DIR)/net_udp.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/net_bsd.o :      $(MOUNT_DIR)/net_bsd.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/pr_cmds.o :      $(MOUNT_DIR)/pr_cmds.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/pr_edict.o :     $(MOUNT_DIR)/pr_edict.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/pr_exec.o :      $(MOUNT_DIR)/pr_exec.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/r_part.o :       $(MOUNT_DIR)/r_part.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/sbar.o :         $(MOUNT_DIR)/sbar.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/sv_main.o :      $(MOUNT_DIR)/sv_main.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/sv_phys.o :      $(MOUNT_DIR)/sv_phys.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/sv_move.o :      $(MOUNT_DIR)/sv_move.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/sv_user.o :      $(MOUNT_DIR)/sv_user.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/zone.o	:        $(MOUNT_DIR)/zone.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/view.o	:        $(MOUNT_DIR)/view.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/wad.o :          $(MOUNT_DIR)/wad.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/world.o :        $(MOUNT_DIR)/world.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/cd_linux.o :     $(MOUNT_DIR)/cd_linux.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/sys_rpi.o :    $(MOUNT_DIR)/sys_rpi.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/snd_dma.o :      $(MOUNT_DIR)/snd_dma.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/snd_linux.o :      $(MOUNT_DIR)/snd_linux.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/snd_mem.o :      $(MOUNT_DIR)/snd_mem.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/snd_mix.o :		$(MOUNT_DIR)/snd_mix.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/snd_rpi.o :		$(MOUNT_DIR)/snd_rpi.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/snd_null.o :    $(MOUNT_DIR)/snd_null.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/math.o :         $(MOUNT_DIR)/math.s
-	$(DO_GL_AS)
-$(BUILDDIR)/glquake/worlda.o :       $(MOUNT_DIR)/worlda.s
-	$(DO_GL_AS)
-$(BUILDDIR)/glquake/snd_mixa.o :     $(MOUNT_DIR)/snd_mixa.s
-	$(DO_GL_AS)
-$(BUILDDIR)/glquake/sys_dosa.o :     $(MOUNT_DIR)/sys_dosa.s
-	$(DO_GL_AS)
-$(BUILDDIR)/glquake/modern_gles_port.o : $(MOUNT_DIR)/modern_gles_port.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/shader_gles.o : $(MOUNT_DIR)/shader_gles.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/transforms.o : $(MOUNT_DIR)/transforms.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/gl_vidrpi.o : $(MOUNT_DIR)/gl_vidrpi.c
-	$(DO_GL_CC)
-$(BUILDDIR)/glquake/platform.pi.o : $(MOUNT_DIR)/platform.pi.c
-	$(DO_GL_CC)
+$(BUILDDIR)/bin/glquake : $(CM_OBJECTS) $(GL_OBJECTS)
+	$(CC) $(CFLAGS) -o $@ $(CM_OBJECTS) $(GL_OBJECTS) $(LDFLAGS)
 
+#############################################################################
+# C to OBJECT rule (target is a .o file the .c file is the dependency)
+#	we use the .o output dir to match these  
+#
+#
+#
+# 	https://www.gnu.org/software/make/manual/html_node/Automatic-Variables.html
+# 		$@ <- the TARGET
+# 		$< <- the DEPENDENCY / PREREQUISITE
+#  	% is a wildcard in this case
+#############################################################################
+
+$(MOUNT_DIR)/$(BUILDDIR)/%.o: $(MOUNT_DIR)/%.c
+	$(DO_CC)
+
+
+#############################################################################
+# OLD STUFF 
+#############################################################################
+#$(BUILDDIR)/glquake/math.o :         $(MOUNT_DIR)/math.s
+#	$(DO_GL_AS)
 
 #############################################################################
 # MISC
 #############################################################################
 clean: clean-debug clean-release
-	rm -f squake.spec glquake.spec quake.x11.spec
 
 clean-debug:
-	$(MAKE) -f make.rpi clean2 BUILDDIR=$(BUILD_DEBUG_DIR) CFLAGS="$(DEBUG_CFLAGS)"
+	$(MAKE) -f make.rpi actual_clean BUILDDIR=$(BUILD_DEBUG_DIR) CFLAGS="$(DEBUG_CFLAGS)"
 
 clean-release:
-	$(MAKE) -f make.rpi clean2 BUILDDIR=$(BUILD_RELEASE_DIR) CFLAGS="$(DEBUG_CFLAGS)"
+	$(MAKE) -f make.rpi actual_clean BUILDDIR=$(BUILD_RELEASE_DIR) CFLAGS="$(DEBUG_CFLAGS)"
 
-clean2:
-	-rm -f $(SQUAKE_OBJS) $(X11_OBJS) $(GLQUAKE_OBJS) \
-		$(GLX_OBJS)
-
+actual_clean:
+	-rm -f $(CM_OBJECTS) $(SW_OBJECTS) $(GL_OBJECTS) 
