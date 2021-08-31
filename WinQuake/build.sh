@@ -6,6 +6,8 @@
 
 ### Globals settings ###
 
+SYSTEM_ROOT="--sysroot=/" #overridden if we are cross compiling
+
 # cross compile suff, edit to suit your local build
 
 CCPREFIX=/home/pi/raspberrypi/tools/arm-bcm2708/gcc-linaro-arm-linux-gnueabihf-raspbian-x64/bin/arm-linux-gnueabihf-
@@ -59,7 +61,7 @@ echo "- - - - - - - - - - - - - - - "
 make -j4 -f make.rpi $1 ARCH=arm \
 	CC=""$CROSS_COMPILE"gcc" USE_SVN=0 USE_CURL=0 USE_OPENAL=0 \
 	CFLAGS="$SYSTEM_ROOT $INCLUDES" \
-	LDFLAGS="-lm -pthread $ARM_LIBS -lvchostif -lvcfiled_check -lbcm_host -lkhrn_static -lvchiq_arm -lopenmaxil -lbrcmEGL -lbrcmGLESv2 -lvcos -lrt -lSDL -ludev"
+	LDFLAGS="-lm -pthread $ARM_LIBS -lvchostif -lbcm_host -lkhrn_static -lvchiq_arm -lopenmaxil -lbrcmEGL -lbrcmGLESv2 -lvcos -lrt -lSDL -ludev"
 	
 exit 0
 

@@ -6,11 +6,6 @@
 #	we will use and the ${BUILDDIR} and ${CFLAGS} as these change depending on 
 #	the configuration
 #	
-#	
-#	
-#	
-#	
-#	
 ############################################################################
 
 BASEVERSION=1.09
