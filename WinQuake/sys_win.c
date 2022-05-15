@@ -26,7 +26,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "conproc.h"
 
 #define MINIMUM_WIN_MEMORY		0x0880000
+#if ENABLE_4K
+#define MAXIMUM_WIN_MEMORY		0x4000000 //maybe need to change for 4k
+#else
 #define MAXIMUM_WIN_MEMORY		0x1000000
+#endif
 
 #define CONSOLE_ERROR_TIMEOUT	60.0	// # of seconds to wait on Sys_Error running
 										//  dedicated before exiting
@@ -398,7 +402,7 @@ void Sys_Error (char *error, ...)
 		if (!in_sys_error0)
 		{
 			in_sys_error0 = 1;
-			VID_SetDefaultMode ();
+			//VID_SetDefaultMode ();
 			MessageBox(NULL, text, "Quake Error",
 					   MB_OK | MB_SETFOREGROUND | MB_ICONSTOP);
 		}
@@ -694,13 +698,15 @@ int			global_nCmdShow;
 char		*argv[MAX_NUM_ARGVS];
 static char	*empty_string = "";
 HWND		hwnd_dialog;
-
+double		updateTimeSecs; 
+int			framesLastSecond=0, framesLastSecondCnt=0, renderLastSecond, renderLastSecondCnt=0; 
+double		lastSecondStart = 0; 
 
 int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
     MSG				msg;
 	quakeparms_t	parms;
-	double			time, oldtime, newtime;
+	double			oldtime, newtime;
 	MEMORYSTATUS	lpBuffer;
 	static	char	cwd[1024];
 	int				t;
@@ -859,38 +865,44 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	oldtime = Sys_FloatTime ();
 
     /* main window message loop */
+	lastSecondStart = Sys_FloatTime ();
 	while (1)
 	{
 		if (isDedicated)
 		{
 			newtime = Sys_FloatTime ();
-			time = newtime - oldtime;
+			updateTimeSecs = newtime - oldtime;
 
-			while (time < sys_ticrate.value )
+			while (updateTimeSecs < sys_ticrate.value )
 			{
 				Sys_Sleep();
 				newtime = Sys_FloatTime ();
-				time = newtime - oldtime;
+				updateTimeSecs = newtime - oldtime;
 			}
 		}
 		else
 		{
-		// yield the CPU for a little while when paused, minimized, or not the focus
-			if ((cl.paused && (!ActiveApp && !DDActive)) || Minimized || block_drawing)
+			// yield the CPU for a little while when paused, minimized, or not the focus
+			if ((cl.paused && (!ActiveApp)) || Minimized || block_drawing)
 			{
 				SleepUntilInput (PAUSE_SLEEP);
 				scr_skipupdate = 1;		// no point in bothering to draw
 			}
-			else if (!ActiveApp && !DDActive)
+			else if (!ActiveApp)
 			{
 				SleepUntilInput (NOT_FOCUS_SLEEP);
 			}
-
 			newtime = Sys_FloatTime ();
-			time = newtime - oldtime;
+			updateTimeSecs = newtime - oldtime;
 		}
-
-		Host_Frame (time);
+		if (newtime - lastSecondStart > 1.0){
+			lastSecondStart = newtime;
+			framesLastSecond = framesLastSecondCnt;
+			renderLastSecond = renderLastSecondCnt;
+			framesLastSecondCnt = 0;
+			renderLastSecondCnt = 0;
+		}
+		Host_Frame (updateTimeSecs);
 		oldtime = newtime;
 	}
 

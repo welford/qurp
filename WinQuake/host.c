@@ -54,6 +54,7 @@ jmp_buf 	host_abortserver;
 byte		*host_basepal;
 byte		*host_colormap;
 
+cvar_t	host_framelimit = {"host_framelimit","666"};	// set for slow motion
 cvar_t	host_framerate = {"host_framerate","0"};	// set for slow motion
 cvar_t	host_speeds = {"host_speeds","0"};			// set for running times
 
@@ -210,6 +211,7 @@ void Host_InitLocal (void)
 {
 	Host_InitCommands ();
 	
+	Cvar_RegisterVariable (&host_framelimit);
 	Cvar_RegisterVariable (&host_framerate);
 	Cvar_RegisterVariable (&host_speeds);
 
@@ -502,7 +504,7 @@ qboolean Host_FilterTime (float time)
 {
 	realtime += time;
 
-	if (!cls.timedemo && realtime - oldrealtime < 1.0/800.0)
+	if (!cls.timedemo && host_framelimit.value != 0 && realtime - oldrealtime < 1.0/host_framelimit.value)
 		return false;		// framerate is too high
 
 	host_frametime = realtime - oldrealtime;
@@ -513,9 +515,13 @@ qboolean Host_FilterTime (float time)
 	else
 	{	// don't allow really long or short frames
 		if (host_frametime > 0.1)
+		{
 			host_frametime = 0.1;
+		}
 		if (host_frametime < 0.001)
+		{
 			host_frametime = 0.001;
+		}
 	}
 
 	return true;
@@ -630,6 +636,7 @@ Host_Frame
 Runs all active servers
 ==================
 */
+extern int framesLastSecondCnt;
 void _Host_Frame (float time)
 {
 	static double		time1 = 0;
@@ -647,6 +654,7 @@ void _Host_Frame (float time)
 	if (!Host_FilterTime (time))
 		return;			// don't run too fast, or packets will flood out
 		
+	framesLastSecondCnt++;
 // get new key events
 	Sys_SendKeyEvents ();
 

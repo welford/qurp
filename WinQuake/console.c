@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <fcntl.h>
 #include "quakedef.h"
 
-int 		con_linewidth;
+int 		con_linewidth = 0;
 
 float		con_cursorspeed = 4;
 
@@ -36,7 +36,7 @@ float		con_cursorspeed = 4;
 
 qboolean 	con_forcedup;		// because no entities to refresh
 
-int			con_totallines;		// total lines in console scrollback
+int			con_totallines=0;		// total lines in console scrollback
 int			con_backscroll;		// lines up from bottom to display
 int			con_current;		// where next message will be printed
 int			con_x;				// offset in current line for next print
@@ -527,9 +527,9 @@ void Con_DrawNotify (void)
 	float	time;
 	extern char chat_buffer[];
 
-	//JAMES	
+#ifdef GLQUAKE
 	//EnableBlending();
-	//END
+#endif //GLQUAKE
 
 	v = 0;
 	for (i= con_current-NUM_CON_TIMES+1 ; i<=con_current ; i++)

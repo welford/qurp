@@ -54,7 +54,7 @@ extern	int	screenwidth;
 
 int	current_iv;
 
-int	edge_head_u_shift20, edge_tail_u_shift20;
+uv_t edge_head_u_shift20, edge_tail_u_shift20;
 
 static void (*pdrawfunc)(void);
 
@@ -192,8 +192,8 @@ edgesearch:
 		edgelist=edgelist->next;
 		goto edgesearch;
 
-	// insert edgestoadd before edgelist
-addedge:
+		// insert edgestoadd before edgelist
+		addedge:
 		edgestoadd->next = edgelist;
 		edgestoadd->prev = edgelist->prev;
 		edgelist->prev->next = edgestoadd;
@@ -233,8 +233,8 @@ R_StepActiveU
 */
 void R_StepActiveU (edge_t *pedge)
 {
+	edge_t *tmp = pedge;
 	edge_t		*pnext_edge, *pwedge;
-
 	while (1)
 	{
 nextedge:
@@ -242,24 +242,21 @@ nextedge:
 		if (pedge->u < pedge->prev->u)
 			goto pushback;
 		pedge = pedge->next;
-			
+
 		pedge->u += pedge->u_step;
 		if (pedge->u < pedge->prev->u)
 			goto pushback;
 		pedge = pedge->next;
-			
 		pedge->u += pedge->u_step;
 		if (pedge->u < pedge->prev->u)
 			goto pushback;
 		pedge = pedge->next;
-			
 		pedge->u += pedge->u_step;
 		if (pedge->u < pedge->prev->u)
 			goto pushback;
 		pedge = pedge->next;
-			
-		goto nextedge;		
-		
+		goto nextedge;
+
 pushback:
 		if (pedge == &edge_aftertail)
 			return;
@@ -274,7 +271,7 @@ pushback:
 	// find out where the edge goes in the edge list
 		pwedge = pedge->prev->prev;
 
-		while (pwedge->u > pedge->u)
+		while (pwedge->u > pedge->u) //goig backwards so we don't need to worry about INVALID_UV case
 		{
 			pwedge = pwedge->prev;
 		}
@@ -302,7 +299,7 @@ R_CleanupSpan
 void R_CleanupSpan ()
 {
 	surf_t	*surf;
-	int		iu;
+	uv_t	iu;
 	espan_t	*span;
 
 // now that we've reached the right edge of the screen, we're done with any
@@ -337,7 +334,7 @@ void R_LeadingEdgeBackwards (edge_t *edge)
 {
 	espan_t			*span;
 	surf_t			*surf, *surf2;
-	int				iu;
+	uv_t			iu;
 
 // it's adding a new surface in, so find the correct place
 	surf = &surfaces[edge->surfs[1]];
@@ -416,7 +413,7 @@ R_TrailingEdge
 void R_TrailingEdge (surf_t *surf, edge_t *edge)
 {
 	espan_t			*span;
-	int				iu;
+	uv_t			iu;
 
 // don't generate a span if this is an inverted span, with the end
 // edge preceding the start edge (that is, we haven't seen the
@@ -435,6 +432,9 @@ void R_TrailingEdge (surf_t *surf, edge_t *edge)
 				span = span_p++;
 				span->u = surf->last_u;
 				span->count = iu - span->u;
+				if (span->count < 0) {
+					__debugbreak();
+				}
 				span->v = current_iv;
 				span->pnext = surf->spans;
 				surf->spans = span;
@@ -459,10 +459,10 @@ R_LeadingEdge
 */
 void R_LeadingEdge (edge_t *edge)
 {
-	espan_t			*span;
-	surf_t			*surf, *surf2;
-	int				iu;
-	double			fu, newzi, testzi, newzitop, newzibottom;
+	espan_t		*span;
+	surf_t		*surf, *surf2;
+	uv_t		iu;
+	double		fu, newzi, testzi, newzitop, newzibottom;
 
 	if (edge->surfs[1])
 	{
@@ -487,7 +487,8 @@ void R_LeadingEdge (edge_t *edge)
 			if (surf->insubmodel && (surf->key == surf2->key))
 			{
 			// must be two bmodels in the same leaf; sort on 1/z
-				fu = (float)(edge->u - 0xFFFFF) * (1.0 / 0x100000);
+				long long u = edge->u;
+				fu = (float)(u - 0xFFFFF) * (1.0 / 0x100000); //JWA
 				newzi = surf->d_ziorigin + fv*surf->d_zistepv +
 						fu*surf->d_zistepu;
 				newzibottom = newzi * 0.99;
@@ -525,7 +526,8 @@ continue_search:
 					goto continue_search;
 
 			// must be two bmodels in the same leaf; sort on 1/z
-				fu = (float)(edge->u - 0xFFFFF) * (1.0 / 0x100000);
+				long long u = edge->u;
+				fu = (float)(u - 0xFFFFF) * (1.0 / 0x100000); //JWA
 				newzi = surf->d_ziorigin + fv*surf->d_zistepv +
 						fu*surf->d_zistepu;
 				newzibottom = newzi * 0.99;
@@ -561,6 +563,9 @@ newtop:
 				span = span_p++;
 				span->u = surf2->last_u;
 				span->count = iu - span->u;
+				if (span->count < 0) {
+					__debugbreak();
+			}
 				span->v = current_iv;
 				span->pnext = surf2->spans;
 				surf2->spans = span;
@@ -675,7 +680,7 @@ void R_ScanEdges (void)
 
 // clear active edges to just the background edges around the whole screen
 // FIXME: most of this only needs to be set up once
-	edge_head.u = r_refdef.vrect.x << 20;
+	edge_head.u = (uv_t)r_refdef.vrect.x << 20;
 	edge_head_u_shift20 = edge_head.u >> 20;
 	edge_head.u_step = 0;
 	edge_head.prev = NULL;
@@ -683,21 +688,24 @@ void R_ScanEdges (void)
 	edge_head.surfs[0] = 0;
 	edge_head.surfs[1] = 1;
 	
-	edge_tail.u = (r_refdef.vrectright << 20) + 0xFFFFF;
+	edge_tail.u = ((uv_t)r_refdef.vrectright << 20) + 0xFFFFF;
 	edge_tail_u_shift20 = edge_tail.u >> 20;
 	edge_tail.u_step = 0;
 	edge_tail.prev = &edge_head;
 	edge_tail.next = &edge_aftertail;
 	edge_tail.surfs[0] = 1;
 	edge_tail.surfs[1] = 0;
-	
-	edge_aftertail.u = -1;		// force a move
+	edge_aftertail.u = -1;//;		// force a move
 	edge_aftertail.u_step = 0;
 	edge_aftertail.next = &edge_sentinel;
 	edge_aftertail.prev = &edge_tail;
 
 // FIXME: do we need this now that we clamp x in r_draw.c?
-	edge_sentinel.u = 2000 << 24;		// make sure nothing sorts past this
+#if ENABLE_4K
+	edge_sentinel.u = -2;						// make sure nothing sorts past this
+#else
+	edge_sentinel.u = (uv_t)2000 << 24;		// make sure nothing sorts past this
+#endif
 	edge_sentinel.prev = &edge_aftertail;
 
 //	

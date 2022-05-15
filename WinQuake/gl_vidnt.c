@@ -82,7 +82,6 @@ static qboolean	vid_initialized = false;
 static qboolean	windowed, leavecurrentmode;
 static qboolean vid_canalttab = false;
 static qboolean vid_wassuspended = false;
-static int		windowed_mouse;
 extern qboolean	mouseactive;  // from in_win.c
 static HICON	hIcon;
 
@@ -90,7 +89,7 @@ int			DIBWidth, DIBHeight;
 RECT		WindowRect;
 DWORD		WindowStyle, ExWindowStyle;
 
-HWND	mainwindow, dibwindow;
+HWND	mainwindow;
 
 int			vid_modenum = NO_MODE;
 int			vid_realmode;
@@ -150,10 +149,9 @@ cvar_t		_vid_wait_override = {"_vid_wait_override", "0", true};
 cvar_t		vid_config_x = {"vid_config_x","640", true};
 cvar_t		vid_config_y = {"vid_config_y","320", true};
 cvar_t		vid_stretch_by_2 = {"vid_stretch_by_2","1", true};
-cvar_t		_windowed_mouse = {"_windowed_mouse","1", true};
 
 //JAMES: hacks and additions
-int			window_center_x, window_center_y, window_x, window_y, window_width, window_height;
+int			window_center_x, window_center_y, window_width, window_height;
 RECT		window_rect;
 
 //static const unsigned int multisamples = 16;
@@ -278,8 +276,8 @@ qboolean VID_SetWindowedMode (int modenum)
 		DWORD dwStyle = WS_OVERLAPPED | WS_BORDER | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
 		// Win32 allows the pixel format to be set only once per app, so destroy and re-create the app:
 		wglDeleteContext( tempRC ); //might be redundant and the window is destroyed below?
-		dibwindow = CreateWindowEx(ExWindowStyle, "WinQuake", "GLQuake", WindowStyle, window_x, window_y, window_width, window_height, 0, 0, 0, 0);
-		maindc = GetDC(dibwindow);
+		mainwindow = CreateWindowEx(ExWindowStyle, "WinQuake", "GLQuake", WindowStyle, window_x, window_y, window_width, window_height, 0, 0, 0, 0);
+		maindc = GetDC(mainwindow);
 		SetPixelFormat(maindc, pixel_format, &pfd);
 		baseRC = wglCreateContext(maindc);
 		wglMakeCurrent(maindc, baseRC);
@@ -288,9 +286,9 @@ qboolean VID_SetWindowedMode (int modenum)
 	{
 		Sys_Error ("VID_SetWindowedMode failed to find suitable pixel format");
 	}
-	maindc = GetDC(dibwindow); //update the main dc to the newly created window
+	maindc = GetDC(mainwindow); //update the main dc to the newly created window
 
-	if (!dibwindow)
+	if (!mainwindow)
 		Sys_Error ("Couldn't create DIB window");
 
 	// Center and show the DIB window
@@ -306,9 +304,9 @@ qboolean VID_SetWindowedMode (int modenum)
 // (to avoid flickering when re-sizing the window on the desktop),
 // we clear the window to black when created, otherwise it will be
 // empty while Quake starts up.
-	hdc = GetDC(dibwindow);
+	hdc = GetDC(mainwindow);
 	PatBlt(hdc,0,0,WindowRect.right,WindowRect.bottom,BLACKNESS);
-	ReleaseDC(dibwindow, hdc);
+	ReleaseDC(mainwindow, hdc);
 
 	if (vid.conheight > modelist[modenum].height)
 		vid.conheight = modelist[modenum].height;
@@ -320,7 +318,6 @@ qboolean VID_SetWindowedMode (int modenum)
 
 	vid.numpages = 2;
 
-	mainwindow = dibwindow;
 
 	SendMessage (mainwindow, WM_SETICON, (WPARAM)TRUE, (LPARAM)hIcon);
 	SendMessage (mainwindow, WM_SETICON, (WPARAM)FALSE, (LPARAM)hIcon);
@@ -400,8 +397,8 @@ qboolean VID_SetFullDIBMode (int modenum)
 	{
 		// Win32 allows the pixel format to be set only once per app, so destroy and re-create the app:
 		wglDeleteContext( tempRC ); //might be redundant and the window is destroyed below?
-		dibwindow = CreateWindowEx(ExWindowStyle, "WinQuake", "GLQuake", WindowStyle, window_x, window_y, window_width, window_height, 0, 0, 0, 0);
-		maindc = GetDC(dibwindow);
+		mainwindow = CreateWindowEx(ExWindowStyle, "WinQuake", "GLQuake", WindowStyle, window_x, window_y, window_width, window_height, 0, 0, 0, 0);
+		maindc = GetDC(mainwindow);
 		SetPixelFormat(maindc, pixel_format, &pfd);
 		baseRC = wglCreateContext(maindc);
 		wglMakeCurrent(maindc, baseRC);
@@ -410,21 +407,21 @@ qboolean VID_SetFullDIBMode (int modenum)
 	{
 		Sys_Error ("VID_SetFullDIBMode failed to find suitable pixel format");
 	}
-	maindc = GetDC(dibwindow); //update the main dc to the newly created window
+	maindc = GetDC(mainwindow); //update the main dc to the newly created window
 
-	if (!dibwindow)
+	if (!mainwindow)
 		Sys_Error ("Couldn't create DIB window");
 
-	ShowWindow (dibwindow, SW_SHOWDEFAULT);
-	UpdateWindow (dibwindow);
+	ShowWindow (mainwindow, SW_SHOWDEFAULT);
+	UpdateWindow (mainwindow);
 
 	// Because we have set the background brush for the window to NULL
 	// (to avoid flickering when re-sizing the window on the desktop), we
 	// clear the window to black when created, otherwise it will be
 	// empty while Quake starts up.
-	hdc = GetDC(dibwindow);
+	hdc = GetDC(mainwindow);
 	PatBlt(hdc,0,0,WindowRect.right,WindowRect.bottom,BLACKNESS);
-	ReleaseDC(dibwindow, hdc);
+	ReleaseDC(mainwindow, hdc);
 
 	if (vid.conheight > modelist[modenum].height)
 		vid.conheight = modelist[modenum].height;
@@ -438,8 +435,6 @@ qboolean VID_SetFullDIBMode (int modenum)
 // needed because we're not getting WM_MOVE messages fullscreen on NT
 	window_x = 0;
 	window_y = 0;
-
-	mainwindow = dibwindow;
 
 	SendMessage (mainwindow, WM_SETICON, (WPARAM)TRUE, (LPARAM)hIcon);
 	SendMessage (mainwindow, WM_SETICON, (WPARAM)FALSE, (LPARAM)hIcon);
@@ -474,7 +469,7 @@ int VID_SetMode (int modenum, unsigned char *palette)
 	// Set either the fullscreen or windowed mode
 	if (modelist[modenum].type == MS_WINDOWED)
 	{
-		if (_windowed_mouse.value && key_dest == key_game)
+		if (key_dest == key_game)
 		{
 			stat = VID_SetWindowedMode(modenum);
 			IN_ActivateMouse ();
@@ -710,21 +705,12 @@ void GL_EndRendering (void)
 // handle the mouse state when windowed if that's changed
 	if (modestate == MS_WINDOWED)
 	{
-		if (!_windowed_mouse.value) {
-			if (windowed_mouse)	{
-				IN_DeactivateMouse ();
-				IN_ShowMouse ();
-				windowed_mouse = false;
-			}
-		} else {
-			windowed_mouse = true;
-			if (key_dest == key_game && !mouseactive && ActiveApp) {
-				IN_ActivateMouse ();
-				IN_HideMouse ();
-			} else if (mouseactive && key_dest != key_game) {
-				IN_DeactivateMouse ();
-				IN_ShowMouse ();
-			}
+		if (key_dest == key_game && !mouseactive && ActiveApp) {
+			IN_ActivateMouse ();
+			IN_HideMouse ();
+		} else if (mouseactive && key_dest != key_game) {
+			IN_DeactivateMouse ();
+			IN_ShowMouse ();
 		}
 	}
 	if (fullsbardraw)
@@ -830,15 +816,15 @@ void	VID_Shutdown (void)
     	if (hRC)
     	    wglDeleteContext(hRC);
 
-		if (hDC && dibwindow)
-			ReleaseDC(dibwindow, hDC);
+		if (hDC && mainwindow)
+			ReleaseDC(mainwindow, hDC);
 
 		if (modestate == MS_FULLDIB){
 			ChangeDisplaySettings (NULL, 0);
 		}
 
-		if (maindc && dibwindow)
-			ReleaseDC (dibwindow, maindc);
+		if (maindc && mainwindow)
+			ReleaseDC (mainwindow, maindc);
 
 		AppActivate(false, false);
 	}
@@ -1022,7 +1008,7 @@ void AppActivate(BOOL fActive, BOOL minimize)
 				ShowWindow(mainwindow, SW_SHOWNORMAL);
 			}
 		}
-		else if ((modestate == MS_WINDOWED) && _windowed_mouse.value && key_dest == key_game)
+		else if ((modestatemodestate == MS_WINDOWED) && key_dest == key_game)
 		{
 			IN_ActivateMouse ();
 			IN_HideMouse ();
@@ -1040,7 +1026,7 @@ void AppActivate(BOOL fActive, BOOL minimize)
 				vid_wassuspended = true;
 			}
 		}
-		else if ((modestate == MS_WINDOWED) && _windowed_mouse.value)
+		else if ((modestate == MS_WINDOWED))
 		{
 			IN_DeactivateMouse ();
 			IN_ShowMouse ();
@@ -1158,8 +1144,8 @@ LONG WINAPI MainWndProc (
 
    	    case WM_DESTROY:
         {
-			if (dibwindow)
-				DestroyWindow (dibwindow);
+			if (mainwindow)
+				DestroyWindow (mainwindow);
 
             PostQuitMessage (0);
         }
@@ -1349,29 +1335,11 @@ creates a
 */
 void VID_InitDIB (HINSTANCE hInstance)
 {
-	//WNDCLASS		wc;
-	//HDC				hdc;
-	int				i;
-
-	/*
-	/* Register the frame class */
-	/*
-    wc.style         = 0;
-    wc.lpfnWndProc   = (WNDPROC)MainWndProc;
-    wc.cbClsExtra    = 0;
-    wc.cbWndExtra    = 0;
-    wc.hInstance     = hInstance;
-    wc.hIcon         = 0;
-    wc.hCursor       = LoadCursor (NULL,IDC_ARROW);
-	wc.hbrBackground = NULL;
-    wc.lpszMenuName  = 0;
-    wc.lpszClassName = "WinQuake";
-	*/
 	WNDCLASSEX wc = {				//http://msdn.microsoft.com/en-us/library/windows/desktop/ms633577(v=vs.85).aspx
-		sizeof(WNDCLASSEX), 
+		sizeof(WNDCLASSEX),
 		CS_CLASSDC,					// see http://msdn.microsoft.com/en-us/library/windows/desktop/ff729176(v=vs.85).aspx
 		(WNDPROC)MainWndProc,			//windows procedure
-		0L, 
+		0L,
 		0L,
 		hInstance,					//windows instance
 		0,							//icon
@@ -1734,7 +1702,6 @@ void	VID_Init (unsigned char *palette)
 	Cvar_RegisterVariable (&vid_config_x);
 	Cvar_RegisterVariable (&vid_config_y);
 	Cvar_RegisterVariable (&vid_stretch_by_2);
-	Cvar_RegisterVariable (&_windowed_mouse);
 	Cvar_RegisterVariable (&gl_ztrick);
 
 	Cmd_AddCommand ("vid_nummodes", VID_NumModes_f);

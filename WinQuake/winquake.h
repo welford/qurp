@@ -38,7 +38,6 @@ extern	int			global_nCmdShow;
 #ifndef SERVERONLY
 
 extern LPDIRECTDRAW		lpDD;
-extern qboolean			DDActive;
 extern LPDIRECTDRAWSURFACE	lpPrimary;
 extern LPDIRECTDRAWSURFACE	lpFrontBuffer;
 extern LPDIRECTDRAWSURFACE	lpBackBuffer;
@@ -54,7 +53,7 @@ void	VID_UnlockBuffer (void);
 
 #endif
 
-typedef enum {MS_WINDOWED, MS_FULLSCREEN, MS_FULLDIB, MS_UNINIT} modestate_t;
+typedef enum {MS_WINDOWED, MS_FULLSCREEN} modestate_t;
 
 extern modestate_t	modestate;
 
@@ -75,8 +74,6 @@ void IN_SetQuakeMouseState (void);
 void IN_MouseEvent (int mstate);
 
 extern qboolean	winsock_lib_initialized;
-
-extern cvar_t		_windowed_mouse;
 
 extern int		window_center_x, window_center_y;
 extern RECT		window_rect;

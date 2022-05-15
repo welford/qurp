@@ -84,7 +84,7 @@ void D_DrawSolidSurface (surf_t *surf, int color)
 {
 	espan_t	*span;
 	byte	*pdest;
-	int		u, u2, pix;
+	uv_t	u, u2, pix;
 	
 	pix = (color<<24) | (color<<16) | (color<<8) | color;
 	for (span=surf->spans ; span ; span=span->pnext)

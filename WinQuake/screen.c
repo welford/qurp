@@ -32,7 +32,7 @@ float		scr_conlines;		// lines of console to display
 float		oldscreensize, oldfov;
 cvar_t		scr_viewsize = {"viewsize","100", true};
 cvar_t		scr_fov = {"fov","90"};	// 10 - 170
-cvar_t		scr_conspeed = {"scr_conspeed","300"};
+cvar_t		scr_conspeed = {"scr_conspeed","1000"};
 cvar_t		scr_centertime = {"scr_centertime","2"};
 cvar_t		scr_showram = {"showram","1"};
 cvar_t		scr_showturtle = {"showturtle","0"};
@@ -119,8 +119,7 @@ void SCR_EraseCenterString (void)
 		y = 48;
 
 	scr_copytop = 1;
-	//JAMES
-	//Draw_TileClear (0, y,vid.width, 8*scr_erase_lines);
+	Draw_TileClear (0, y,vid.width, 8*scr_erase_lines);
 }
 
 void SCR_DrawCenterString (void)
@@ -326,9 +325,11 @@ void SCR_Init (void)
 //
 // register our commands
 //
-	Cmd_AddCommand ("screenshot",SCR_ScreenShot_f);
-	Cmd_AddCommand ("sizeup",SCR_SizeUp_f);
-	Cmd_AddCommand ("sizedown",SCR_SizeDown_f);
+	if( !scr_initialized ) {
+		Cmd_AddCommand ("screenshot",SCR_ScreenShot_f);
+		Cmd_AddCommand ("sizeup",SCR_SizeUp_f);
+		Cmd_AddCommand ("sizedown",SCR_SizeDown_f);
+	}
 
 	scr_ram = Draw_PicFromWad ("ram");
 	scr_net = Draw_PicFromWad ("net");
@@ -481,15 +482,13 @@ void SCR_SetUpToDrawConsole (void)
 	if (clearconsole++ < vid.numpages)
 	{
 		scr_copytop = 1;
-		//JAMES
-		//Draw_TileClear (0,(int)scr_con_current,vid.width, vid.height - (int)scr_con_current);
+		Draw_TileClear (0,(int)scr_con_current,vid.width, vid.height - (int)scr_con_current);
 		Sbar_Changed ();
 	}
 	else if (clearnotify++ < vid.numpages)
 	{
 		scr_copytop = 1;
-		//JAMES
-		//Draw_TileClear (0,0,vid.width, con_notifylines);
+		Draw_TileClear (0,0,vid.width, con_notifylines);
 	}
 	else
 		con_notifylines = 0;
@@ -813,7 +812,7 @@ void SCR_UpdateScreen (void)
 	static float	oldscr_viewsize;
 	static float	oldlcd_x;
 	vrect_t		vrect;
-	
+
 	if (scr_skipupdate || block_drawing)
 		return;
 
@@ -878,8 +877,7 @@ void SCR_UpdateScreen (void)
 	if (scr_fullupdate++ < vid.numpages)
 	{	// clear the entire screen
 		scr_copyeverything = 1;
-		//JAMES
-		//Draw_TileClear (0,0,vid.width,vid.height);
+		Draw_TileClear (0,0,vid.width,vid.height);
 		Sbar_Changed ();
 	}
 

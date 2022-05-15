@@ -72,32 +72,32 @@ typedef struct entity_s
 // !!! if this is changed, it must be changed in asm_draw.h too !!!
 typedef struct
 {
-	vrect_t		vrect;				// subwindow in video for refresh
+	vrect_t			vrect;				// subwindow in video for refresh
 									// FIXME: not need vrect next field here?
-	vrect_t		aliasvrect;			// scaled Alias version
-	int			vrectright, vrectbottom;	// right & bottom screen coords
-	int			aliasvrectright, aliasvrectbottom;	// scaled Alias versions
-	float		vrectrightedge;			// rightmost right edge we care about,
+	vrect_t			aliasvrect;			// scaled Alias version
+	uv_t			vrectright, vrectbottom;	// right & bottom screen coords
+	int				aliasvrectright, aliasvrectbottom;	// scaled Alias versions
+	float			vrectrightedge;			// rightmost right edge we care about,
 										//  for use in edge list
-	float		fvrectx, fvrecty;		// for floating-point compares
-	float		fvrectx_adj, fvrecty_adj; // left and top edges, for clamping
-	int			vrect_x_adj_shift20;	// (vrect.x + 0.5 - epsilon) << 20
-	int			vrectright_adj_shift20;	// (vrectright + 0.5 - epsilon) << 20
-	float		fvrectright_adj, fvrectbottom_adj;
+	float			fvrectx, fvrecty;		// for floating-point compares
+	float			fvrectx_adj, fvrecty_adj; // left and top edges, for clamping
+	uv_t			vrect_x_adj_shift20;	// (vrect.x + 0.5 - epsilon) << 20
+	uv_t			vrectright_adj_shift20;	// (vrectright + 0.5 - epsilon) << 20
+	float			fvrectright_adj, fvrectbottom_adj;
 										// right and bottom edges, for clamping
-	float		fvrectright;			// rightmost edge, for Alias clamping
-	float		fvrectbottom;			// bottommost edge, for Alias clamping
-	float		horizontalFieldOfView;	// at Z = 1.0, this many X is visible 
+	float			fvrectright;			// rightmost edge, for Alias clamping
+	float			fvrectbottom;			// bottommost edge, for Alias clamping
+	float			horizontalFieldOfView;	// at Z = 1.0, this many X is visible 
 										// 2.0 = 90 degrees
-	float		xOrigin;			// should probably allways be 0.5
-	float		yOrigin;			// between be around 0.3 to 0.5
+	float			xOrigin;			// should probably allways be 0.5
+	float			yOrigin;			// between be around 0.3 to 0.5
 
-	vec3_t		vieworg;
-	vec3_t		viewangles;
+	vec3_t			vieworg;
+	vec3_t			viewangles;
 	
-	float		fov_x, fov_y;
+	float			fov_x, fov_y;
 
-	int			ambientlight;
+	int				ambientlight;
 } refdef_t;
 
 
@@ -105,13 +105,9 @@ typedef struct
 // refresh
 //
 extern	int		reinit_surfcache;
-
-
 extern	refdef_t	r_refdef;
 extern vec3_t	r_origin, vpn, vright, vup;
-
 extern	struct texture_s	*r_notexture_mip;
-
 
 void R_Init (void);
 void R_InitTextures (void);

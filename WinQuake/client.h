@@ -262,6 +262,8 @@ extern	cvar_t	cl_pitchdriftspeed;
 extern	cvar_t	lookspring;
 extern	cvar_t	lookstrafe;
 extern	cvar_t	sensitivity;
+extern	cvar_t	windowed_mouse;
+extern	cvar_t	win_fullscreen;
 
 extern	cvar_t	m_pitch;
 extern	cvar_t	m_yaw;

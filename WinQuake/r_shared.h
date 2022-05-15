@@ -30,8 +30,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MAXWORKINGVERTS	(MAXVERTS+4)	// max points in an intermediate
 										//  polygon (while processing)
 // !!! if this is changed, it must be changed in d_ifacea.h too !!!
-#define	MAXHEIGHT		1024
-#define	MAXWIDTH		1280
+#if ENABLE_4K
+#define	MAXHEIGHT		4096
+#define	MAXWIDTH		4096
+#else
+#define	MAXHEIGHT		2000
+#define	MAXWIDTH		2000
+#endif
 #define MAXDIMENSION	((MAXHEIGHT > MAXWIDTH) ? MAXHEIGHT : MAXWIDTH)
 
 #define SIN_BUFFER_SIZE	(MAXDIMENSION+CYCLE)
@@ -62,16 +67,16 @@ extern	vec3_t	vpn, base_vpn;
 extern	vec3_t	vright, base_vright;
 extern	entity_t		*currententity;
 
-#define NUMSTACKEDGES		2400
+#define NUMSTACKEDGES		2400 //JWA 4000
 #define	MINEDGES			NUMSTACKEDGES
-#define NUMSTACKSURFACES	800
+#define NUMSTACKSURFACES	800 //JWA 1600
 #define MINSURFACES			NUMSTACKSURFACES
-#define	MAXSPANS			3000
+#define	MAXSPANS			3000 //JWA 4000
 
 // !!! if this is changed, it must be changed in asm_draw.h too !!!
 typedef struct espan_s
 {
-	int				u, v, count;
+	uv_t			u, v, count;
 	struct espan_s	*pnext;
 } espan_t;
 
@@ -83,7 +88,7 @@ typedef struct surf_s
 	struct surf_s	*prev;			// used in r_edge.c for active surf stack
 	struct espan_s	*spans;			// pointer to linked list of spans to draw
 	int			key;				// sorting key (BSP order)
-	int			last_u;				// set during tracing
+	uv_t		last_u;			// set during tracing
 	int			spanstate;			// 0 = not in span
 									// 1 = in span
 									// -1 = in inverted span (end before
@@ -143,8 +148,8 @@ extern int	ubasestep, errorterm, erroradjustup, erroradjustdown;
 // !!! if this is changed, it must be changed in asm_draw.h too !!!
 typedef struct edge_s
 {
-	fixed16_t		u;
-	fixed16_t		u_step;
+	uv_t			u; //JWA for higher resolutions we need to make this unsigned and handle edge cases or s64 and fix up stuff
+	uv_t			u_step; 
 	struct edge_s	*prev, *next;
 	unsigned short	surfs[2];
 	struct edge_s	*nextremove;

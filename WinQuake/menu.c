@@ -1037,9 +1037,9 @@ again:
 /* OPTIONS MENU */
 
 #ifdef _WIN32
-#define	OPTIONS_ITEMS	14
+#define	OPTIONS_ITEMS	15
 #else
-#define	OPTIONS_ITEMS	13
+#define	OPTIONS_ITEMS	14
 #endif
 
 #define	SLIDER_RANGE	10
@@ -1053,13 +1053,17 @@ void M_Menu_Options_f (void)
 	m_entersound = true;
 
 #ifdef _WIN32
-	if ((options_cursor == 13) && (modestate != MS_WINDOWED))
+	if ((options_cursor == 14) && (modestate != MS_WINDOWED))
 	{
 		options_cursor = 0;
 	}
 #endif
 }
 
+extern void VID_Fullscreen(bool);
+extern void VID_SetRenderResolution(int);
+extern char* VID_GetRenderResolutionStr();
+extern cvar_t r_resolution;
 
 void M_AdjustSliders (int dir)
 {
@@ -1137,33 +1141,28 @@ void M_AdjustSliders (int dir)
 		Cvar_SetValue ("lookstrafe", !lookstrafe.value);
 		break;
 
-#ifdef _WIN32
-	case 13:	// _windowed_mouse
-		Cvar_SetValue ("_windowed_mouse", !_windowed_mouse.value);
+	case 12:	// full screen
+		VID_Fullscreen(!win_fullscreen.value);
 		break;
-#endif
+	case 13:	// windowed_mouse
+		Cvar_SetValue ("windowed_mouse", !windowed_mouse.value);
+		break;
+	case 14:	// windowed_mouse
+		VID_SetRenderResolutionIdx(r_resolution.value + dir < 0 ?  0 : (int)(r_resolution.value + dir));
+		break;
+
 	}
 }
 
 
 void M_DrawSlider (int x, int y, float range)
 {
-	//JAMES
-	//VertexAttribute vattr[2] = {		
-	//	{gVtx->vbo_handle/*vbo data handfle*/, POSITION_LOCATION/*attribute idx*/, 2/*data size*/, STREAM_FLOAT/*data type*/, 0/*normalized*/, sizeof(float)*4/*stride*/, sizeof(float)*0/*offset*/, 0/*divisor*/},		
-	//	{gVtx->vbo_handle/*vbo data handfle*/, UV_LOCATION0/*attribute idx*/, 2/*data size*/, STREAM_FLOAT/*data type*/, 0/*normalized*/, sizeof(float)*4/*stride*/, sizeof(float)*2/*offset*/, 0/*divisor*/}
-	//};		
-	//END
 	int	i;
 
 	if (range < 0)
 		range = 0;
 	if (range > 1)
 		range = 1;
-
-	//JAMES
-	//SetAttributeFormat( vattr, 2, 0);
-	//END
 
 	M_DrawCharacter (x-8, y, 128 );
 	for (i=0 ; i<SLIDER_RANGE ; i++)
@@ -1190,57 +1189,61 @@ void M_Options_Draw (void)
 {
 	float		r;
 	qpic_t	*p;
-
+	int cur_y = 24;
 	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 	p = Draw_CachePic ("gfx/p_option.lmp");
 	M_DrawPic ( (320-p->width)/2, 4, p);
 
-	M_Print (16, 32, "    Customize controls");
-	M_Print (16, 40, "         Go to console");
-	M_Print (16, 48, "     Reset to defaults");
+	M_Print (16, cur_y+=8, "    Customize controls");//#0
+	M_Print (16, cur_y+=8, "         Go to console");//#1
+	M_Print (16, cur_y+=8, "     Reset to defaults");//#2
 
-	M_Print (16, 56, "           Screen size");
+	M_Print (16, cur_y+=8, "           Screen size");//#3
 	r = (scr_viewsize.value - 30) / (120 - 30);
-	M_DrawSlider (220, 56, r);
+	M_DrawSlider (220, cur_y, r);
 
-	M_Print (16, 64, "            Brightness");
+	M_Print (16, cur_y+=8, "            Brightness");//#4
 	r = (1.0 - v_gamma.value) / 0.5;
-	M_DrawSlider (220, 64, r);
+	M_DrawSlider (220, cur_y, r);
 
-	M_Print (16, 72, "           Mouse Speed");
+	M_Print (16, cur_y+=8, "           Mouse Speed");//#5
 	r = (sensitivity.value - 1)/10;
-	M_DrawSlider (220, 72, r);
+	M_DrawSlider (220, cur_y, r);
 
-	M_Print (16, 80, "       CD Music Volume");
+	M_Print (16, cur_y+=8, "       CD Music Volume");//#6
 	r = bgmvolume.value;
-	M_DrawSlider (220, 80, r);
+	M_DrawSlider (220, cur_y, r);
 
-	M_Print (16, 88, "          Sound Volume");
+	M_Print (16, cur_y+=8, "          Sound Volume");//#7
 	r = volume.value;
-	M_DrawSlider (220, 88, r);
+	M_DrawSlider (220, cur_y, r);
 
-	M_Print (16, 96,  "            Always Run");
-	M_DrawCheckbox (220, 96, cl_forwardspeed.value > 200);
+	M_Print (16, cur_y+=8,  "            Always Run");//#8
+	M_DrawCheckbox (220, cur_y, cl_forwardspeed.value > 200);
 
-	M_Print (16, 104, "          Invert Mouse");
-	M_DrawCheckbox (220, 104, m_pitch.value < 0);
+	M_Print (16, cur_y+=8, "          Invert Mouse");//#9
+	M_DrawCheckbox (220, cur_y, m_pitch.value < 0);
 
-	M_Print (16, 112, "            Lookspring");
-	M_DrawCheckbox (220, 112, lookspring.value);
+	M_Print (16, cur_y+=8, "            Lookspring");//#10
+	M_DrawCheckbox (220, cur_y, lookspring.value);
 
-	M_Print (16, 120, "            Lookstrafe");
-	M_DrawCheckbox (220, 120, lookstrafe.value);
-
-	if (vid_menudrawfn)
-		M_Print (16, 128, "         Video Options");
+	M_Print (16, cur_y+=8, "            Lookstrafe");//#11
+	M_DrawCheckbox (220, cur_y, lookstrafe.value);
 
 #ifdef _WIN32
-	if (modestate == MS_WINDOWED)
-	{
-		M_Print (16, 136, "             Use Mouse");
-		M_DrawCheckbox (220, 136, _windowed_mouse.value);
-	}
+	M_Print (16, cur_y+=8, "           Full Screen");//#12
+	M_DrawCheckbox (220, cur_y, win_fullscreen.value);
 #endif
+
+	M_Print (16, cur_y+=8, "             Use Mouse");//#13
+	M_DrawCheckbox (220, cur_y, windowed_mouse.value);
+
+	M_Print (16, cur_y+=8, "     Render Resolution");//#14
+	M_Print (220, cur_y, VID_GetRenderResolutionStr());//#14
+
+
+	if (vid_menudrawfn)
+		M_Print (16, cur_y+=8, "         Video Options");//#15
 	
 // cursor	
 	M_DrawCharacter (200, 32 + options_cursor*8, 12+((int)(realtime*4)&1) );
@@ -1269,7 +1272,7 @@ void M_Options_Key (int k)
 		case 2:
 			Cbuf_AddText ("exec default.cfg\n");
 			break;
-		case 12:
+		case 15:
 			M_Menu_Video_f ();
 			break;
 		default:
@@ -1301,21 +1304,21 @@ void M_Options_Key (int k)
 		break;
 	}
 
-	if (options_cursor == 12 && vid_menudrawfn == NULL)
+	if (options_cursor == 15 && vid_menudrawfn == NULL)
 	{
 		if (k == K_UPARROW)
-			options_cursor = 11;
+			options_cursor = 14;
 		else
 			options_cursor = 0;
 	}
 
-#ifdef _WIN32
-	if ((options_cursor == 13) && (modestate != MS_WINDOWED))
+#ifndef _WIN32
+	if ((options_cursor == 12))
 	{
 		if (k == K_UPARROW)
-			options_cursor = 12;
+			options_cursor = 11;
 		else
-			options_cursor = 0;
+			options_cursor = 13;
 	}
 #endif
 }

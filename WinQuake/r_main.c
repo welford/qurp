@@ -188,9 +188,12 @@ void R_Init (void)
 	r_stack_start = (byte *)&dummy;
 	
 	R_InitTurb ();
-	
-	Cmd_AddCommand ("timerefresh", R_TimeRefresh_f);	
-	Cmd_AddCommand ("pointfile", R_ReadPointFile_f);	
+	static int r_Inited = false;
+	if(!r_Inited) {
+		Cmd_AddCommand ("timerefresh", R_TimeRefresh_f);	
+		Cmd_AddCommand ("pointfile", R_ReadPointFile_f);	
+		r_Inited = 1;
+	}
 
 	Cvar_RegisterVariable (&r_draworder);
 	Cvar_RegisterVariable (&r_speeds);
@@ -367,11 +370,11 @@ void R_ViewChanged (vrect_t *pvrect, int lineadj, float aspect)
 	r_refdef.horizontalFieldOfView = 2.0 * tan (r_refdef.fov_x/360*M_PI);
 	r_refdef.fvrectx = (float)r_refdef.vrect.x;
 	r_refdef.fvrectx_adj = (float)r_refdef.vrect.x - 0.5;
-	r_refdef.vrect_x_adj_shift20 = (r_refdef.vrect.x<<20) + (1<<19) - 1;
+	r_refdef.vrect_x_adj_shift20 = (r_refdef.vrect.x<<20) + (1<<19) - 1; //JWA
 	r_refdef.fvrecty = (float)r_refdef.vrect.y;
 	r_refdef.fvrecty_adj = (float)r_refdef.vrect.y - 0.5;
 	r_refdef.vrectright = r_refdef.vrect.x + r_refdef.vrect.width;
-	r_refdef.vrectright_adj_shift20 = (r_refdef.vrectright<<20) + (1<<19) - 1;
+	r_refdef.vrectright_adj_shift20 = (r_refdef.vrectright<<20) + (1<<19) - 1; //JWA
 	r_refdef.fvrectright = (float)r_refdef.vrectright;
 	r_refdef.fvrectright_adj = (float)r_refdef.vrectright - 0.5;
 	r_refdef.vrectrightedge = (float)r_refdef.vrectright - 0.99;
@@ -613,7 +616,7 @@ void R_DrawViewModel (void)
 	float		add;
 	dlight_t	*dl;
 	
-	if (!r_drawviewmodel.value || r_fov_greater_than_90)
+	if (!r_drawviewmodel.value/* || r_fov_greater_than_90*/)
 		return;
 
 	if (cl.items & IT_INVISIBILITY)

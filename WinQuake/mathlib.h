@@ -26,6 +26,17 @@ typedef vec_t vec5_t[5];
 typedef	int	fixed4_t;
 typedef	int	fixed8_t;
 typedef	int	fixed16_t;
+typedef	int	fixed32_t;
+typedef	unsigned int fixedu32_t;
+typedef	long long	fixed64_t;
+typedef	unsigned long long	fixedu64_t;
+
+#if ENABLE_4K //lame hack to get resolutions >= 2048 working
+typedef	long long uv_t;
+#else
+typedef	int uv_t;
+#endif
+
 
 #ifndef M_PI
 #define M_PI		3.14159265358979323846	// matches value in gcc v2 math.h

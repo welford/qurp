@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 
-cvar_t	*cvar_vars;
+cvar_t	*cvar_vars = 0;
 char	*cvar_null_string = "";
 
 /*

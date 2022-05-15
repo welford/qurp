@@ -80,11 +80,11 @@ R_EmitEdge
 void R_EmitEdge (mvertex_t *pv0, mvertex_t *pv1)
 {
 	edge_t	*edge, *pcheck;
-	int		u_check;
+	uv_t	u_check;
 	float	u, u_step;
 	vec3_t	local, transformed;
 	float	*world;
-	int		v, v2, ceilv0;
+	uv_t	v, v2, ceilv0;
 	float	scale, lzi0, u0, v0;
 	int		side;
 
@@ -213,7 +213,10 @@ void R_EmitEdge (mvertex_t *pv0, mvertex_t *pv1)
 	}
 
 	edge->u_step = u_step*0x100000;
-	edge->u = u*0x100000 + 0xFFFFF;
+	edge->u = u*0x100000 + 0xFFFFF; //JWA
+	/*if (u < 0 || edge->u_ < 0 || edge->u_step < 0) {
+		__debugbreak();
+	}*/
 
 // we need to do this to avoid stepping off the edges if a very nearly
 // horizontal edge is less than epsilon above a scan, and numeric error causes
@@ -232,7 +235,7 @@ void R_EmitEdge (mvertex_t *pv0, mvertex_t *pv1)
 	if (edge->surfs[0])
 		u_check++;	// sort trailers after leaders
 
-	if (!newedges[v] || newedges[v]->u >= u_check)
+	if (!newedges[v] || newedges[v]->u >= u_check) //JWA
 	{
 		edge->next = newedges[v];
 		newedges[v] = edge;
@@ -241,7 +244,7 @@ void R_EmitEdge (mvertex_t *pv0, mvertex_t *pv1)
 	{
 		pcheck = newedges[v];
 		while (pcheck->next && pcheck->next->u < u_check)
-			pcheck = pcheck->next;
+			pcheck = pcheck->next; 
 		edge->next = pcheck->next;
 		pcheck->next = edge;
 	}
